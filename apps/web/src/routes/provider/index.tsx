@@ -21,12 +21,36 @@ export const Route = createFileRoute("/provider/")({
       });
     }
 
-    // Check if user has PROVIDER role
     // @ts-ignore - role is UserRole enum
-    if (session.data.user.role !== "PROVIDER") {
+    const role = session.data.user.role;
+
+    // Check if user has PROVIDER role
+    if (role !== "PROVIDER") {
       throw redirect({
         to: "/login",
       });
+    }
+
+    // PROVIDER must have provider record (which implies organization membership)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/providers?userId=${session.data.user.id}`,
+        {
+          credentials: "include",
+        }
+      );
+      
+      if (response.ok) {
+        const providers = await response.json();
+        if (!providers || providers.length === 0) {
+          // Provider has no provider records - redirect to login
+          throw redirect({
+            to: "/login",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error checking provider membership:", error);
     }
 
     return { session };

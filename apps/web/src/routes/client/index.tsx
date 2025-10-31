@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
 import {
@@ -13,6 +13,43 @@ import { Calendar, Building2, Users } from "lucide-react";
 
 export const Route = createFileRoute("/client/")({
   component: ClientDashboard,
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (!session.data) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+
+    // @ts-ignore - role is UserRole enum
+    const role = session.data.user.role;
+
+    // CLIENT must have organization membership
+    if (role === "CLIENT") {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`,
+          {
+            credentials: "include",
+          }
+        );
+        
+        if (response.ok) {
+          const organizations = await response.json();
+          if (!organizations || organizations.length === 0) {
+            // Client has no organizations - redirect to login
+            throw redirect({
+              to: "/login",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking organization membership:", error);
+      }
+    }
+
+    return { session };
+  },
 });
 
 interface Organization {
@@ -66,8 +103,10 @@ function ClientDashboard() {
         <h1 className="text-4xl font-bold mb-2">Book an Appointment</h1>
         <p className="text-muted-foreground">
           Welcome {session?.user?.name}!{" "}
-          {organizations.length === 1
-            ? `You're a member of ${organizations[0]?.name}. Click below to start booking.`
+          {organizations.length === 0
+            ? "Browse available organizations to book an appointment."
+            : organizations.length === 1
+            ? `Book an appointment with ${organizations[0]?.name}.`
             : "Select an organization to start booking."}
         </p>
       </div>

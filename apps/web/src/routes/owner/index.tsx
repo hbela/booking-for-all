@@ -21,12 +21,42 @@ export const Route = createFileRoute("/owner/")({
       });
     }
 
-    // If user is ADMIN, redirect to admin dashboard
     // @ts-ignore - role is UserRole enum
-    if (session.data.user.role === "ADMIN") {
+    const role = session.data.user.role;
+
+    // If user is ADMIN, redirect to admin dashboard
+    if (role === "ADMIN") {
       throw redirect({
         to: "/admin",
       });
+    }
+
+    // OWNER must have organization membership
+    if (role === "OWNER") {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`,
+          {
+            credentials: "include",
+          }
+        );
+        
+        if (response.ok) {
+          const organizations = await response.json();
+          if (!organizations || organizations.length === 0) {
+            // Owner has no organizations - redirect to external app
+            throw redirect({
+              to: "/login",
+              search: {
+                error: "Access denied: You must access the system through your organization's website.",
+              },
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking organization membership:", error);
+        // If check fails, still allow access but log the error
+      }
     }
 
     return { session };

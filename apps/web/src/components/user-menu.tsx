@@ -71,10 +71,16 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    // Always redirect to test-external-app.html after logout
-                    // This will be deployed as a separate static website
-                    window.location.href =
-                      "http://127.0.0.1:5500/test-external-app.html";
+                    // Redirect based on user role
+                    // Admin (no organization) → booking app login
+                    // Owner/Provider/Client (have organizations) → external client app
+                    if (userRole === "ADMIN") {
+                      window.location.href = "http://localhost:3001/login";
+                    } else {
+                      // OWNER, PROVIDER, or CLIENT - redirect to external app
+                      window.location.href =
+                        "http://localhost:8000/wellness_external.html";
+                    }
                   },
                 },
               });

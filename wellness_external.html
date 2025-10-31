@@ -95,11 +95,18 @@
       // Organization identifier for Wellness Center
       // This is safe to expose as it's just an identifier, not the actual API key
       const ORGANIZATION_ID = "wellness";
+      
+      // PHP server URL - update this if your PHP server runs on a different port
+      const PHP_SERVER_URL = "http://localhost:8000";
 
       async function connectToOrganization() {
         try {
           // Use the secure PHP proxy instead of direct API calls
-          const response = await fetch(`connect.php?org=${ORGANIZATION_ID}`, {
+          // Use full URL to connect.php on the PHP server
+          const url = `${PHP_SERVER_URL}/connect.php?org=${ORGANIZATION_ID}`;
+          console.log("Connecting to:", url);
+          
+          const response = await fetch(url, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -107,10 +114,13 @@
           });
 
           if (!response.ok) {
-            throw new Error(`Proxy verification failed: ${response.status}`);
+            const errorText = await response.text();
+            console.error("Proxy verification failed:", response.status, errorText);
+            throw new Error(`Proxy verification failed: ${response.status} - ${errorText}`);
           }
 
           const data = await response.json();
+          console.log("Response data:", data);
 
           if (!data.success) {
             throw new Error(data.message || "Verification failed");
@@ -127,7 +137,7 @@
           window.location.href = data.redirectUrl;
         } catch (error) {
           console.error("Error connecting to organization:", error);
-          alert("Failed to connect to organization. Please try again.");
+          alert(`Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP server is running on port 8000\n2. connect.php file exists in the PHP server directory\n3. Server at ${PHP_SERVER_URL} is accessible`);
         }
       }
     </script>

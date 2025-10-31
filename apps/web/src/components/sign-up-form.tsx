@@ -24,6 +24,9 @@ export default function SignUpForm({
       name: "",
     },
     onSubmit: async ({ value }) => {
+      // Check organization context BEFORE sign up
+      const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
+      
       await authClient.signUp.email(
         {
           email: value.email,
@@ -32,10 +35,29 @@ export default function SignUpForm({
         },
         {
           onSuccess: async (context) => {
+            // Wait for session to be set
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const session = await authClient.getSession();
+            
+            // @ts-ignore - role is UserRole enum
+            const role = session.data?.user?.role;
+            
+            // Block OWNER, PROVIDER, CLIENT from signing up without organization context
+            if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
+              if (!externalAppOrgId) {
+                // User is trying to sign up directly without organization context
+                toast.error("Access Denied: You can only sign up through your organization's website.");
+                // Sign them out immediately
+                await authClient.signOut();
+                // Redirect to external app
+                setTimeout(() => {
+                  window.location.href = "http://localhost:8000/wellness_external.html";
+                }, 2000);
+                return;
+              }
+            }
+            
             toast.success("Sign up successful!");
-
-            // Check if user signed up from external app with organization context
-            const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
 
             if (externalAppOrgId) {
               console.log("🔗 Adding user to organization:", externalAppOrgId);
@@ -85,11 +107,7 @@ export default function SignUpForm({
               }
             }
 
-            // Get user role from the sign-up response context
-            // @ts-ignore - role is UserRole enum
-            const role = context.data?.user?.role;
-
-            // Redirect based on role - each role has its own dashboard
+            // Redirect based on role (already declared above) - each role has its own dashboard
             if (role === "ADMIN") {
               navigate({ to: "/admin/" });
             } else if (role === "OWNER") {

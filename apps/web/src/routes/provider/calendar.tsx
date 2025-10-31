@@ -130,18 +130,24 @@ function ProviderCalendarComponent() {
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${
-          provider.id
-        }`,
-        {
-          credentials: "include",
-        }
-      );
+      const url = `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${
+        provider.id
+      }`;
+      console.log("📅 Fetching events for provider:", provider.id, "from:", url);
+      
+      const response = await fetch(url, {
+        credentials: "include",
+      });
 
       if (response.ok) {
         const data = await response.json();
+        console.log("📅 Raw events from API:", data.length, "events", data);
+        
         const now = new Date();
+        // Show events from the last 30 days onwards (for providers to see recent history)
+        const pastCutoff = new Date();
+        pastCutoff.setDate(pastCutoff.getDate() - 30);
+        
         const formattedEvents = data
           .map((event: any) => ({
             id: event.id,
@@ -156,19 +162,35 @@ function ProviderCalendarComponent() {
             isBooked: event.isBooked,
             booking: event.booking,
           }))
-          .filter((event: CalendarEvent) => event.start > now); // Only show future events
+          .filter((event: CalendarEvent) => event.start >= pastCutoff); // Show events from last 30 days onwards
 
         console.log(
           "📅 Loaded events for provider:",
           formattedEvents.length,
-          "events"
+          "events (showing from last 30 days)"
         );
         console.log(
-          "Booked events:",
+          "📅 Total events from API:",
+          data.length,
+          "Filtered to:",
+          formattedEvents.length
+        );
+        console.log(
+          "📅 Booked events:",
           formattedEvents.filter((e: CalendarEvent) => e.isBooked).length
+        );
+        console.log(
+          "📅 Future events:",
+          formattedEvents.filter((e: CalendarEvent) => e.start > now).length
+        );
+        console.log(
+          "📅 Past events (within 30 days):",
+          formattedEvents.filter((e: CalendarEvent) => e.start <= now).length
         );
         setEvents(formattedEvents);
       } else {
+        const errorText = await response.text();
+        console.error("Failed to load events:", response.status, errorText);
         toast.error("Failed to load events");
       }
     } catch (err) {

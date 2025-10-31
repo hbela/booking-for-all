@@ -50,26 +50,38 @@ export default function SignInForm({
         },
         {
           onSuccess: async (context) => {
+            // Wait for session to be set
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const session = await authClient.getSession();
+            
+            // @ts-ignore - role is UserRole enum
+            const role = session.data?.user?.role;
+            
+            // Check if user is OWNER, PROVIDER, or CLIENT without organization context
+            if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
+              const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
+              
+              if (!externalAppOrgId) {
+                // User is trying to sign in directly without organization context
+                toast.error("Access Denied: This account must be accessed through your organization's website.");
+                // Sign them out immediately
+                await authClient.signOut();
+                // Redirect to external app
+                setTimeout(() => {
+                  window.location.href = "http://localhost:8000/wellness_external.html";
+                }, 2000);
+                return;
+              }
+            }
+            
             toast.success("Sign in successful");
 
             // Debug: Log the full context to see what we're getting
             console.log("🔍 Sign-in context:", context);
             console.log("🔍 User data from sign-in:", context.data?.user);
-
-            // IMPORTANT: The sign-in response doesn't include custom fields (role, needsPasswordChange)
-            // We need to fetch the session to get the complete user data
-            console.log("🔄 Fetching fresh session data...");
-
-            // Wait a moment for the session to be set
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // Get the fresh session with complete user data
-            const session = await authClient.getSession();
             console.log("🔍 Session data:", session);
             console.log("🔍 Session user:", session.data?.user);
 
-            // @ts-ignore - role is UserRole enum
-            const role = session.data?.user?.role;
             // @ts-ignore - needsPasswordChange is custom field
             const needsPasswordChange = session.data?.user?.needsPasswordChange;
 

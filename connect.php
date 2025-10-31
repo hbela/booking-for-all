@@ -124,6 +124,6 @@ echo json_encode([
     "organizationId" => $data['organizationId'],
     "organizationName" => $data['organizationName'],
     "organization" => $organizationId,
-    "redirectUrl" => $FRONTEND_REDIRECT . "?validated=true" // Clean URL - no sensitive data
+    "redirectUrl" => $FRONTEND_REDIRECT . "?org=" . urlencode($data['organizationId']) // Include org ID for signup/login
 ]);
 exit;

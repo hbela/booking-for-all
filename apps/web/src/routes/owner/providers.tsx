@@ -30,12 +30,37 @@ export const Route = createFileRoute("/owner/providers")({
       });
     }
 
-    // If user is ADMIN, redirect to admin dashboard
     // @ts-ignore - role is UserRole enum
-    if (session.data.user.role === "ADMIN") {
+    const role = session.data.user.role;
+
+    // If user is ADMIN, redirect to admin dashboard
+    if (role === "ADMIN") {
       throw redirect({
         to: "/admin/",
       });
+    }
+
+    // OWNER must have organization membership
+    if (role === "OWNER") {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`,
+          {
+            credentials: "include",
+          }
+        );
+        
+        if (response.ok) {
+          const organizations = await response.json();
+          if (!organizations || organizations.length === 0) {
+            throw redirect({
+              to: "/login",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking organization membership:", error);
+      }
     }
 
     return { session };
