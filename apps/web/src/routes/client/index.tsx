@@ -24,6 +24,24 @@ export const Route = createFileRoute("/client/")({
     // @ts-ignore - role is UserRole enum
     const role = session.data.user.role;
 
+    // Owners, Admins, and Providers don't need to book appointments
+    // Redirect to their respective dashboards
+    if (role === "OWNER") {
+      throw redirect({
+        to: "/owner",
+      });
+    }
+    if (role === "ADMIN") {
+      throw redirect({
+        to: "/admin",
+      });
+    }
+    if (role === "PROVIDER") {
+      throw redirect({
+        to: "/provider",
+      });
+    }
+
     // CLIENT must have organization membership
     if (role === "CLIENT") {
       try {

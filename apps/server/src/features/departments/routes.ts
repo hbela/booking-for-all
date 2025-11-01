@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import prisma from '@my-better-t-app/db';
 import crypto from 'crypto';
 import { requireAuthHook, requireOwnerHook } from '../../plugins/authz';
+import { tryEnableOrganization, checkAndDisableOrganization } from '../../utils/organization-utils';
 
 const departmentsRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/departments?organizationId=xxx
@@ -111,6 +112,9 @@ const departmentsRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
+      // Try to enable organization if all conditions are now met
+      await tryEnableOrganization(organizationId);
+
       reply.status(201).send(department);
     } catch (error) {
       app.log.error(error, 'Error creating department');
@@ -151,9 +155,14 @@ const departmentsRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(403).send({ error: 'You are not a member of this organization' });
       }
 
+      const organizationId = department.organizationId;
+
       await prisma.department.delete({
         where: { id },
       });
+
+      // Check if organization should be disabled (no departments or providers left)
+      await checkAndDisableOrganization(organizationId);
 
       reply.send({ success: true });
     } catch (error) {

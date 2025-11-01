@@ -71,6 +71,7 @@ function OwnerComponent() {
     string | null
   >(null);
   const [loading, setLoading] = useState(true);
+  const [syncingOrgId, setSyncingOrgId] = useState<string | null>(null);
 
   // Load user's organizations and subscriptions
   useEffect(() => {
@@ -170,6 +171,11 @@ function OwnerComponent() {
     }
   };
 
+  const capitalizeStatus = (status: string) => {
+    if (!status) return status;
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
   // Create checkout and redirect to Polar
   const handleSubscribe = async (orgId: string, orgName: string) => {
     setLoading(true);
@@ -208,6 +214,65 @@ function OwnerComponent() {
     setShowSubscriptionDetails(
       showSubscriptionDetails === orgId ? null : orgId
     );
+  };
+
+  // Sync subscription from Polar API
+  const handleSyncSubscription = async (orgId: string, orgName: string) => {
+    setSyncingOrgId(orgId);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/sync-from-polar`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ organizationId: orgId }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(`Subscription synced successfully for ${orgName}!`);
+        
+        // Reload data to show updated subscription
+        setTimeout(() => {
+          const loadData = async () => {
+            try {
+              const orgResponse = await fetch(
+                `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
+                { credentials: "include" }
+              );
+              if (orgResponse.ok) {
+                const orgData = await orgResponse.json();
+                setOrganizations(orgData);
+              }
+
+              const subResponse = await fetch(
+                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/my-subscriptions`,
+                { credentials: "include" }
+              );
+              if (subResponse.ok) {
+                const subData = await subResponse.json();
+                setSubscriptions(subData);
+              }
+            } catch (err) {
+              console.error("Error reloading data:", err);
+            }
+          };
+          loadData();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to sync subscription");
+      }
+    } catch (err) {
+      toast.error("Error syncing subscription");
+      console.error(err);
+    } finally {
+      setSyncingOrgId(null);
+    }
   };
 
   // User role is OWNER, all their organizations are shown
@@ -312,31 +377,14 @@ function OwnerComponent() {
                               <h3 className="text-lg font-semibold">
                                 {org.name}
                               </h3>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                  org.enabled
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                }`}
-                              >
+                              <span className={`text-sm font-medium ${
+                                org.enabled 
+                                  ? "text-green-600 dark:text-green-400" 
+                                  : "text-yellow-600 dark:text-yellow-400"
+                              }`}>
                                 {org.enabled ? "Active" : "Pending"}
                               </span>
-                              {subscription && (
-                                <span
-                                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(
-                                    subscription.status
-                                  )}`}
-                                >
-                                  {subscription.status}
-                                </span>
-                              )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              Status:{" "}
-                              <span className="font-medium">
-                                {org.enabled ? "Active" : "Pending"}
-                              </span>
-                            </p>
 
                             {/* Subscription Info */}
                             {subscription && (
@@ -390,12 +438,21 @@ function OwnerComponent() {
 
                         {/* Action Buttons */}
                         <div className="flex gap-2">
-                          {!org.enabled && (
+                          {!org.enabled && !subscription && (
                             <Button
                               onClick={() => handleSubscribe(org.id, org.name)}
                               disabled={loading}
                             >
                               Subscribe Now
+                            </Button>
+                          )}
+                          {!org.enabled && (
+                            <Button
+                              variant="outline"
+                              onClick={() => handleSyncSubscription(org.id, org.name)}
+                              disabled={syncingOrgId === org.id || loading}
+                            >
+                              {syncingOrgId === org.id ? "Syncing..." : "Sync Subscription"}
                             </Button>
                           )}
                           {subscription && (

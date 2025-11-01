@@ -99,9 +99,9 @@ export async function validateApiKeyHook(request: FastifyRequest, reply: Fastify
   if (!organization) {
     return reply.status(404).send({ error: 'Organization not found' });
   }
-  if (!organization.enabled) {
-    return reply.status(403).send({ error: 'Organization is not enabled. Please complete subscription to activate.' });
-  }
+  // Note: We don't check if organization is enabled here because owners need to access
+  // the system through external apps to subscribe and enable their organization
+  // Enabled check should be enforced at the booking/client feature level instead
   // @ts-expect-error augment instance
   request.organizationId = organizationId;
   // @ts-expect-error augment instance

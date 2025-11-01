@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import prisma from '@my-better-t-app/db';
 import crypto from 'crypto';
+import { tryEnableOrganization } from '../../utils/organization-utils';
 
 async function ensureProduct(polarProductId: string) {
   let product = await prisma.product.findUnique({ where: { polarId: polarProductId } });
@@ -25,70 +26,158 @@ const polarWebhook: FastifyPluginAsync = async (app) => {
         const digest = hmac.update(rawBody).digest('hex');
         const expectedSignature = `sha256=${digest}`;
         if (signature !== expectedSignature) {
+          app.log.warn('Invalid webhook signature');
           return reply.status(401).send({ error: 'Invalid signature' });
         }
       }
       event = JSON.parse(rawBody);
 
-      if (event.type === 'subscription.created' || event.type === 'order.created') {
-        const { customer, metadata, product } = event.data;
-        const organizationId = metadata?.organizationId;
-        const userId = metadata?.userId;
+      // Log received webhook for debugging
+      app.log.info({ type: event.type, event }, 'Received Polar webhook');
+
+      // Handle successful checkout/subscription events
+      const handledTypes = [
+        'subscription.created',
+        'order.created',
+        'checkout.completed',
+        'checkout.succeeded',
+        'order.completed',
+      ];
+
+      if (handledTypes.includes(event.type)) {
+        const eventData = event.data || {};
+        // Polar can nest metadata differently - try multiple paths
+        const metadata = eventData.metadata || eventData.customer?.metadata || {};
+        const organizationId = metadata?.organizationId || metadata?.organization_id;
+        const userId = metadata?.userId || metadata?.user_id;
+
+        app.log.info({ organizationId, userId, metadata }, 'Processing subscription webhook');
+
         if (organizationId && userId) {
-          const dbProduct = await ensureProduct(product?.id || process.env.POLAR_PRODUCT_ID!);
-          const subscription = await prisma.subscription.upsert({
-            where: { polarCheckoutId: event.data.checkout_id || event.data.id },
-            update: {
-              status: 'active',
-              polarSubscriptionId: event.data.subscription_id || event.data.id,
-              polarCustomerId: customer.id,
-              currentPeriodStart: new Date(),
-              currentPeriodEnd: event.data.current_period_end ? new Date(event.data.current_period_end) : null,
-            },
-            create: {
-              id: crypto.randomUUID(),
-              polarCheckoutId: event.data.checkout_id || event.data.id,
-              polarSubscriptionId: event.data.subscription_id || event.data.id,
-              polarCustomerId: customer.id,
-              status: 'active',
-              userId,
-              organizationId,
-              productId: dbProduct.id,
-              currentPeriodStart: new Date(),
-              currentPeriodEnd: event.data.current_period_end ? new Date(event.data.current_period_end) : null,
+          const customer = eventData.customer || {};
+          const productId = eventData.product_id || eventData.product?.id || process.env.POLAR_PRODUCT_ID!;
+          const dbProduct = await ensureProduct(productId);
+
+          // Get checkout/subscription IDs from various possible locations
+          const checkoutId = eventData.checkout_id || eventData.id || eventData.checkout?.id;
+          const subscriptionId = eventData.subscription_id || eventData.subscription?.id || eventData.id;
+          const paymentId = eventData.payment_id || eventData.payment?.id;
+
+          if (!checkoutId && !subscriptionId) {
+            app.log.warn({ eventData }, 'No checkout_id or subscription_id found in webhook');
+            return reply.status(400).send({ error: 'Missing checkout_id or subscription_id' });
+          }
+
+          // Try to find existing subscription by organizationId first, then by checkout/subscription ID
+          const existingSubscription = await prisma.subscription.findFirst({
+            where: {
+              OR: [
+                { organizationId },
+                ...(checkoutId ? [{ polarCheckoutId: checkoutId }] : []),
+                ...(subscriptionId ? [{ polarSubscriptionId: subscriptionId }] : []),
+              ],
             },
           });
 
-          await prisma.payment.create({
-            data: {
-              id: crypto.randomUUID(),
-              polarPaymentId: event.data.payment_id || event.data.id,
-              amount: event.data.amount || dbProduct.priceCents,
-              currency: event.data.currency || dbProduct.currency,
-              status: 'succeeded',
-              subscriptionId: subscription.id,
-            },
-          });
+          const subscription = existingSubscription
+            ? await prisma.subscription.update({
+                where: { id: existingSubscription.id },
+                data: {
+                  status: 'active',
+                  polarCheckoutId: checkoutId || existingSubscription.polarCheckoutId,
+                  polarSubscriptionId: subscriptionId || existingSubscription.polarSubscriptionId,
+                  polarCustomerId: customer.id || existingSubscription.polarCustomerId,
+                  currentPeriodStart: eventData.current_period_start ? new Date(eventData.current_period_start * 1000) : new Date(),
+                  currentPeriodEnd: eventData.current_period_end ? new Date(eventData.current_period_end * 1000) : null,
+                  updatedAt: new Date(),
+                },
+              })
+            : await prisma.subscription.create({
+                data: {
+                  id: crypto.randomUUID(),
+                  polarCheckoutId: checkoutId,
+                  polarSubscriptionId: subscriptionId,
+                  polarCustomerId: customer.id || null,
+                  status: 'active',
+                  userId,
+                  organizationId,
+                  productId: dbProduct.id,
+                  currentPeriodStart: eventData.current_period_start ? new Date(eventData.current_period_start * 1000) : new Date(),
+                  currentPeriodEnd: eventData.current_period_end ? new Date(eventData.current_period_end * 1000) : null,
+                },
+              });
 
+          app.log.info({ subscriptionId: subscription.id }, 'Subscription created/updated');
+
+          // Create payment record if payment ID is provided
+          if (paymentId) {
+            const existingPayment = await prisma.payment.findUnique({
+              where: { polarPaymentId: paymentId },
+            });
+
+            if (!existingPayment) {
+              await prisma.payment.create({
+                data: {
+                  id: crypto.randomUUID(),
+                  polarPaymentId: paymentId,
+                  amount: eventData.amount || eventData.price_amount || dbProduct.priceCents,
+                  currency: eventData.currency || dbProduct.currency,
+                  status: 'succeeded',
+                  subscriptionId: subscription.id,
+                },
+              });
+              app.log.info({ paymentId }, 'Payment record created');
+            }
+          }
+
+          // Update metadata
           await prisma.organization.update({
             where: { id: organizationId },
             data: {
-              enabled: true,
-              metadata: JSON.stringify({ polarCustomerId: customer.id, subscriptionId: subscription.id, subscriptionStatus: 'active', subscriptionStartedAt: new Date().toISOString() }),
+              metadata: JSON.stringify({
+                polarCustomerId: customer.id,
+                subscriptionId: subscription.id,
+                subscriptionStatus: 'active',
+                subscriptionStartedAt: new Date().toISOString(),
+              }),
             },
           });
+
+          // Try to enable organization (will only enable if has subscription, departments, and providers)
+          const enabled = await tryEnableOrganization(organizationId);
+          if (enabled) {
+            app.log.info({ organizationId }, 'Organization enabled');
+          } else {
+            app.log.info({ organizationId }, 'Organization subscription active but not yet enabled - missing departments or providers');
+          }
+
+          return reply.send({ received: true, processed: true });
+        } else {
+          app.log.warn({ metadata, organizationId, userId }, 'Missing organizationId or userId in webhook metadata');
         }
       }
 
-      if (event.type === 'subscription.canceled') {
-        const { metadata } = event.data;
-        const organizationId = metadata?.organizationId;
+      // Handle subscription cancellation
+      if (event.type === 'subscription.canceled' || event.type === 'subscription.cancelled') {
+        const eventData = event.data || {};
+        const metadata = eventData.metadata || eventData.customer?.metadata || {};
+        const organizationId = metadata?.organizationId || metadata?.organization_id;
+
         if (organizationId) {
-          const subscription = await prisma.subscription.findFirst({ where: { organizationId, status: 'active' } });
+          const subscription = await prisma.subscription.findFirst({
+            where: { organizationId, status: 'active' },
+          });
           if (subscription) {
-            await prisma.subscription.update({ where: { id: subscription.id }, data: { status: 'cancelled', cancelledAt: new Date() } });
+            await prisma.subscription.update({
+              where: { id: subscription.id },
+              data: { status: 'cancelled', cancelledAt: new Date() },
+            });
           }
-          await prisma.organization.update({ where: { id: organizationId }, data: { enabled: false } });
+          await prisma.organization.update({
+            where: { id: organizationId },
+            data: { enabled: false },
+          });
+          app.log.info({ organizationId }, 'Subscription cancelled and organization disabled');
         }
       }
 

@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import cors from '@fastify/cors';
 import healthRoutes from './features/health/routes';
 import organizationsRoutes from './features/organizations/routes';
@@ -17,6 +18,7 @@ import { auth } from '@my-better-t-app/auth';
 import { toNodeHandler } from 'better-auth/node';
 import subscriptionsRoutes from './features/subscriptions/routes';
 import departmentsRoutes from './features/departments/routes';
+import authRoutes from './features/auth/routes';
 
 export function buildApp() {
   const app = Fastify({
@@ -26,6 +28,10 @@ export function buildApp() {
     },
   });
 
+  // Configure Zod type provider
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
   app.register(cors, {
     origin: true,
     credentials: true,
@@ -34,9 +40,13 @@ export function buildApp() {
 
   app.register(healthRoutes, { prefix: '/health' });
   // Global onRequest to forward /api/auth/* before body parsing
+  // Exclude custom auth routes that we handle ourselves
+  const customAuthRoutes = ['/api/auth/update-password', '/api/auth/check-password-change'];
   const authHandler = toNodeHandler(auth);
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/auth')) return;
+    // Skip Better Auth handler for custom routes
+    if (customAuthRoutes.some(route => request.url.startsWith(route))) return;
     if (request.method === 'OPTIONS') return; // CORS plugin handles preflight
 
     const origin = (request.headers.origin as string) || '*';
@@ -71,6 +81,7 @@ export function buildApp() {
   app.register(testEmailRoutes);
   app.register(polarWebhook, { prefix: '/api/webhooks' });
   app.register(subscriptionsRoutes, { prefix: '/api/subscriptions' });
+  app.register(authRoutes, { prefix: '/api/auth' });
 
   app.setErrorHandler((err, _req, reply) => {
     app.log.error(err);

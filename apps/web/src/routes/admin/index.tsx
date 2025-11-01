@@ -44,6 +44,7 @@ function AdminComponent() {
     name: "",
     slug: "",
     logo: "",
+    ownerName: "",
     ownerEmail: "",
   });
 
@@ -73,8 +74,8 @@ function AdminComponent() {
   // Create organization
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOrg.name || !newOrg.slug || !newOrg.ownerEmail) {
-      toast.error("Name, slug, and owner email are required");
+    if (!newOrg.name || !newOrg.slug || !newOrg.ownerName || !newOrg.ownerEmail) {
+      toast.error("Name, slug, owner name, and owner email are required");
       return;
     }
 
@@ -92,6 +93,7 @@ function AdminComponent() {
             name: newOrg.name,
             slug: newOrg.slug,
             logo: newOrg.logo || undefined,
+            ownerName: newOrg.ownerName,
             ownerEmail: newOrg.ownerEmail,
           }),
         }
@@ -100,7 +102,7 @@ function AdminComponent() {
       if (response.ok) {
         const data = await response.json();
         toast.success(data.message || "Organization created successfully");
-        setNewOrg({ name: "", slug: "", logo: "", ownerEmail: "" });
+        setNewOrg({ name: "", slug: "", logo: "", ownerName: "", ownerEmail: "" });
         loadOrganizations();
       } else {
         const error = await response.json();
@@ -231,9 +233,21 @@ function AdminComponent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="org-owner">Owner Email</Label>
+                <Label htmlFor="org-owner-name">Owner Name</Label>
                 <Input
-                  id="org-owner"
+                  id="org-owner-name"
+                  placeholder="John Smith"
+                  value={newOrg.ownerName}
+                  onChange={(e) =>
+                    setNewOrg({ ...newOrg, ownerName: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="org-owner-email">Owner Email</Label>
+                <Input
+                  id="org-owner-email"
                   type="email"
                   placeholder="owner@example.com"
                   value={newOrg.ownerEmail}
