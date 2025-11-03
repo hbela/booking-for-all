@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wellness Center - External App</title>
+    <title>MediCare - External App</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -46,12 +46,12 @@
         background: #0056b3;
       }
       .button.primary {
-        background: #28a745;
+        background: #dc3545;
         font-size: 16px;
         padding: 15px 30px;
       }
       .button.primary:hover {
-        background: #218838;
+        background: #c82333;
       }
       .organization-card {
         border: 2px solid #e9ecef;
@@ -64,37 +64,37 @@
   </head>
   <body>
     <div class="container">
-      <h1>🌿 Wellness Center - External Integration</h1>
+      <h1>🏥 MediCare - External Integration</h1>
 
-      <div class="success">✅ Welcome to the Wellness Center External App!</div>
+      <div class="success">✅ Welcome to the MediCare External App!</div>
 
       <div class="info">
         <h3>About This Integration</h3>
         <p>
-          This is the Wellness Center's external application that securely
-          integrates with the booking system. Your API keys are protected and
-          never exposed to the browser.
+          This is MediCare's external application that securely integrates with
+          the booking system. Your API keys are protected and never exposed to
+          the browser.
         </p>
       </div>
 
       <div class="organization-card">
-        <h3>🌿 Connect to Wellness Center</h3>
-        <p>Connect to the Wellness Center booking system:</p>
+        <h3>🏥 Connect to MediCare</h3>
+        <p>Connect to the MediCare booking system:</p>
 
         <button
           id="connect-btn"
           class="button primary"
           onclick="connectToOrganization()"
         >
-          🔗 Connect to Wellness Center
+          🔗 Connect to MediCare
         </button>
       </div>
     </div>
 
     <script>
-      // Organization identifier for Wellness Center
+      // Organization identifier for MediCare
       // This is safe to expose as it's just an identifier, not the actual API key
-      const ORGANIZATION_ID = "wellness";
+      const ORGANIZATION_ID = "medicare";
 
       // PHP server URL - update this if your PHP server runs on a different port
       const PHP_SERVER_URL = "http://localhost:8000";

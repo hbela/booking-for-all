@@ -25,6 +25,7 @@ External HTML App → PHP Proxy (connect.php) → Express API → Database
 ├── connect.php                    # Secure PHP proxy (handles multiple orgs)
 ├── test-external-app.html         # Updated external app (uses proxy)
 ├── wellness_external.html         # Wellness Center specific app
+├── medicare_external.html         # MediCare specific app
 └── docs/SECURE_EXTERNAL_APP_INTEGRATION.md
 ```
 
@@ -60,6 +61,7 @@ Each organization can have its own HTML file:
 
 - `test-external-app.html` - Generic external app
 - `wellness_external.html` - Wellness Center specific app
+- `medicare_external.html` - MediCare specific app
 - `medical_external.html` - Medical Clinic specific app (create as needed)
 
 **Key Changes:**
@@ -79,18 +81,26 @@ const ORGANIZATION_ID = "wellness"; // Safe to expose
 
 ### 1. Configure PHP Proxy
 
-Edit `connect.php` and update the organization configurations:
+`connect.php` now automatically loads organizations from environment variables. No code changes needed!
 
-```php
-$ORGANIZATION_API_KEYS = [
-    "wellness" => [
-        "api_key" => "YOUR_ACTUAL_WELLNESS_API_KEY",
-        "name" => "Wellness Center",
-        "organization_id" => "org_wellness_001"
-    ],
-    // Add more organizations as needed
-];
+Simply add environment variables to your `.env` file in the following format:
+
+```env
+# For each organization, add these variables:
+WELLNESS_API_KEY=your_actual_wellness_api_key_here
+WELLNESS_NAME=Wellness Center
+WELLNESS_ORG_ID=8f79bdba-7095-4a47-90c7-a2e839cc413b
+
+MEDICAL_API_KEY=your_actual_medical_api_key_here
+MEDICAL_NAME=Medical Clinic
+MEDICAL_ORG_ID=another-organization-id-here
+
+FITNESS_API_KEY=your_actual_fitness_api_key_here
+FITNESS_NAME=Fitness Center
+FITNESS_ORG_ID=yet-another-org-id
 ```
+
+The format is: `{SLUG}_API_KEY`, `{SLUG}_NAME`, and `{SLUG}_ORG_ID`
 
 ### 2. Create Organization-Specific HTML Files
 
@@ -120,18 +130,26 @@ Use your admin panel to generate API keys for each organization:
 
 ### 1. Environment Variables
 
-For production, move API keys to environment variables:
+`connect.php` automatically uses environment variables! Just configure your `.env` file:
 
-```php
-// connect.php (Production)
-$ORGANIZATION_API_KEYS = [
-    "wellness" => [
-        "api_key" => $_ENV['WELLNESS_API_KEY'],
-        "name" => "Wellness Center",
-        "organization_id" => $_ENV['WELLNESS_ORG_ID']
-    ]
-];
+```env
+# Production environment variables
+PHP_ENV=production
+VERIFY_URL=https://your-api-domain.com/api/external/verify
+FRONTEND_REDIRECT=https://your-frontend-domain.com/login
+ALLOWED_CORS_ORIGINS=https://your-allowed-domain.com
+
+# Organization configurations (automatically loaded)
+WELLNESS_API_KEY=your_production_api_key
+WELLNESS_NAME=Wellness Center
+WELLNESS_ORG_ID=production-organization-id
+
+MEDICAL_API_KEY=another_production_api_key
+MEDICAL_NAME=Medical Clinic
+MEDICAL_ORG_ID=another-production-org-id
 ```
+
+The proxy automatically discovers and loads all organizations from environment variables matching the `{SLUG}_API_KEY` pattern.
 
 ### 2. Database Storage
 
@@ -194,23 +212,39 @@ curl "http://localhost/connect.php?org=invalid"
 
 ## Adding New Organizations
 
-1. **Generate API Key**: Use admin panel to create API key for new organization
-2. **Update PHP Proxy**: Add organization configuration to `connect.php`
-3. **Create HTML App**: Create organization-specific HTML file
-4. **Test Integration**: Verify the new organization works correctly
+Now you can add new organizations **dynamically** without modifying code:
+
+1. **Generate API Key**: Use admin panel (`/admin/api-keys`) to create API key for new organization
+2. **Add Environment Variables**: Add the following to your `.env` file (replace `{slug}` with your organization slug):
+   ```env
+   {SLUG}_API_KEY=generated_api_key_here
+   {SLUG}_NAME=Display Name Here
+   {SLUG}_ORG_ID=organization-id-from-database
+   ```
+   Example for a "Spa Center":
+   ```env
+   SPA_API_KEY=abc123xyz789
+   SPA_NAME=Spa Center
+   SPA_ORG_ID=spa-center-org-id
+   ```
+3. **Create HTML App**: Create organization-specific HTML file (optional but recommended)
+4. **Test Integration**: Verify the new organization works by calling `connect.php?org={slug}`
+
+**No code changes required!** `connect.php` automatically discovers and loads all organizations from environment variables.
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"Invalid organization identifier"**
-   - Check organization ID in HTML file matches PHP configuration
-   - Verify organization exists in `$ORGANIZATION_API_KEYS`
+   - Check organization slug in HTML file matches environment variable naming
+   - Verify environment variables exist in `.env` file: `{SLUG}_API_KEY`, `{SLUG}_NAME`, `{SLUG}_ORG_ID`
 
 2. **"Verification failed"**
-   - Check API key is correct in PHP configuration
+   - Check API key is correct in `.env` file
    - Verify Express API is running and accessible
-   - Check API key is active in database
+   - Check API key is active in database (via `/admin/api-keys`)
+   - Ensure organization ID from `.env` matches the one in database
 
 3. **CORS errors**
    - Update CORS headers in `connect.php`

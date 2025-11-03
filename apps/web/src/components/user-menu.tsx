@@ -68,18 +68,32 @@ export default function UserMenu() {
             variant="destructive"
             className="w-full"
             onClick={() => {
+              // Capture role and sessionStorage before signOut clears them
+              const currentRole = userRole;
+              const orgSlug = sessionStorage.getItem("sourceOrganization");
+              const externalAppOrigin = sessionStorage.getItem("externalAppOrigin");
+              
+              console.log("🔓 Sign out - Role:", currentRole, "Org:", orgSlug, "Origin:", externalAppOrigin);
+              
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    // Redirect based on user role
-                    // Admin (no organization) → booking app login
-                    // Owner/Provider/Client (have organizations) → external client app
-                    if (userRole === "ADMIN") {
-                      window.location.href = "http://localhost:3001/login";
+                    // Admins redirect to login page
+                    if (currentRole === "ADMIN") {
+                      console.log("🔓 Admin sign out - redirecting to /login");
+                      navigate({ to: "/login" });
+                      return;
+                    }
+                    
+                    if (orgSlug && externalAppOrigin) {
+                      // Redirect to the organization's external HTML page using the stored origin
+                      const redirectUrl = `${externalAppOrigin}/${orgSlug}_external.html`;
+                      console.log("🔓 Organization user sign out - redirecting to:", redirectUrl);
+                      window.location.href = redirectUrl;
                     } else {
-                      // OWNER, PROVIDER, or CLIENT - redirect to external app
-                      window.location.href =
-                        "http://localhost:8000/wellness_external.html";
+                      // No organization context, redirect to login
+                      console.log("🔓 No organization context - redirecting to /login");
+                      navigate({ to: "/login" });
                     }
                   },
                 },

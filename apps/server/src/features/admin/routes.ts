@@ -153,6 +153,13 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           const resend = new Resend(process.env.RESEND_API_KEY);
           const fromEmail =
             process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+          
+          // Build external HTML page URL (e.g., http://localhost:8000/medicare_external.html)
+          const phpServerUrl =
+            process.env.PHP_SERVER_URL || "http://localhost:8000";
+          const externalPageUrl = `${phpServerUrl}/${normalizedSlug}_external.html`;
+          
+          // Also provide direct dashboard link as fallback
           const frontendUrl =
             process.env.CORS_ORIGIN ||
             process.env.FRONTEND_URL ||
@@ -177,14 +184,17 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
               
               <p><strong>⚠️ IMPORTANT:</strong> You must change your password on first login.</p>
               
+              <h3>Access Your Organization:</h3>
+              <p>Click the button below to access your organization's portal:</p>
+              
               <p>
-                <a href="${loginUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
-                  Login to Your Dashboard
+                <a href="${externalPageUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
+                  Access Your Organization Portal
                 </a>
               </p>
               
               <p>Or copy and paste this link into your browser:</p>
-              <p><a href="${loginUrl}">${loginUrl}</a></p>
+              <p><a href="${externalPageUrl}">${externalPageUrl}</a></p>
               
               <p>After logging in, you will be prompted to change your password for security.</p>
               

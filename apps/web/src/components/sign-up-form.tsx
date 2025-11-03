@@ -46,13 +46,10 @@ export default function SignUpForm({
             if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
               if (!externalAppOrgId) {
                 // User is trying to sign up directly without organization context
-                toast.error("Access Denied: You can only sign up through your organization's website.");
+                toast.error("Connect using your organization.");
                 // Sign them out immediately
                 await authClient.signOut();
-                // Redirect to external app
-                setTimeout(() => {
-                  window.location.href = "http://localhost:8000/wellness_external.html";
-                }, 2000);
+                // Stay on login page, do not redirect
                 return;
               }
             }

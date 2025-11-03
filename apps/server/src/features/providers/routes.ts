@@ -123,6 +123,13 @@ const providersRoutes: FastifyPluginAsync = async (app) => {
       // Verify department belongs to organization
       const department = await prisma.department.findUnique({
         where: { id: departmentId },
+        include: {
+          organization: {
+            select: {
+              slug: true,
+            },
+          },
+        },
       });
 
       if (!department || department.organizationId !== organizationId) {
@@ -206,8 +213,11 @@ const providersRoutes: FastifyPluginAsync = async (app) => {
         const { Resend } = await import('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@tanarock.hu';
-        const externalAppUrl = process.env.EXTERNAL_APP_URL || 'http://localhost:8000/wellness_external.html';
-        const loginUrl = externalAppUrl;
+        
+        // Build external HTML page URL using organization slug
+        const phpServerUrl = process.env.PHP_SERVER_URL || 'http://localhost:8000';
+        const orgSlug = (department as any).organization?.slug || 'wellness'; // fallback to wellness
+        const loginUrl = `${phpServerUrl}/${orgSlug}_external.html`;
 
         await resend.emails.send({
           from: fromEmail,

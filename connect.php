@@ -22,13 +22,14 @@ function loadEnv($path)
         list($name, $value) = explode('=', $line, 2);
         $name = trim($name);
         $value = trim($value);
-        
+
         // Remove quotes if present (single or double)
         if ((substr($value, 0, 1) === '"' && substr($value, -1) === '"') ||
-            (substr($value, 0, 1) === "'" && substr($value, -1) === "'")) {
+            (substr($value, 0, 1) === "'" && substr($value, -1) === "'")
+        ) {
             $value = substr($value, 1, -1);
         }
-        
+
         // Only set if not already set in environment
         if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
             putenv(sprintf('%s=%s', $name, $value));
@@ -71,21 +72,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     // For OPTIONS preflight, check origin if present
     if (!empty($requestOrigin)) {
         // Normalize for comparison
-        $normalizedOrigins = array_map(function($origin) {
+        $normalizedOrigins = array_map(function ($origin) {
             return str_replace('[::1]', 'localhost', $origin);
         }, $allowedOriginsArray);
-        
+
         $normalizedRequestOrigin = str_replace('[::1]', 'localhost', $requestOrigin);
-        
-        if (in_array($normalizedRequestOrigin, $normalizedOrigins) || 
-            in_array($requestOrigin, $allowedOriginsArray)) {
+
+        if (
+            in_array($normalizedRequestOrigin, $normalizedOrigins) ||
+            in_array($requestOrigin, $allowedOriginsArray)
+        ) {
             header("Access-Control-Allow-Origin: " . $requestOrigin);
         } else {
             // In development, allow localhost variations for OPTIONS
             if (getenv('PHP_ENV') !== 'production') {
-                if (strpos($requestOrigin, 'localhost') !== false || 
+                if (
+                    strpos($requestOrigin, 'localhost') !== false ||
                     strpos($requestOrigin, '[::1]') !== false ||
-                    strpos($requestOrigin, '127.0.0.1') !== false) {
+                    strpos($requestOrigin, '127.0.0.1') !== false
+                ) {
                     header("Access-Control-Allow-Origin: " . $requestOrigin);
                 } else {
                     // Deny unknown origins
@@ -115,21 +120,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // For non-OPTIONS requests, validate origin strictly
 if (!empty($requestOrigin)) {
     // Normalize for comparison
-    $normalizedOrigins = array_map(function($origin) {
+    $normalizedOrigins = array_map(function ($origin) {
         return str_replace('[::1]', 'localhost', $origin);
     }, $allowedOriginsArray);
-    
+
     $normalizedRequestOrigin = str_replace('[::1]', 'localhost', $requestOrigin);
-    
-    if (in_array($normalizedRequestOrigin, $normalizedOrigins) || 
-        in_array($requestOrigin, $allowedOriginsArray)) {
+
+    if (
+        in_array($normalizedRequestOrigin, $normalizedOrigins) ||
+        in_array($requestOrigin, $allowedOriginsArray)
+    ) {
         header("Access-Control-Allow-Origin: " . $requestOrigin);
     } else {
         // In development, allow localhost variations
         if (getenv('PHP_ENV') !== 'production') {
-            if (strpos($requestOrigin, 'localhost') !== false || 
+            if (
+                strpos($requestOrigin, 'localhost') !== false ||
                 strpos($requestOrigin, '[::1]') !== false ||
-                strpos($requestOrigin, '127.0.0.1') !== false) {
+                strpos($requestOrigin, '127.0.0.1') !== false
+            ) {
                 header("Access-Control-Allow-Origin: " . $requestOrigin);
             } else {
                 http_response_code(403);
@@ -164,55 +173,33 @@ $VERIFY_URL = getenv('VERIFY_URL') ?: "http://localhost:3000/api/external/verify
 $FRONTEND_REDIRECT = getenv('FRONTEND_REDIRECT') ?: "http://localhost:3001/login";
 
 // ---- API Key Configuration per Organization ----
-// SECURITY FIX: Load API keys from environment variables
-// Falls back to hardcoded values if env vars not set (for backward compatibility)
+// SECURITY FIX: Load API keys from environment variables only
+// No hardcoded values - all organizations must be configured via environment variables
 $ORGANIZATION_API_KEYS = [];
 
-// Wellness Center
-// Check both getenv() and $_ENV (in case one doesn't work)
-$wellnessApiKey = getenv('WELLNESS_API_KEY') ?: ($_ENV['WELLNESS_API_KEY'] ?? null);
-if ($wellnessApiKey) {
-    $ORGANIZATION_API_KEYS["wellness"] = [
-        "api_key" => $wellnessApiKey,
-        "name" => getenv('WELLNESS_NAME') ?: ($_ENV['WELLNESS_NAME'] ?? "Wellness Center"),
-        "organization_id" => getenv('WELLNESS_ORG_ID') ?: ($_ENV['WELLNESS_ORG_ID'] ?? "")
-    ];
-} else {
-    // FALLBACK: Use hardcoded value if env var not set (for development/migration)
-    // SECURITY WARNING: This should be moved to .env file in production!
-    $phpEnv = getenv('PHP_ENV') ?: ($_ENV['PHP_ENV'] ?? '');
-    if ($phpEnv === 'development' || $phpEnv === '') {
-        $ORGANIZATION_API_KEYS["wellness"] = [
-            "api_key" => "0f55219535594f6b8be71094e5026e1c",
-            "name" => "Wellness Center",
-            "organization_id" => "8f79bdba-7095-4a47-90c7-a2e839cc413b"
-        ];
-        // Log warning only in development
-        $phpEnv = getenv('PHP_ENV') ?: ($_ENV['PHP_ENV'] ?? '');
-        if ($phpEnv !== 'production') {
-            error_log("SECURITY WARNING: Using hardcoded API key for 'wellness'. Set WELLNESS_API_KEY in .env file.");
+// Load API keys from environment variables in format: SLUG_API_KEY, SLUG_NAME, SLUG_ORG_ID
+// This allows dynamic loading of any number of organizations without code changes
+$envVars = array_merge($_SERVER, $_ENV);
+foreach ($envVars as $key => $value) {
+    // Look for keys matching the pattern: SLUG_API_KEY
+    if (preg_match('/^([A-Z_]+)_API_KEY$/', $key, $matches)) {
+        $slug = strtolower($matches[1]);
+
+        // Get the corresponding name and org_id
+        $nameKey = $matches[1] . '_NAME';
+        $orgIdKey = $matches[1] . '_ORG_ID';
+
+        $name = getenv($nameKey) ?: ($_ENV[$nameKey] ?? ucfirst(str_replace('_', ' ', $matches[1])));
+        $orgId = getenv($orgIdKey) ?: ($_ENV[$orgIdKey] ?? "");
+
+        if ($value && $value !== "YOUR_" . $matches[1] . "_API_KEY_HERE") {
+            $ORGANIZATION_API_KEYS[$slug] = [
+                "api_key" => $value,
+                "name" => $name,
+                "organization_id" => $orgId
+            ];
         }
     }
-}
-
-// Medical Clinic
-$medicalApiKey = getenv('MEDICAL_API_KEY') ?: ($_ENV['MEDICAL_API_KEY'] ?? null);
-if ($medicalApiKey && $medicalApiKey !== 'YOUR_MEDICAL_CLINIC_API_KEY_HERE') {
-    $ORGANIZATION_API_KEYS["medical"] = [
-        "api_key" => $medicalApiKey,
-        "name" => getenv('MEDICAL_NAME') ?: ($_ENV['MEDICAL_NAME'] ?? "Test Hospital"),
-        "organization_id" => getenv('MEDICAL_ORG_ID') ?: ($_ENV['MEDICAL_ORG_ID'] ?? "")
-    ];
-}
-
-// Fitness Center
-$fitnessApiKey = getenv('FITNESS_API_KEY') ?: ($_ENV['FITNESS_API_KEY'] ?? null);
-if ($fitnessApiKey && $fitnessApiKey !== 'YOUR_FITNESS_CENTER_API_KEY_HERE') {
-    $ORGANIZATION_API_KEYS["fitness"] = [
-        "api_key" => $fitnessApiKey,
-        "name" => getenv('FITNESS_NAME') ?: ($_ENV['FITNESS_NAME'] ?? "Fitness Center"),
-        "organization_id" => getenv('FITNESS_ORG_ID') ?: ($_ENV['FITNESS_ORG_ID'] ?? "")
-    ];
 }
 
 // ---- Get organization identifier ----

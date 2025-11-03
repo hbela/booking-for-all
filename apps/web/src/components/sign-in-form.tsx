@@ -63,13 +63,10 @@ export default function SignInForm({
               
               if (!externalAppOrgId) {
                 // User is trying to sign in directly without organization context
-                toast.error("Access Denied: This account must be accessed through your organization's website.");
+                toast.error("Connect using your organization.");
                 // Sign them out immediately
                 await authClient.signOut();
-                // Redirect to external app
-                setTimeout(() => {
-                  window.location.href = "http://localhost:8000/wellness_external.html";
-                }, 2000);
+                // Stay on login page, do not redirect
                 return;
               }
             }

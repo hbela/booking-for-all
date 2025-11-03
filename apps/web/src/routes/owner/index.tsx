@@ -44,11 +44,11 @@ export const Route = createFileRoute("/owner/")({
         if (response.ok) {
           const organizations = await response.json();
           if (!organizations || organizations.length === 0) {
-            // Owner has no organizations - redirect to external app
+            // Owner has no organizations - redirect to login with error
             throw redirect({
               to: "/login",
               search: {
-                error: "Access denied: You must access the system through your organization's website.",
+                error: "Connect using your organization.",
               },
             });
           }

@@ -156,14 +156,23 @@
           sessionStorage.setItem("selectedOrganization", data.organizationId);
           sessionStorage.setItem("organizationName", data.organizationName);
           sessionStorage.setItem("organizationSlug", data.organizationSlug);
+          sessionStorage.setItem("sourceOrganization", data.organizationSlug);
+          sessionStorage.setItem("externalAppOrigin", window.location.origin);
 
           // Show success message
           alert(
             `✅ Successfully connected to ${data.organizationName}!\n\nOrganization ID: ${data.organizationId}\nRedirect URL: ${data.redirectUrl}`
           );
 
+          // Append organization slug and origin as URL parameters
+          // This is necessary because sessionStorage is origin-specific
+          // and doesn't persist across different origins (e.g., 127.0.0.1:5500 -> localhost:3001)
+          const redirectUrl = new URL(data.redirectUrl);
+          redirectUrl.searchParams.set("orgSlug", data.organizationSlug || "");
+          redirectUrl.searchParams.set("externalOrigin", window.location.origin);
+
           // Redirect to the booking system login with organization context
-          window.location.href = data.redirectUrl;
+          window.location.href = redirectUrl.toString();
         } catch (error) {
           console.error("❌ Error connecting to organization:", error);
           alert(

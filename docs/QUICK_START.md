@@ -22,6 +22,9 @@ CORS_ORIGIN="http://localhost:5173"
 # Get your Resend API key from https://resend.com
 RESEND_API_KEY="re_your_api_key_here"
 RESEND_FROM_EMAIL="onboarding@resend.dev"
+
+# PHP server URL for external HTML pages (used in owner/provider welcome emails)
+PHP_SERVER_URL="http://localhost:8000"
 ```
 
 **To get Resend API Key:**
