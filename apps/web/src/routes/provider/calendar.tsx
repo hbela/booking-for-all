@@ -8,6 +8,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
@@ -83,6 +90,7 @@ function ProviderCalendarComponent() {
   const [eventForm, setEventForm] = useState({
     title: "",
     description: "",
+    duration: 30,
   });
 
   // Load provider info
@@ -209,27 +217,32 @@ function ProviderCalendarComponent() {
       return;
     }
 
-    // Round to nearest 30-minute slot
+    // Round to nearest 15-minute boundary
     const minutes = start.getMinutes();
+    const roundedMinutes = Math.round(minutes / 15) * 15;
     const roundedStart = new Date(start);
-    roundedStart.setMinutes(minutes < 30 ? 0 : 30, 0, 0);
+    roundedStart.setMinutes(roundedMinutes, 0, 0);
 
-    // Create 30-minute slot
+    // Create slot with default 30-minute duration
     const roundedEnd = new Date(roundedStart);
     roundedEnd.setMinutes(roundedEnd.getMinutes() + 30);
 
     setSelectedSlot({ start: roundedStart, end: roundedEnd });
     setSelectedEvent(null);
-    setEventForm({ title: "", description: "" });
+    setEventForm({ title: "", description: "", duration: 30 });
     setShowModal(true);
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setSelectedSlot(null); // Clear selected slot when editing an event
+    // Calculate duration from event start/end times
+    const durationMs = event.end.getTime() - event.start.getTime();
+    const durationMinutes = Math.round(durationMs / (1000 * 60));
     setEventForm({
       title: event.title,
       description: event.description || "",
+      duration: durationMinutes,
     });
     setShowModal(true);
   };
@@ -412,10 +425,8 @@ function ProviderCalendarComponent() {
                 border-top: 1px solid #e5e5e5;
               }
               
-              /* Suppress half-hour dividers globally to match light mode */
-              .rbc-timeslot-group .rbc-time-slot:nth-child(odd) {
-                border-top: none !important;
-              }
+              /* Show all 15-minute slot dividers - no suppression needed */
+              /* With step=15, we want all dividers visible */
               
               /* Dark mode: Fix navigation buttons visibility */
               .dark .rbc-toolbar button {
@@ -490,7 +501,7 @@ function ProviderCalendarComponent() {
               onSelectEvent={handleSelectEvent}
               eventPropGetter={eventStyleGetter}
               style={{ height: "100%" }}
-              step={30}
+              step={15}
               showMultiDayTimes
               defaultView="week"
               min={new Date(0, 0, 0, 8, 0, 0)}
@@ -587,6 +598,38 @@ function ProviderCalendarComponent() {
                       }
                     />
                   </div>
+                  {!selectedEvent && selectedSlot && (
+                    <div className="space-y-2">
+                      <Label htmlFor="duration">Duration</Label>
+                      <Select
+                        value={eventForm.duration.toString()}
+                        onValueChange={(value) => {
+                          const duration = parseInt(value, 10);
+                          setEventForm({ ...eventForm, duration });
+                          // Update selectedSlot.end based on new duration
+                          if (selectedSlot) {
+                            const newEnd = new Date(
+                              selectedSlot.start.getTime() + duration * 60000
+                            );
+                            setSelectedSlot({
+                              ...selectedSlot,
+                              end: newEnd,
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minutes</SelectItem>
+                          <SelectItem value="30">30 minutes</SelectItem>
+                          <SelectItem value="45">45 minutes</SelectItem>
+                          <SelectItem value="60">60 minutes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       type="button"

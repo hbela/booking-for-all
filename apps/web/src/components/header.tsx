@@ -43,12 +43,13 @@ export default function Header() {
   const getLinks = () => {
     const baseLinks = [{ to: "/", label: "Home" }];
 
-    // Add Book Appointment link for authenticated users, but NOT for owners, admins, or providers
+    // Add Book Appointment and Bookings links for authenticated users, but NOT for owners, admins, or providers
     // Owners manage the organization and don't need to book appointments
     // Admins have administrative duties and don't book appointments
     // Providers manage their own calendar and appointments - they don't book as clients
     if (session?.user && userRole !== "OWNER" && userRole !== "ADMIN" && userRole !== "PROVIDER") {
       baseLinks.push({ to: "/client/", label: "Book Appointment" });
+      baseLinks.push({ to: "/client/bookings", label: "Bookings" });
     }
 
     if (userRole === "ADMIN") {

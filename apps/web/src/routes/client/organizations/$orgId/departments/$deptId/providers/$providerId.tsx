@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import type { View } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useIsMobile } from "@/lib/utils/device";
+import { MobileCalendar } from "@/components/calendar/MobileCalendar";
 import {
   format,
   parse,
@@ -76,6 +78,7 @@ interface Provider {
 function ClientCalendar() {
   const { orgId, deptId, providerId } = Route.useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [provider, setProvider] = useState<Provider | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +260,7 @@ function ClientCalendar() {
         </CardHeader>
       </Card>
 
-      {/* Big Calendar */}
+      {/* Calendar - Responsive: Big Calendar for desktop, Mobile Calendar for mobile */}
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Available Time Slots</CardTitle>
@@ -267,28 +270,38 @@ function ClientCalendar() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div style={{ height: "600px" }}>
-            <BigCalendar
-              localizer={localizer}
+          {isMobile ? (
+            <MobileCalendar
               events={events}
-              startAccessor="start"
-              endAccessor="end"
-              view={view}
-              onView={setView}
-              date={date}
-              onNavigate={setDate}
-              onSelectEvent={handleSelectEvent}
-              eventPropGetter={eventStyleGetter}
-              style={{ height: "100%" }}
-              step={30}
-              showMultiDayTimes
-              defaultView="week"
-              min={new Date(0, 0, 0, 8, 0, 0)}
-              max={new Date(0, 0, 0, 20, 0, 0)}
-              popup
-              popupOffset={{ x: 10, y: 10 }}
+              selectedDate={date}
+              onDateChange={setDate}
+              onEventSelect={handleSelectEvent}
+              loading={loading}
             />
-          </div>
+          ) : (
+            <div style={{ height: "600px" }}>
+              <BigCalendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                view={view}
+                onView={setView}
+                date={date}
+                onNavigate={setDate}
+                onSelectEvent={handleSelectEvent}
+                eventPropGetter={eventStyleGetter}
+                style={{ height: "100%" }}
+                step={15}
+                showMultiDayTimes
+                defaultView="week"
+                min={new Date(0, 0, 0, 8, 0, 0)}
+                max={new Date(0, 0, 0, 20, 0, 0)}
+                popup
+                popupOffset={{ x: 10, y: 10 }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

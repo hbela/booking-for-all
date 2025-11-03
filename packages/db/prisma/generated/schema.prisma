@@ -1,0 +1,270 @@
+enum UserRole {
+  ADMIN
+  OWNER
+  PROVIDER
+  CLIENT
+}
+
+model User {
+  id                  String         @id @map("_id")
+  name                String
+  email               String
+  emailVerified       Boolean
+  image               String?
+  createdAt           DateTime
+  updatedAt           DateTime
+  role                UserRole       @default(CLIENT)
+  banned              Boolean?       @default(false)
+  banReason           String?
+  banExpires          DateTime?
+  needsPasswordChange Boolean?       @default(false)
+  sessions            Session[]
+  accounts            Account[]
+  providers           Provider[]
+  bookings            Booking[]
+  subscriptions       Subscription[]
+  apiKeys             apikey[]       @relation("ApiKeyUser")
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id @map("_id")
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime
+  updatedAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  activeOrganizationId String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @map("_id")
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Organization {
+  id            String         @id @map("_id")
+  name          String
+  description   String?
+  slug          String         @unique
+  logo          String?
+  enabled       Boolean        @default(false)
+  createdAt     DateTime
+  metadata      String?
+  members       Member[]
+  departments   Department[]
+  subscriptions Subscription[]
+
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id @map("_id")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  email          String?
+  createdAt      DateTime
+
+  @@unique([organizationId, userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String   @id @map("_id")
+  organizationId String
+  email          String
+  status         String
+  expiresAt      DateTime
+  inviterId      String
+
+  @@unique([email, organizationId])
+  @@map("invitation")
+}
+
+model Department {
+  id             String       @id @map("_id")
+  name           String
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  providers      Provider[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("department")
+}
+
+model Provider {
+  id             String     @id @map("_id")
+  userId         String
+  departmentId   String
+  bio            String?
+  specialization String?
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  events         Event[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([userId, departmentId])
+  @@map("provider")
+}
+
+model Event {
+  id          String   @id @map("_id")
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime
+  duration    Int? // in minutes
+  price       Float?
+  isBooked    Boolean  @default(false)
+  booking     Booking?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("event")
+}
+
+model Booking {
+  id        String   @id @map("_id")
+  eventId   String   @unique
+  memberId  String
+  status    String   @default("CONFIRMED") // "CONFIRMED", "CANCELLED", "COMPLETED"
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member    User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("booking")
+}
+
+model Product {
+  id            String         @id @map("_id")
+  polarId       String         @unique
+  name          String
+  description   String?
+  priceCents    Int
+  currency      String         @default("USD")
+  interval      String? // "month", "year", null for one-time
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+
+  @@map("product")
+}
+
+model Subscription {
+  id                  String    @id @map("_id")
+  polarCheckoutId     String?   @unique
+  polarSubscriptionId String?   @unique
+  polarCustomerId     String?
+  status              String // "active", "cancelled", "expired", "pending"
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  payments Payment[]
+
+  @@map("subscription")
+}
+
+model Payment {
+  id             String   @id @map("_id")
+  polarPaymentId String?  @unique
+  amount         Int // Amount in cents
+  currency       String   @default("USD")
+  status         String // "succeeded", "pending", "failed", "refunded"
+  paymentMethod  String?
+  receiptUrl     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("payment")
+}
+
+// Better Auth API Key model (as per Better Auth documentation)
+model apikey {
+  id           String    @id @default(cuid())
+  name         String?
+  key          String    @unique
+  userId       String
+  user         User      @relation("ApiKeyUser", fields: [userId], references: [id], onDelete: Cascade)
+  enabled      Boolean   @default(true)
+  remaining    Int?
+  requestCount Int       @default(0)
+  lastRequest  DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  metadata     Json?
+
+  // Indexes for performance
+  @@index([userId])
+  @@index([enabled])
+  @@index([expiresAt])
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}

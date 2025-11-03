@@ -19,6 +19,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ProviderCalendarRouteImport } from './routes/provider/calendar'
 import { Route as OwnerProvidersRouteImport } from './routes/owner/providers'
 import { Route as OwnerDepartmentsRouteImport } from './routes/owner/departments'
+import { Route as ClientBookingsRouteImport } from './routes/client/bookings'
 import { Route as AdminApiKeysRouteImport } from './routes/admin/api-keys'
 import { Route as ClientOrganizationsOrgIdRouteImport } from './routes/client/organizations/$orgId'
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId'
@@ -74,6 +75,11 @@ const OwnerDepartmentsRoute = OwnerDepartmentsRouteImport.update({
   path: '/owner/departments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientBookingsRoute = ClientBookingsRouteImport.update({
+  id: '/client/bookings',
+  path: '/client/bookings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminApiKeysRoute = AdminApiKeysRouteImport.update({
   id: '/admin/api-keys',
   path: '/admin/api-keys',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin/api-keys'
+    | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin/api-keys'
+    | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin/api-keys'
+    | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   AdminApiKeysRoute: typeof AdminApiKeysRoute
+  ClientBookingsRoute: typeof ClientBookingsRoute
   OwnerDepartmentsRoute: typeof OwnerDepartmentsRoute
   OwnerProvidersRoute: typeof OwnerProvidersRoute
   ProviderCalendarRoute: typeof ProviderCalendarRoute
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerDepartmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client/bookings': {
+      id: '/client/bookings'
+      path: '/client/bookings'
+      fullPath: '/client/bookings'
+      preLoaderRoute: typeof ClientBookingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/api-keys': {
       id: '/admin/api-keys'
       path: '/admin/api-keys'
@@ -353,6 +373,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   AdminApiKeysRoute: AdminApiKeysRoute,
+  ClientBookingsRoute: ClientBookingsRoute,
   OwnerDepartmentsRoute: OwnerDepartmentsRoute,
   OwnerProvidersRoute: OwnerProvidersRoute,
   ProviderCalendarRoute: ProviderCalendarRoute,

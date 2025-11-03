@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediCare - Healthcare Services</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 16px;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+      
+      .header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        padding: 40px 20px;
+        text-align: center;
+      }
+      
+      .header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+      
+      .header p {
+        font-size: 18px;
+        opacity: 0.9;
+      }
+      
+      .content {
+        padding: 30px 20px;
+      }
+      
+      .section {
+        margin-bottom: 30px;
+      }
+      
+      .section h2 {
+        font-size: 24px;
+        color: #dc3545;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #dc3545;
+        padding-bottom: 8px;
+      }
+      
+      .section p {
+        margin-bottom: 12px;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+      
+      .booking-box {
+        background: #f8f9fa;
+        border: 2px solid #dc3545;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 24px 0;
+      }
+      
+      .booking-box h3 {
+        color: #dc3545;
+        font-size: 20px;
+        margin-bottom: 16px;
+      }
+      
+      .url-container {
+        background: white;
+        border: 2px dashed #dc3545;
+        border-radius: 6px;
+        padding: 16px;
+        margin: 16px 0;
+        position: relative;
+      }
+      
+      .url-text {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: #333;
+        word-break: break-all;
+        padding-right: 50px;
+      }
+      
+      .copy-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: background 0.3s;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      
+      .copy-btn:hover {
+        background: #c82333;
+      }
+      
+      .copy-btn:active {
+        transform: scale(0.95);
+      }
+      
+      .copy-btn.copied {
+        background: #28a745;
+      }
+      
+      .connect-btn {
+        display: block;
+        width: 100%;
+        background: #dc3545;
+        color: white;
+        padding: 16px 32px;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: bold;
+        margin: 20px 0;
+        transition: background 0.3s, transform 0.2s;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .connect-btn:hover {
+        background: #c82333;
+      }
+      
+      .connect-btn:active {
+        transform: scale(0.98);
+      }
+      
+      .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 16px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+      
+      .info-box p {
+        margin: 0;
+        font-size: 14px;
+        color: #1976d2;
+      }
+      
+      .services {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 24px;
+      }
+      
+      .service-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #dc3545;
+      }
+      
+      .service-card h4 {
+        color: #dc3545;
+        margin-bottom: 8px;
+        font-size: 18px;
+      }
+      
+      /* Mobile-first responsive design */
+      @media (min-width: 768px) {
+        body {
+          padding: 24px;
+        }
+        
+        .header {
+          padding: 60px 40px;
+        }
+        
+        .header h1 {
+          font-size: 48px;
+        }
+        
+        .header p {
+          font-size: 24px;
+        }
+        
+        .content {
+          padding: 40px;
+        }
+        
+        .section h2 {
+          font-size: 28px;
+        }
+        
+        .url-text {
+          font-size: 16px;
+        }
+        
+        .connect-btn {
+          width: auto;
+          display: inline-block;
+          padding: 18px 40px;
+        }
+        
+        .services {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      
+      @media (min-width: 1024px) {
+        .services {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🏥 MediCare</h1>
+        <p>Your Trusted Healthcare Partner</p>
+      </div>
+      
+      <div class="content">
+        <div class="section">
+          <h2>About MediCare</h2>
+          <p>
+            MediCare is a leading healthcare provider committed to delivering
+            exceptional medical services to our community. We offer a wide range
+            of healthcare services with experienced medical professionals.
+          </p>
+        </div>
+        
+        <div class="section">
+          <h2>Our Services</h2>
+          <div class="services">
+            <div class="service-card">
+              <h4>General Medicine</h4>
+              <p>Comprehensive primary care services</p>
+            </div>
+            <div class="service-card">
+              <h4>Specialist Consultations</h4>
+              <p>Expert care from board-certified specialists</p>
+            </div>
+            <div class="service-card">
+              <h4>Preventive Care</h4>
+              <p>Regular check-ups and health screenings</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="booking-box">
+          <h3>📱 Book Your Appointment</h3>
+          <p>
+            <strong>Copy this URL to connect with your mobile</strong> or use it to
+            connect directly to the booking app:
+          </p>
+          
+          <div class="url-container">
+            <span class="url-text" id="booking-url">http://127.0.0.1:5500/medicare_external.html</span>
+            <button class="copy-btn" onclick="copyUrl()" id="copy-btn">
+              Copy
+            </button>
+          </div>
+          
+          <div class="info-box">
+            <p>
+              💡 <strong>Tip:</strong> On mobile devices, you can copy this URL and
+              paste it in your browser, or click the button below to connect directly.
+            </p>
+          </div>
+          
+          <a href="medicare_external.html" class="connect-btn">
+            🔗 Connect to Booking System
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      function copyUrl() {
+        const urlText = document.getElementById('booking-url').textContent;
+        const copyBtn = document.getElementById('copy-btn');
+        
+        // Use the Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(urlText).then(() => {
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+              copyBtn.textContent = 'Copy';
+              copyBtn.classList.remove('copied');
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            fallbackCopy(urlText, copyBtn);
+          });
+        } else {
+          // Fallback for older browsers
+          fallbackCopy(urlText, copyBtn);
+        }
+      }
+      
+      function fallbackCopy(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+          button.textContent = 'Copied!';
+          button.classList.add('copied');
+          setTimeout(() => {
+            button.textContent = 'Copy';
+            button.classList.remove('copied');
+          }, 2000);
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          alert('Failed to copy URL. Please copy manually.');
+        }
+        
+        document.body.removeChild(textArea);
+      }
+    </script>
+  </body>
+</html>
+

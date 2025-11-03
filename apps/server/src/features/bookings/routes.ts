@@ -6,7 +6,46 @@ const bookingsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', { preValidation: [requireAuthHook] }, async (req, reply) => {
     // @ts-expect-error from auth hook
     const user = req.user;
-    const bookings = await prisma.booking.findMany({ where: { userId: user.id } });
+    const bookings = await prisma.booking.findMany({
+      where: { memberId: user.id },
+      include: {
+        event: {
+          include: {
+            provider: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                department: {
+                  include: {
+                    organization: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        member: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
     reply.send(bookings);
   });
 
