@@ -1,5 +1,5 @@
 {
-  "name": "@my-better-t-app/auth",
+  "name": "@booking-for-all/auth",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -24,6 +24,6 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@my-better-t-app/db": "workspace:*"
+    "@booking-for-all/db": "workspace:*"
   }
 }

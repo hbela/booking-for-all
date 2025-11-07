@@ -16,15 +16,15 @@ export interface RouterAppContext {}
 export const Route = createRootRouteWithContext<RouterAppContext>()({
 	component: RootComponent,
 	head: () => ({
-		meta: [
-			{
-				title: "my-better-t-app",
-			},
-			{
-				name: "description",
-				content: "my-better-t-app is a web application",
-			},
-		],
+	meta: [
+		{
+			title: "booking-for-all",
+		},
+		{
+			name: "description",
+			content: "booking-for-all is a web application",
+		},
+	],
 		links: [
 			{
 				rel: "icon",

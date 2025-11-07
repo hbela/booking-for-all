@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import prisma from '@my-better-t-app/db';
+import prisma from '@booking-for-all/db';
 import { requireAuthHook } from '../../plugins/authz';
 
 const organizationsRoutes: FastifyPluginAsync = async (app) => {

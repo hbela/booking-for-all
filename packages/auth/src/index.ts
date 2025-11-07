@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import prisma from "@my-better-t-app/db";
+import prisma from "@booking-for-all/db";
 import { organization, admin, apiKey } from "better-auth/plugins";
 
 // Log environment (loaded by server's dotenv/config)

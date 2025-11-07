@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@my-better-t-app/db/generated/client.js";
+import { PrismaClient } from "@booking-for-all/db/generated/client.js";
 import { hashPassword } from "better-auth/crypto";
 
 const prisma = new PrismaClient();

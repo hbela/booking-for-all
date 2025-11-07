@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { auth } from '@my-better-t-app/auth';
+import { auth } from '@booking-for-all/auth';
 import { hashPassword } from 'better-auth/crypto';
-import prisma from '@my-better-t-app/db';
+import prisma from '@booking-for-all/db';
 import { requireAuthHook } from '../../plugins/authz';
 import { z } from 'zod';
 

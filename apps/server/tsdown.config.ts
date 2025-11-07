@@ -1,9 +1,9 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-	entry: "./src/index.ts",
+	entry: "./src/server.ts",
 	format: "esm",
 	outDir: "./dist",
 	clean: true,
-	noExternal: [/@my-better-t-app\/.*/],
+	noExternal: [/@booking-for-all\/.*/],
 });

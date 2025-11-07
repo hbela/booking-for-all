@@ -1,5 +1,5 @@
 {
-  "name": "@my-better-t-app/db",
+  "name": "@booking-for-all/db",
   "type": "module",
   "exports": {
     ".": {

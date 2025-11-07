@@ -14,7 +14,7 @@ import debugRoutes from './features/debug/routes';
 import testEmailRoutes from './features/testEmail/routes';
 import rawBody from 'fastify-raw-body';
 import polarWebhook from './features/webhooks/polar';
-import { auth } from '@my-better-t-app/auth';
+import { auth } from '@booking-for-all/auth';
 import { toNodeHandler } from 'better-auth/node';
 import subscriptionsRoutes from './features/subscriptions/routes';
 import departmentsRoutes from './features/departments/routes';

@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { auth } from '@my-better-t-app/auth';
-import prisma from '@my-better-t-app/db';
+import { auth } from '@booking-for-all/auth';
+import prisma from '@booking-for-all/db';
 
 export async function requireAuthHook(request: FastifyRequest, reply: FastifyReply) {
   const session = await auth.api.getSession({ headers: request.headers as any });

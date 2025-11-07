@@ -1,4 +1,4 @@
-import prisma from '@my-better-t-app/db';
+import prisma from '@booking-for-all/db';
 
 /**
  * Check if organization can be enabled (has active subscription, departments, and providers)
