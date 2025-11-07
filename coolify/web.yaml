@@ -1,0 +1,23 @@
+name: web
+type: nodejs
+repository: https://github.com/hbela/my-better-t-app.git
+branch: main
+root_directory: apps/web
+build:
+  command: |
+    npm install -g pnpm turbo
+    pnpm install
+    pnpm turbo run build --filter=web
+start:
+  command: pnpm turbo run serve --filter=web -- --host 0.0.0.0 --port 4173
+domains:
+  - app.appointer.hu
+environment:
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: 4173
+  VITE_SERVER_URL: https://api.appointer.hu
+ports:
+  - 4173
+
+

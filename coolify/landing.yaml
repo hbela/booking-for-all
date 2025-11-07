@@ -1,0 +1,10 @@
+name: landing
+type: static
+repository: https://github.com/hbela/my-better-t-app.git
+branch: main
+root_directory: landing
+publish_directory: .
+build:
+  command: echo "Landing site uses prebuilt static assets"
+domains:
+  - landing.appointer.hu

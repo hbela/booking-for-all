@@ -1,0 +1,24 @@
+name: server
+type: nodejs
+repository: https://github.com/hbela/my-better-t-app.git
+branch: main
+root_directory: apps/server
+build:
+  command: |
+    npm install -g pnpm turbo
+    pnpm install
+    pnpm --filter @booking-for-all/db exec prisma generate --no-engine
+    pnpm turbo run build --filter=server
+start:
+  command: pnpm turbo run start --filter=server
+domains:
+  - api.appointer.hu
+environment:
+  NODE_ENV: production
+  PORT: 3000
+  HOST: 0.0.0.0
+  DATABASE_URL: ${DATABASE_URL}
+ports:
+  - 3000
+
+

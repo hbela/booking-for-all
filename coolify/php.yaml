@@ -1,0 +1,10 @@
+name: php-endpoint
+type: php
+repository: https://github.com/hbela/my-better-t-app.git
+branch: main
+root_directory: .
+php:
+  version: "8.3"
+  document_root: .
+domains:
+  - legacy.appointer.hu
