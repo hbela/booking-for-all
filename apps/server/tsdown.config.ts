@@ -5,6 +5,5 @@ export default defineConfig({
 	format: "esm",
 	outDir: "./dist",
 	clean: true,
-	noExternal: [/@booking-for-all\/.*/],
-	external: ["@prisma/client"],
+	external: ["@prisma/client", /^@booking-for-all\//],
 });
