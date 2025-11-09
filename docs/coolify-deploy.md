@@ -47,7 +47,7 @@ Tip: Coolify supports environment groups. Create one called `booking-for-all` an
 2. Click Add New Service -> Application -> Git Repository.
 3. Fill in the repository (`https://github.com/hbela/my-better-t-app.git`), choose branch `main`, and set the root directory according to the service.
 4. For the API service select the Docker build pack and set Dockerfile path to `apps/server/Dockerfile` (added in this repo). This avoids Nixpacks on arm64 and runs the same pnpm/prisma commands via the Docker image.
-5. For the SPA, PHP, and landing services you can stay with the Git workflow and use the build/start commands from the YAML files (or provide Dockerfiles if you prefer).
+5. For the SPA (`apps/web`) you can now point the Docker build pack at `apps/web/Dockerfile`. The PHP and landing services can stay on the Git workflow with the commands from the YAML files (or use Dockerfiles if desired).
 6. Attach the environment group created in step 2, pick the desired CPU/RAM limits, and create the service. Repeat for each application above.
 
 ## 4. Service-Specific Notes
@@ -92,6 +92,7 @@ Tip: Coolify supports environment groups. Create one called `booking-for-all` an
 - **Legacy PHP 404**: adjust `php.yaml` -> `document_root` to the folder containing your `index.php` and redeploy.
 
 Happy shipping!
+
 
 
 

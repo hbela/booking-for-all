@@ -7,9 +7,9 @@ build:
   command: |
     npm install -g pnpm turbo
     pnpm install
-    pnpm turbo run build --filter=web
+    pnpm --filter web run build
 start:
-  command: pnpm turbo run serve --filter=web -- --host 0.0.0.0 --port 4173
+  command: pnpm --filter web run serve -- --host 0.0.0.0 --port 4173
 domains:
   - app.appointer.hu
 environment:
@@ -19,5 +19,6 @@ environment:
   VITE_SERVER_URL: https://api.appointer.hu
 ports:
   - 4173
+
 
 
