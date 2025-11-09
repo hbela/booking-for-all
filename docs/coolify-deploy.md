@@ -53,7 +53,7 @@ Tip: Coolify supports environment groups. Create one called `booking-for-all` an
 ## 4. Service-Specific Notes
 - **server (`api.appointer.hu`)**
   - Exposes port `3000`; Coolify will proxy HTTP and HTTPS automatically when the domain is verified.
-  - Start command runs `pnpm turbo run start --filter=server`; `HOST=0.0.0.0` is pre-configured.
+  - Start command runs `pnpm --filter server run start`; `HOST=0.0.0.0` is pre-configured.
   - Remember to enable HTTPS in Coolify (toggle Let's Encrypt once DNS is live).
 - **web (`app.appointer.hu`)**
   - Build pipeline installs PNPM/Turbo, builds via Vite, then uses `vite preview` on port `4173` with host binding.
@@ -92,6 +92,7 @@ Tip: Coolify supports environment groups. Create one called `booking-for-all` an
 - **Legacy PHP 404**: adjust `php.yaml` -> `document_root` to the folder containing your `index.php` and redeploy.
 
 Happy shipping!
+
 
 
 

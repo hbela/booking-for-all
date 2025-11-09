@@ -20,4 +20,5 @@ ENV NODE_ENV=production \
 
 EXPOSE 3000
 
-CMD ["pnpm", "turbo", "run", "start", "--filter=server"]
+CMD ["pnpm", "--filter", "server", "run", "start"]
+

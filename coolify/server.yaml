@@ -10,7 +10,7 @@ build:
     pnpm --filter @booking-for-all/db exec prisma generate --no-engine
     pnpm turbo run build --filter=server
 start:
-  command: pnpm turbo run start --filter=server
+  command: pnpm --filter server run start
 domains:
   - api.appointer.hu
 environment:
@@ -20,5 +20,6 @@ environment:
   DATABASE_URL: ${DATABASE_URL}
 ports:
   - 3000
+
 
 
