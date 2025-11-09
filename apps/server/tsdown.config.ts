@@ -6,4 +6,5 @@ export default defineConfig({
 	outDir: "./dist",
 	clean: true,
 	noExternal: [/@booking-for-all\/.*/],
+	external: ["@prisma/client"],
 });
