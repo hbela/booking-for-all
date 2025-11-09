@@ -20,4 +20,5 @@ ENV NODE_ENV=production \
 EXPOSE 4173
 
 # Serve the prebuilt Vite app
-CMD ["pnpm", "--filter", "web", "run", "serve", "--", "--host", "0.0.0.0", "--port", "4173"]
+CMD ["pnpm", "--filter", "web", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+
