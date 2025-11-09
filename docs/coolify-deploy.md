@@ -42,19 +42,13 @@ Add the following variables in Coolify -> Project -> Environment. Use the same v
 
 Tip: Coolify supports environment groups. Create one called `booking-for-all` and attach it to each service so you maintain the variables only once.
 
-## 3. Import the Coolify YAML Blueprints
+## 3. Create the Services in Coolify
 1. In Coolify, go to Projects -> select (or create) a project for Booking for All.
-2. Click Deployments -> Import -> YAML.
-3. For each of the following files import them separately:
-   - `coolify/server.yaml`
-   - `coolify/web.yaml`
-   - `coolify/php.yaml`
-   - `coolify/landing.yaml`
-4. When prompted, review each service:
-   - Set the Git authentication to the provider configured earlier.
-   - Confirm the branch is `main` and the root directories (`apps/server`, `apps/web`, etc.) match.
-   - Attach the environment group created in step 2.
-   - Ensure resource allocation (CPU/RAM) suits your VPS; default 512 MB RAM and 0.5 CPU works for a start, increase if the app throttles.
+2. Click Add New Service -> Application -> Git Repository.
+3. Fill in the repository (`https://github.com/hbela/my-better-t-app.git`), choose branch `main`, and set the root directory according to the service.
+4. For the API service select the Docker build pack and set Dockerfile path to `apps/server/Dockerfile` (added in this repo). This avoids Nixpacks on arm64 and runs the same pnpm/prisma commands via the Docker image.
+5. For the SPA, PHP, and landing services you can stay with the Git workflow and use the build/start commands from the YAML files (or provide Dockerfiles if you prefer).
+6. Attach the environment group created in step 2, pick the desired CPU/RAM limits, and create the service. Repeat for each application above.
 
 ## 4. Service-Specific Notes
 - **server (`api.appointer.hu`)**
@@ -98,5 +92,7 @@ Tip: Coolify supports environment groups. Create one called `booking-for-all` an
 - **Legacy PHP 404**: adjust `php.yaml` -> `document_root` to the folder containing your `index.php` and redeploy.
 
 Happy shipping!
+
+
 
 
