@@ -18,4 +18,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: "0.0.0.0",
+    port: 4173,
+  },
+  preview: {
+    host: "0.0.0.0",
+    port: 4173,
+    allowedHosts: ["app.appointer.hu", "web.appointer.hu"],
+  },
 });
