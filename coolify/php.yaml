@@ -8,3 +8,7 @@ php:
   document_root: .
 domains:
   - legacy.appointer.hu
+environment:
+  APP_ENV: production
+  PHP_MEMORY_LIMIT: 256M
+  PHP_MAX_EXECUTION_TIME: "120"
