@@ -1,3 +1,5 @@
+[build]
+providers = ["php"]
 [phases.setup]
 nixPkgs = ["php82", "nginx"]
 
