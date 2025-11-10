@@ -1,7 +1,0 @@
-[build]
-providers = ["php"]
-[phases.setup]
-nixPkgs = ["php82", "nginx"]
-
-[phases.start]
-cmd = "php -S 0.0.0.0:8080 -t ."
