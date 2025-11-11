@@ -47,11 +47,11 @@ loadEnv(__DIR__ . '/.env');
 // SECURITY FIX: Restrict CORS to specific allowed origins
 $allowedOrigins = getenv('ALLOWED_CORS_ORIGINS');
 // Determine environment
-$phpEnv = getenv('APP_ENV') ?: getenv('PHP_ENV') ?: 'development';
-$isProduction = strtolower($phpEnv) === 'production';
+$phpEnv = getenv('APP_ENV') ?? 'development';
+$isProduction = strtolower($phpEnv) === 'local';
 if (!$allowedOrigins) {
     if ($isProduction) {
-        $allowedOrigins = 'https://web.appointer.hu,https://app.appointer.hu';
+        $allowedOrigins = 'https://wellness.appointer.hu,https://medicare.appointer.hu';
     } else {
         // Default development origins (both IPv4 and IPv6)
         $allowedOrigins = 'http://localhost:3001,http://localhost:5173,http://[::1]:3001,http://[::1]:5173';
