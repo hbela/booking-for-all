@@ -191,9 +191,8 @@
     </div>
 
     <script>
-      // Organization identifier for MediCare
-      // This is safe to expose as it's just an identifier, not the actual API key
-      //const ORGANIZATION_ID = "medicare";
+      // The PHP proxy detects the organization from MEDICARE_DOMAIN env variable,
+      // so no identifiers are exposed from this page.
 
       // PHP server URL - update this if your PHP server runs on a different port
       const PHP_SERVER_URL = "https://php.appointer.hu";
@@ -283,7 +282,7 @@
         } catch (error) {
           console.error("Error connecting to organization:", error);
           alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP server is running on port 8000\n2. connect.php file exists in the PHP server directory\n3. Server at ${PHP_SERVER_URL} is accessible`
+            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${PHP_SERVER_URL}\n2. MEDICARE_DOMAIN matches ${window.location.hostname}\n3. API credentials are configured on the PHP server`
           );
         }
       }
