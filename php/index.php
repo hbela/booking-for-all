@@ -43,6 +43,60 @@ function loadEnv($path)
 // Supports both .env and .env.php formats
 loadEnv(__DIR__ . '/.env');
 
+/**
+ * Normalize a domain value from configuration.
+ *
+ * @param string $value
+ * @return string normalized domain (lowercase host without scheme or trailing slash)
+ */
+function normalizeDomain($value)
+{
+    if (!is_string($value)) {
+        return '';
+    }
+
+    $domain = strtolower(trim($value));
+
+    if ($domain === '') {
+        return '';
+    }
+
+    // Remove protocol if present
+    if (strpos($domain, '://') !== false) {
+        $parsed = parse_url($domain);
+        if ($parsed && isset($parsed['host'])) {
+            $domain = strtolower($parsed['host']);
+        }
+    }
+
+    // Remove any trailing slash characters
+    $domain = rtrim($domain, '/');
+
+    return $domain;
+}
+
+/**
+ * Compare two domains allowing for a leading www. difference.
+ *
+ * @param string $domainA
+ * @param string $domainB
+ * @return bool
+ */
+function domainsMatch($domainA, $domainB)
+{
+    $a = strtolower($domainA);
+    $b = strtolower($domainB);
+
+    if ($a === $b) {
+        return true;
+    }
+
+    $aStripped = preg_replace('/^www\./', '', $a);
+    $bStripped = preg_replace('/^www\./', '', $b);
+
+    return $aStripped === $bStripped;
+}
+
 // ---- CORS Configuration ----
 // SECURITY FIX: Restrict CORS to specific allowed origins
 $allowedOrigins = getenv('ALLOWED_CORS_ORIGINS');
@@ -179,98 +233,108 @@ header("Content-Type: application/json");
 $VERIFY_URL = getenv('VERIFY_URL') ?: "http://localhost:3000/api/external/verify";
 $FRONTEND_REDIRECT = getenv('FRONTEND_REDIRECT') ?: "http://localhost:3001/login";
 
-// ---- API Key Configuration per Organization ----
-// SECURITY FIX: Load API keys from environment variables only
-// No hardcoded values - all organizations must be configured via environment variables
-$ORGANIZATION_API_KEYS = [];
-
-// Load API keys from environment variables in format: SLUG_API_KEY, SLUG_NAME, SLUG_ORG_ID
-// This allows dynamic loading of any number of organizations without code changes
+// ---- Organization configuration from environment ----
+// Load values defined as <PREFIX>_DOMAIN, <PREFIX>_API_KEY, <PREFIX>_NAME, <PREFIX>_ORG_ID
+$organizationConfigs = [];
 $envVars = array_merge($_SERVER, $_ENV);
+
 foreach ($envVars as $key => $value) {
-    // Look for keys matching the pattern: SLUG_API_KEY
-    if (preg_match('/^([A-Z_]+)_API_KEY$/', $key, $matches)) {
+    if (!is_string($key)) {
+        continue;
+    }
+
+    if (preg_match('/^([A-Z0-9_]+)_(DOMAIN|API_KEY|NAME|ORG_ID)$/', $key, $matches)) {
         $slug = strtolower($matches[1]);
+        $type = $matches[2];
 
-        // Get the corresponding name and org_id
-        $nameKey = $matches[1] . '_NAME';
-        $orgIdKey = $matches[1] . '_ORG_ID';
-
-        $name = getenv($nameKey) ?: ($_ENV[$nameKey] ?? ucfirst(str_replace('_', ' ', $matches[1])));
-        $orgId = getenv($orgIdKey) ?: ($_ENV[$orgIdKey] ?? "");
-
-        if ($value && $value !== "YOUR_" . $matches[1] . "_API_KEY_HERE") {
-            $ORGANIZATION_API_KEYS[$slug] = [
-                "api_key" => $value,
-                "name" => $name,
-                "organization_id" => $orgId
+        if (!isset($organizationConfigs[$slug])) {
+            $organizationConfigs[$slug] = [
+                "domain" => "",
+                "api_key" => "",
+                "name" => "",
+                "organization_id" => ""
             ];
+        }
+
+        switch ($type) {
+            case 'DOMAIN':
+                $organizationConfigs[$slug]['domain'] = normalizeDomain($value);
+                break;
+            case 'API_KEY':
+                if ($value && $value !== "YOUR_" . strtoupper($matches[1]) . "_API_KEY_HERE") {
+                    $organizationConfigs[$slug]['api_key'] = $value;
+                }
+                break;
+            case 'NAME':
+                $organizationConfigs[$slug]['name'] = $value;
+                break;
+            case 'ORG_ID':
+                $organizationConfigs[$slug]['organization_id'] = $value;
+                break;
         }
     }
 }
 
-// ---- Get organization identifier ----
-$organizationId = null;
+// ---- Detect requesting domain ----
+$requestHost = '';
+if (!empty($requestOrigin)) {
+    $originParts = parse_url($requestOrigin);
+    if ($originParts && isset($originParts['host'])) {
+        $requestHost = strtolower($originParts['host']);
+    }
+}
 
-// Method 1: From URL parameter (recommended for external apps)
-if (isset($_GET['org'])) {
-    // SECURITY FIX: Sanitize and validate input
-    $organizationId = filter_var(trim($_GET['org']), FILTER_SANITIZE_STRING);
-    // Only allow alphanumeric, underscore, and hyphen
-    if (!preg_match('/^[a-z0-9_-]+$/i', $organizationId)) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Invalid organization identifier format"
-        ]);
-        exit;
+if ($requestHost === '' && !empty($_SERVER['HTTP_REFERER'])) {
+    $refererParts = parse_url($_SERVER['HTTP_REFERER']);
+    if ($refererParts && isset($refererParts['host'])) {
+        $requestHost = strtolower($refererParts['host']);
     }
 }
-// Method 2: From POST data
-elseif (isset($_POST['org'])) {
-    $organizationId = filter_var(trim($_POST['org']), FILTER_SANITIZE_STRING);
-    if (!preg_match('/^[a-z0-9_-]+$/i', $organizationId)) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Invalid organization identifier format"
-        ]);
-        exit;
-    }
+
+if ($requestHost === '') {
+    $requestHost = strtolower($_SERVER['HTTP_HOST'] ?? '');
 }
-// Method 3: From custom header
-elseif (isset($_SERVER['HTTP_X_ORGANIZATION_ID'])) {
-    $organizationId = filter_var(trim($_SERVER['HTTP_X_ORGANIZATION_ID']), FILTER_SANITIZE_STRING);
-    if (!preg_match('/^[a-z0-9_-]+$/i', $organizationId)) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Invalid organization identifier format"
-        ]);
-        exit;
+
+$organizationSlug = null;
+
+foreach ($organizationConfigs as $slug => $config) {
+    if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHost)) {
+        $organizationSlug = $slug;
+        break;
     }
 }
 
 // SECURITY FIX: Remove debug logging in production
 // Only log in development mode
 if (getenv('PHP_ENV') === 'development') {
-    error_log("PHP Debug - Organization ID: " . ($organizationId ?? 'null'));
+    error_log("PHP Debug - Request Host: " . ($requestHost ?: 'null'));
+    error_log("PHP Debug - Matched Organization Slug: " . ($organizationSlug ?? 'null'));
 }
 
 // ---- Validate organization ----
-if (!$organizationId || !isset($ORGANIZATION_API_KEYS[$organizationId])) {
+if (!$organizationSlug || !isset($organizationConfigs[$organizationSlug])) {
     http_response_code(400);
-    // SECURITY FIX: Remove debug information from production responses
     echo json_encode([
         "success" => false,
-        "message" => "Invalid or missing organization identifier"
+        "message" => "Unable to determine organization for this domain"
     ]);
     exit;
 }
 
-// ---- Get API key for organization ----
-$orgConfig = $ORGANIZATION_API_KEYS[$organizationId];
+$orgConfig = $organizationConfigs[$organizationSlug];
+
+if (empty($orgConfig['api_key'])) {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "Organization configuration incomplete"
+    ]);
+    exit;
+}
+
 $apiKey = $orgConfig['api_key'];
+$organizationIdentifier = $orgConfig['organization_id'] ?: $organizationSlug;
+$configuredOrganizationName = $orgConfig['name'];
 
 // ---- Call your Express API ----
 $ch = curl_init();
@@ -302,24 +366,28 @@ if (!$data || !isset($data['organizationId'])) {
     echo json_encode([
         "success" => false,
         "message" => "Invalid response from API",
-        "organization" => $organizationId
+        "organization" => $organizationSlug
     ]);
     exit;
 }
 
 // ---- Set secure session data ----
 $_SESSION['validated_organization'] = $data['organizationId'];
-$_SESSION['organization_slug'] = $organizationId;
+$_SESSION['organization_slug'] = $organizationSlug;
 $_SESSION['api_key_validated'] = true;
 $_SESSION['expires_at'] = time() + 3600; // 1 hour expiration
-$_SESSION['organization_name'] = $data['organizationName'];
+$_SESSION['organization_name'] = $configuredOrganizationName ?: ($data['organizationName'] ?? '');
+$_SESSION['configured_organization_id'] = $organizationIdentifier;
+$_SESSION['request_origin_domain'] = $requestHost;
 
 // ---- Prepare JSON output with clean redirect ----
 echo json_encode([
     "success" => true,
-    "organizationId" => $data['organizationId'],
-    "organizationName" => $data['organizationName'],
-    "organization" => $organizationId,
-    "redirectUrl" => $FRONTEND_REDIRECT . "?org=" . urlencode($data['organizationId']) // Include org ID for signup/login
+    "organizationId" => $data['organizationId'] ?? $organizationIdentifier,
+    "organizationName" => $configuredOrganizationName ?: ($data['organizationName'] ?? ''),
+    "organization" => $organizationSlug,
+    "redirectUrl" => $FRONTEND_REDIRECT . "?org=" . urlencode($data['organizationId'] ?? $organizationIdentifier) // Include org ID for signup/login
 ]);
+exit;
+
 exit;
