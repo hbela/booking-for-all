@@ -202,7 +202,7 @@
         try {
           // Use the secure PHP proxy instead of direct API calls
           // Use full URL to connect.php on the PHP server
-          const url = `${PHP_SERVER_URL}/php/index.php`;
+          const url = `${PHP_SERVER_URL}/index.php`;
           console.log("Connecting to:", url);
 
           const response = await fetch(url, {
