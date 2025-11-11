@@ -8,55 +8,56 @@
       * {
         box-sizing: border-box;
       }
-      
+
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+          sans-serif;
         max-width: 800px;
         margin: 0 auto;
         padding: 16px;
         background-color: #f5f5f5;
         min-height: 100vh;
       }
-      
+
       .container {
         background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
-      
+
       h1 {
         font-size: 24px;
         margin: 0 0 16px 0;
         line-height: 1.3;
       }
-      
+
       h3 {
         font-size: 18px;
         margin: 0 0 12px 0;
         line-height: 1.3;
       }
-      
+
       .success {
         color: #28a745;
         font-size: 16px;
         margin-bottom: 20px;
         line-height: 1.5;
       }
-      
+
       .info {
         background: #e3f2fd;
         padding: 16px;
         border-radius: 4px;
         margin: 20px 0;
       }
-      
+
       .info p {
         margin: 0;
         line-height: 1.6;
         font-size: 14px;
       }
-      
+
       .button {
         display: inline-block;
         background: #007bff;
@@ -73,15 +74,15 @@
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
       }
-      
+
       .button:hover {
         background: #0056b3;
       }
-      
+
       .button:active {
         transform: scale(0.98);
       }
-      
+
       .button.primary {
         background: #28a745;
         font-size: 16px;
@@ -92,11 +93,11 @@
         margin: 16px 0 0 0;
         min-height: 48px; /* Minimum touch target size */
       }
-      
+
       .button.primary:hover {
         background: #218838;
       }
-      
+
       .organization-card {
         border: 2px solid #e9ecef;
         border-radius: 8px;
@@ -104,56 +105,56 @@
         margin: 20px 0;
         background: #f8f9fa;
       }
-      
+
       .organization-card p {
         margin: 0 0 16px 0;
         line-height: 1.6;
         font-size: 14px;
       }
-      
+
       /* Mobile-first responsive design */
       @media (min-width: 768px) {
         body {
           padding: 20px;
         }
-        
+
         .container {
           padding: 30px;
         }
-        
+
         h1 {
           font-size: 32px;
         }
-        
+
         h3 {
           font-size: 20px;
         }
-        
+
         .success {
           font-size: 18px;
         }
-        
+
         .info p {
           font-size: 16px;
         }
-        
+
         .button.primary {
           width: auto;
           display: inline-block;
           padding: 15px 30px;
         }
-        
+
         .organization-card p {
           font-size: 16px;
         }
       }
-      
+
       /* Very small screens */
       @media (max-width: 360px) {
         h1 {
           font-size: 20px;
         }
-        
+
         .container {
           padding: 16px;
         }
@@ -192,16 +193,16 @@
     <script>
       // Organization identifier for Wellness Center
       // This is safe to expose as it's just an identifier, not the actual API key
-      const ORGANIZATION_ID = "wellness";
+      //const ORGANIZATION_ID = "wellness";
 
       // PHP server URL - update this if your PHP server runs on a different port
-      const PHP_SERVER_URL = "http://localhost:8000";
+      const PHP_SERVER_URL = "https://php.appointer.hu";
 
       async function connectToOrganization() {
         try {
           // Use the secure PHP proxy instead of direct API calls
           // Use full URL to connect.php on the PHP server
-          const url = `${PHP_SERVER_URL}/connect.php?org=${ORGANIZATION_ID}`;
+          const url = `${PHP_SERVER_URL}/php/index.php`;
           console.log("Connecting to:", url);
 
           const response = await fetch(url, {

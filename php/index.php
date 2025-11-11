@@ -46,9 +46,16 @@ loadEnv(__DIR__ . '/.env');
 // ---- CORS Configuration ----
 // SECURITY FIX: Restrict CORS to specific allowed origins
 $allowedOrigins = getenv('ALLOWED_CORS_ORIGINS');
+// Determine environment
+$phpEnv = getenv('APP_ENV') ?: getenv('PHP_ENV') ?: 'development';
+$isProduction = strtolower($phpEnv) === 'production';
 if (!$allowedOrigins) {
-    // Default to localhost for development (both IPv4 and IPv6)
-    $allowedOrigins = 'http://localhost:3001,http://localhost:5173,http://[::1]:3001,http://[::1]:5173';
+    if ($isProduction) {
+        $allowedOrigins = 'https://web.appointer.hu,https://app.appointer.hu';
+    } else {
+        // Default development origins (both IPv4 and IPv6)
+        $allowedOrigins = 'http://localhost:3001,http://localhost:5173,http://[::1]:3001,http://[::1]:5173';
+    }
 }
 $allowedOriginsArray = array_map('trim', explode(',', $allowedOrigins));
 
@@ -85,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             header("Access-Control-Allow-Origin: " . $requestOrigin);
         } else {
             // In development, allow localhost variations for OPTIONS
-            if (getenv('PHP_ENV') !== 'production') {
+            if (!$isProduction) {
                 if (
                     strpos($requestOrigin, 'localhost') !== false ||
                     strpos($requestOrigin, '[::1]') !== false ||
@@ -106,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     } else {
         // No origin header in OPTIONS - this can happen with some clients
         // In development, allow it; in production, use first allowed origin
-        if (getenv('PHP_ENV') !== 'production') {
+        if (!$isProduction) {
             header("Access-Control-Allow-Origin: " . ($allowedOriginsArray[0] ?? '*'));
         } else {
             // Production: use first allowed origin (more secure than *)
@@ -133,7 +140,7 @@ if (!empty($requestOrigin)) {
         header("Access-Control-Allow-Origin: " . $requestOrigin);
     } else {
         // In development, allow localhost variations
-        if (getenv('PHP_ENV') !== 'production') {
+        if (!$isProduction) {
             if (
                 strpos($requestOrigin, 'localhost') !== false ||
                 strpos($requestOrigin, '[::1]') !== false ||
