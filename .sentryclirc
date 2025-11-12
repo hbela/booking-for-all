@@ -1,0 +1,4 @@
+[auth]
+token = SENTRY_AUTH_TOKEN
+[defaults]
+org = elyscom

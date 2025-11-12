@@ -1,0 +1,151 @@
+Using a monorepo build system like Turborepo requires a different approach. We cannot simply chain the Sentry command after turbo build in the root package.json 
+because Turborepo will not guarantee the order of operations in the way we need.
+
+The core principle to follow is:
+
+Build Phase: Let Turborepo handle the efficient, parallel building of your apps (turbo build).
+
+Release Phase: After the build is complete, run the Sentry commands to create a release and upload the source maps for each app.
+
+The mistake is putting the sentry:release command inside the build script of a workspace's package.json. 
+
+Turborepo's caching will cause it to skip the upload on subsequent builds if the code hasn't changed, 
+
+which is not what we want. A new release should be created for every deployment.
+
+Here is the correct, robust way to configure this with Turborepo.
+
+Step 1: Set Up Your .sentryclirc and Auth Token
+
+First, ensure your root .sentryclirc is set up for defaults. This file should live in the root of your monorepo.
+
+-- I have just updated:
+/.sentryclirc
+
+[auth]
+token = SENTRY_AUTH_TOKEN
+
+[defaults]
+org = elyscom
+
+--I have just created in the root folder:
+/.env
+
+SENTRY_AUTH_TOKEN=my_real_auth_token_from_sentry
+
+Step 2: Define Scripts in my Workspace package.json Files
+
+Each workspace (apps/web and apps/server) should have its own scripts for building and for uploading source maps.
+
+--I have updated:
+
+apps/web/package.json
+
+
+{
+  "name": "web",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "vite build", // Or "next build", "react-scripts build", etc.
+    "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-web --url-prefix '~/'"
+  
+}
+}
+
+build: This script ONLY builds the application. It should not do anything else.
+
+sentry:release: This script is dedicated to uploading source maps.
+
+$SENTRY_RELEASE: We will define this environment variable in the root package.json. 
+
+This is crucial for ensuring both frontend and backend are associated with the exact same release in Sentry.
+
+./dist: The path to the build output for this specific workspace.
+
+--project: The Sentry project slug for the web app.
+
+--url-prefix: This tells Sentry how to map the files. For most modern web bundlers, ~/ is a safe default for the root. 
+
+Adjust if  assets are served from a sub-directory.
+
+
+--I have updated:
+
+apps/server/package.json
+
+
+{
+  "name": "server",
+  "version": "1.0.0",
+  "scripts": {
+    "build":"tsdown" or "tsc -p tsconfig.build.json", // Or your server build command
+    "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-fastify-api"
+ 
+ }
+}
+
+This follows the same pattern, pointing to the server's build output (./dist) and its specific Sentry project (booking-for-all-fastify-api).
+
+Step 3: Orchestrate Everything from the Root package.json
+
+This is where the magic happens. Define a master script that controls the entire process in the correct order.
+
+First, install dotenv-cli if you are using a .env file:
+
+I have just installed:
+pnpm add -w -D dotenv-cli
+
+Now, configure the root package.json.
+
+/package.json (Root)
+
+
+{
+  "scripts": {
+    "build": "turbo build",
+
+    "deploy:sentry": "dotenv -- bash -c 'SENTRY_RELEASE=$(sentry-cli releases propose-version) && echo \"Creating Sentry release: $SENTRY_RELEASE\" && sentry-cli releases new \"$SENTRY_RELEASE\" && sentry-cli releases set-commits \"$SENTRY_RELEASE\" --auto && turbo run sentry:release'",
+
+    "deploy": "pnpm build && pnpm deploy:sentry"
+  }
+}
+Explanation of the Root Scripts:
+
+"build": "turbo build"
+
+This remains unchanged. Its only job is to run the build script in all workspaces.
+
+"deploy:sentry": ...
+
+This is the new, central script for handling the entire Sentry release process. Let's break it down:
+
+dotenv -- bash -c '...': This loads variables from your .env file (like SENTRY_AUTH_TOKEN) and makes them available to the commands inside the quotes.
+
+SENTRY_RELEASE=$(sentry-cli releases propose-version): This is the best practice for naming a release. sentry-cli will automatically generate a unique name based on your repository's current commit hash. We store this in the SENTRY_RELEASE environment variable.
+
+echo "...": Provides useful feedback in your terminal.
+
+sentry-cli releases new "$SENTRY_RELEASE": Creates the new release in Sentry for all projects in your organization.
+
+sentry-cli releases set-commits "$SENTRY_RELEASE" --auto: This critical step associates the Git commits with the release, allowing Sentry to suggest which commit likely caused an issue.
+
+turbo run sentry:release: This is the final step. Turborepo will run the sentry:release script defined in each workspace (web and server). 
+
+Because we set the $SENTRY_RELEASE variable earlier, both workspaces will upload their source maps to the exact same release you just created.
+
+"deploy": "pnpm build && pnpm deploy:sentry"
+
+This ties it all together. It first builds all your applications and then, once the builds are successfully completed, it runs the Sentry release and upload process.
+
+Your Final Workflow
+
+Run pnpm deploy from the root of your monorepo.
+
+Turborepo will build your server and web apps.
+
+The deploy:sentry script will then create a single, unified release in Sentry.
+
+Finally, Turborepo will upload the source maps from apps/server/dist and apps/web/dist to their respective projects, 
+
+but link them both to that same release.
+

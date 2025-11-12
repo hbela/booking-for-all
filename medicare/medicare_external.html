@@ -194,8 +194,27 @@
       // The PHP proxy detects the organization from MEDICARE_DOMAIN env variable,
       // so no identifiers are exposed from this page.
 
-      // PHP server URL - update this if your PHP server runs on a different port
-      const PHP_SERVER_URL = "https://php.appointer.hu";
+      // Allow overriding the PHP proxy via query string once per session:
+      // http://127.0.0.1:5500/medicare/medicare_external.html?phpServer=http://localhost:8000
+      const params = new URLSearchParams(window.location.search);
+      const phpOverride = params.get("phpServer");
+      if (phpOverride) {
+        sessionStorage.setItem("phpServerOverride", phpOverride);
+      }
+
+      const storedPhpOverride = sessionStorage.getItem("phpServerOverride");
+
+      const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+      const isLocalEnvironment = LOCAL_HOSTS.includes(window.location.hostname);
+
+      const DEFAULT_LOCAL_PHP_SERVER = "http://localhost:8000";
+      const DEFAULT_PROD_PHP_SERVER = "https://php.appointer.hu";
+
+      const PHP_SERVER_URL =
+        storedPhpOverride ||
+        (isLocalEnvironment
+          ? DEFAULT_LOCAL_PHP_SERVER
+          : DEFAULT_PROD_PHP_SERVER);
 
       async function connectToOrganization() {
         try {

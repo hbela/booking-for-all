@@ -9,10 +9,15 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "deploy:sentry":  "dotenv -- node scripts/sentry-release.mjs",
+    "deploy": "pnpm build && pnpm deploy:sentry",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
+    "sentry:release": "node ./scripts/sentry-release.mjs",
+    "sentry:release:server": "pnpm sentry:release -- --project booking-for-all-fastify-api --dist apps/server/dist",
+    "sentry:release:web": "pnpm sentry:release -- --project booking-for-all-web --dist apps/web/dist",
     "db:push": "turbo -F @booking-for-all/db db:push",
     "db:studio": "turbo -F @booking-for-all/db db:studio",
     "db:generate": "turbo -F @booking-for-all/db db:generate",
@@ -23,9 +28,11 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
-    "turbo": "^2.5.4",
+    "@sentry/cli": "^2.58.1",
+    "@types/node": "^22.13.11",
+    "dotenv-cli": "^11.0.0",
     "tsdown": "^0.15.5",
-    "@types/node": "^22.13.11"
+    "turbo": "^2.5.4"
   },
   "packageManager": "pnpm@10.15.1"
 }
