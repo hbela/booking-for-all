@@ -87,8 +87,11 @@ export default function UserMenu() {
                     
                     if (orgSlug && externalAppOrigin) {
                       // Redirect to the organization's external HTML page using the stored origin
-                      // Files are in folders: wellness/wellness_external.html, medicare/medicare_external.html
-                      const redirectUrl = `${externalAppOrigin}/${orgSlug}/${orgSlug}_external.html`;
+                      // Files are in deployment folders: /wellness/wellness_external.html, /medicare/medicare_external.html
+                      // externalAppOrigin is just the origin (e.g., https://wellness.appointer.hu)
+                      // We need to add the folder path: /{orgSlug}/{orgSlug}_external.html
+                      const baseUrl = externalAppOrigin.replace(/\/$/, ""); // Remove trailing slash if present
+                      const redirectUrl = `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
                       console.log("🔓 Organization user sign out - redirecting to:", redirectUrl);
                       window.location.href = redirectUrl;
                     } else {
