@@ -5,13 +5,13 @@ export function SentrySmokeTest() {
   const hasSent = useRef(false);
 
   useEffect(() => {
-    if (import.meta.env.DEV && !hasSent.current) {
+    if (!hasSent.current) {
       hasSent.current = true;
       const error = new Error(
         `Manual Sentry smoke-test ${new Date().toISOString()}`
       );
       Sentry.captureException(error);
-      console.log("Sentry smoke test sent:", error.message);
+      console.log("Sentry production smoke test sent:", error.message);
     }
   }, []);
 
