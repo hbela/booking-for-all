@@ -74,7 +74,12 @@ function AdminComponent() {
   // Create organization
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOrg.name || !newOrg.slug || !newOrg.ownerName || !newOrg.ownerEmail) {
+    if (
+      !newOrg.name ||
+      !newOrg.slug ||
+      !newOrg.ownerName ||
+      !newOrg.ownerEmail
+    ) {
       toast.error("Name, slug, owner name, and owner email are required");
       return;
     }
@@ -102,7 +107,13 @@ function AdminComponent() {
       if (response.ok) {
         const data = await response.json();
         toast.success(data.message || "Organization created successfully");
-        setNewOrg({ name: "", slug: "", logo: "", ownerName: "", ownerEmail: "" });
+        setNewOrg({
+          name: "",
+          slug: "",
+          logo: "",
+          ownerName: "",
+          ownerEmail: "",
+        });
         loadOrganizations();
       } else {
         const error = await response.json();
@@ -189,7 +200,7 @@ function AdminComponent() {
         <div className="mt-4">
           <Button
             variant="outline"
-            onClick={() => window.location.href = "/admin/api-keys"}
+            onClick={() => (window.location.href = "/admin/api-keys")}
             className="mr-2"
           >
             Manage API Keys

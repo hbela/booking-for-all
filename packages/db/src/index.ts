@@ -11,7 +11,7 @@ const isAccelerateUrl = databaseUrl?.startsWith("prisma+postgres://");
 
 // Create base Prisma Client
 const basePrismaClient = new PrismaClient({
-  log: ["query", "error", "warn"],
+  log: ["error", "warn"],
   datasources: databaseUrl
     ? {
         db: {

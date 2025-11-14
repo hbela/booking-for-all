@@ -27,11 +27,6 @@ import * as Sentry from "@sentry/node";
 
 export function buildApp() {
   instrument();
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 1.0,
-  });
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || "info",
@@ -40,11 +35,6 @@ export function buildApp() {
           ? undefined
           : { target: "pino-pretty", options: { colorize: true } },
     },
-  });
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN ?? "",
-    environment: process.env.NODE_ENV ?? "production",
-    tracesSampleRate: 1.0,
   });
 
   Sentry.setupFastifyErrorHandler(app);

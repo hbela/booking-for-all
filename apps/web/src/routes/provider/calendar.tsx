@@ -31,6 +31,8 @@ import {
 import { enUS } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import * as Sentry from "@sentry/react";
+import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 
 // Setup the localizer for BigCalendar
 const locales = {
@@ -141,8 +143,13 @@ function ProviderCalendarComponent() {
       const url = `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${
         provider.id
       }`;
-      console.log("📅 Fetching events for provider:", provider.id, "from:", url);
-      
+      console.log(
+        "📅 Fetching events for provider:",
+        provider.id,
+        "from:",
+        url
+      );
+
       const response = await fetch(url, {
         credentials: "include",
       });
@@ -150,12 +157,12 @@ function ProviderCalendarComponent() {
       if (response.ok) {
         const data = await response.json();
         console.log("📅 Raw events from API:", data.length, "events", data);
-        
+
         const now = new Date();
         // Show events from the last 30 days onwards (for providers to see recent history)
         const pastCutoff = new Date();
         pastCutoff.setDate(pastCutoff.getDate() - 30);
-        
+
         const formattedEvents = data
           .map((event: any) => ({
             id: event.id,
@@ -404,6 +411,7 @@ function ProviderCalendarComponent() {
         <h1 className="text-3xl font-bold">My Calendar</h1>
         <p className="text-muted-foreground">
           Manage your availability - {provider.department?.name}
+          <SentrySmokeTest />
         </p>
       </div>
 

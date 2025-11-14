@@ -87,7 +87,8 @@ export default function UserMenu() {
                     
                     if (orgSlug && externalAppOrigin) {
                       // Redirect to the organization's external HTML page using the stored origin
-                      const redirectUrl = `${externalAppOrigin}/${orgSlug}_external.html`;
+                      // Files are in folders: wellness/wellness_external.html, medicare/medicare_external.html
+                      const redirectUrl = `${externalAppOrigin}/${orgSlug}/${orgSlug}_external.html`;
                       console.log("🔓 Organization user sign out - redirecting to:", redirectUrl);
                       window.location.href = redirectUrl;
                     } else {
