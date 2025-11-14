@@ -12,20 +12,18 @@ const router = createRouter({
   context: {},
 });
 
-console.log("Sentry DSN:", import.meta.env.VITE_SENTRY_DSN);
-
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 
-//if (sentryDsn) {
-Sentry.init({
-  dsn: "https://e90fd5f4279b1900437d339911350669@o4507850050109440.ingest.de.sentry.io/4510341461114960",
-  // environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
-  //release: import.meta.env.VITE_SENTRY_RELEASE,
-  //debug: false,
-  //tracesSampleRate: 1.0,
-  //integrations: [Sentry.browserTracingIntegration()],
-});
-//}
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
+    release: import.meta.env.VITE_SENTRY_RELEASE,
+    debug: import.meta.env.DEV,
+    tracesSampleRate: 1.0,
+    integrations: [Sentry.browserTracingIntegration()],
+  });
+}
 
 const AppRoot = () => <RouterProvider router={router} />;
 

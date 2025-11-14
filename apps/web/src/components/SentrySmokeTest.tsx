@@ -8,10 +8,24 @@ export function SentrySmokeTest() {
     if (!hasSent.current) {
       hasSent.current = true;
       const error = new Error(
-        `Manual Sentry smoke-test ${new Date().toISOString()}`
+        `Sentry smoke-test ${new Date().toISOString()} - Environment: ${
+          import.meta.env.VITE_ENVIRONMENT ?? "production"
+        }`
       );
+
+      // Add context to the error
+      Sentry.setContext("smoke_test", {
+        timestamp: new Date().toISOString(),
+        environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
+        release: import.meta.env.VITE_SENTRY_RELEASE ?? "unknown",
+      });
+
       Sentry.captureException(error);
-      console.log("Sentry production smoke test sent:", error.message);
+      console.log("✅ Sentry smoke test sent:", {
+        message: error.message,
+        environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
+        release: import.meta.env.VITE_SENTRY_RELEASE ?? "unknown",
+      });
     }
   }, []);
 

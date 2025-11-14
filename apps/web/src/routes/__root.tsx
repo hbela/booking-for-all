@@ -9,6 +9,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 import "../index.css";
 
 export interface RouterAppContext {}
@@ -42,6 +43,7 @@ function RootComponent() {
 	return (
 		<>
 			<HeadContent />
+			<SentrySmokeTest />
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="dark"
