@@ -24,11 +24,13 @@ if (sentryDsn) {
     release: import.meta.env.VITE_SENTRY_RELEASE,
     debug: import.meta.env.DEV, // Only enable debug in development
     // Use tunnel to bypass ad blockers
-    // In production, use relative URL to avoid CORS preflight
+    // In production, use absolute URL to API server since web and API are on different subdomains
     // In development, use full URL since web and server are on different ports
     tunnel: import.meta.env.DEV
       ? "http://localhost:3000/api/sentry-tunnel"
-      : "/api/sentry-tunnel",
+      : import.meta.env.VITE_SERVER_URL
+      ? `${import.meta.env.VITE_SERVER_URL}/api/sentry-tunnel`
+      : "/api/sentry-tunnel", // Fallback to relative if VITE_SERVER_URL not set
     // Disable tracing in development to avoid HMR infinite loops
     tracesSampleRate: isDev ? 0 : 1.0,
     tracePropagationTargets: [
