@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port=3001",
     "build": "vite build",
+    "build:check": "node -e \"if (!process.env.VITE_SENTRY_DSN) { console.error('❌ VITE_SENTRY_DSN is not set!'); process.exit(1); }\" && vite build",
     "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-web --url-prefix '~/'",
      "serve": "vite preview",
     "start": "vite",

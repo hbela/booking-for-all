@@ -7,6 +7,13 @@ build:
   command: |
     npm install -g pnpm turbo
     pnpm install
+    export VITE_SENTRY_DSN="${VITE_SENTRY_DSN}"
+    export VITE_SENTRY_RELEASE="${VITE_SENTRY_RELEASE}"
+    export VITE_ENVIRONMENT="${VITE_ENVIRONMENT:-production}"
+    echo "🔍 Build-time env vars:"
+    echo "  VITE_SENTRY_DSN=${VITE_SENTRY_DSN:0:50}..."
+    echo "  VITE_SENTRY_RELEASE=${VITE_SENTRY_RELEASE}"
+    echo "  VITE_ENVIRONMENT=${VITE_ENVIRONMENT}"
     pnpm --filter web run build
 start:
   command: pnpm --filter web exec vite preview --host 0.0.0.0 --port 4173
@@ -17,6 +24,9 @@ environment:
   HOST: 0.0.0.0
   PORT: 4173
   VITE_SERVER_URL: https://api.appointer.hu
+  VITE_SENTRY_DSN: ${VITE_SENTRY_DSN}
+  VITE_SENTRY_RELEASE: ${VITE_SENTRY_RELEASE}
+  VITE_ENVIRONMENT: production
 ports:
   - 4173
 

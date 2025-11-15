@@ -13,15 +13,36 @@ const router = createRouter({
 });
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+console.log("Sentry DSN:", sentryDsn);
 
 if (sentryDsn) {
+  const isDev = import.meta.env.DEV;
+
   Sentry.init({
     dsn: sentryDsn,
     environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
     release: import.meta.env.VITE_SENTRY_RELEASE,
-    debug: import.meta.env.DEV,
-    tracesSampleRate: 1.0,
-    integrations: [Sentry.browserTracingIntegration()],
+    debug: false, // Disable debug logging in production
+    // Disable tracing in development to avoid HMR infinite loops
+    tracesSampleRate: isDev ? 0 : 1.0,
+    tracePropagationTargets: [
+      "localhost",
+      /^https:\/\/api\.appointer\.hu\/api/,
+    ],
+    integrations: isDev
+      ? [
+          // Basic integrations for error tracking (no tracing to avoid HMR issues)
+        ]
+      : [
+          Sentry.browserTracingIntegration({
+            enableInp: true,
+            enableLongTask: false,
+            traceFetch: false,
+            traceXHR: false,
+            instrumentPageLoad: true,
+            instrumentNavigation: true,
+          }),
+        ],
   });
 }
 
