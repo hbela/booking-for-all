@@ -17,6 +17,7 @@ import debugRoutes from "./features/debug/routes";
 import testEmailRoutes from "./features/testEmail/routes";
 import rawBody from "fastify-raw-body";
 import polarWebhook from "./features/webhooks/polar";
+import sentryTunnel from "./features/webhooks/sentry-tunnel";
 import { auth } from "@booking-for-all/auth";
 import { toNodeHandler } from "better-auth/node";
 import subscriptionsRoutes from "./features/subscriptions/routes";
@@ -47,9 +48,18 @@ export function buildApp() {
     origin: true,
     credentials: true,
   });
-  app.register(rawBody, { field: "rawBody", global: false, runFirst: true });
+  // Register rawBody plugin globally but only process routes with rawBody: true
+  app.register(rawBody, { 
+    field: "rawBody", 
+    global: false, // Only process routes with config: { rawBody: true }
+    runFirst: true, // Run before other body parsers
+  });
 
   app.register(healthRoutes, { prefix: "/health" });
+  
+  // Sentry tunnel endpoint to bypass ad blockers
+  // Register as a plugin (like polar webhook) to ensure rawBody plugin works correctly
+  app.register(sentryTunnel, { prefix: "/api" });
   // Global onRequest to forward /api/auth/* before body parsing
   // Exclude custom auth routes that we handle ourselves
   const customAuthRoutes = [

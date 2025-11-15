@@ -22,7 +22,13 @@ if (sentryDsn) {
     dsn: sentryDsn,
     environment: import.meta.env.VITE_ENVIRONMENT ?? "production",
     release: import.meta.env.VITE_SENTRY_RELEASE,
-    debug: false, // Disable debug logging in production
+    debug: import.meta.env.DEV, // Only enable debug in development
+    // Use tunnel to bypass ad blockers
+    // In production, use relative URL to avoid CORS preflight
+    // In development, use full URL since web and server are on different ports
+    tunnel: import.meta.env.DEV
+      ? "http://localhost:3000/api/sentry-tunnel"
+      : "/api/sentry-tunnel",
     // Disable tracing in development to avoid HMR infinite loops
     tracesSampleRate: isDev ? 0 : 1.0,
     tracePropagationTargets: [
