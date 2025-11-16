@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import fastifyEnv from "@fastify/env";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -25,9 +26,36 @@ import departmentsRoutes from "./features/departments/routes";
 import authRoutes from "./features/auth/routes";
 import { instrument } from "./instrument";
 import * as Sentry from "@sentry/node";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// In ESM, __dirname is not available by default – reconstruct it from import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const envSchema = {
+  type: "object",
+  required: [
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "SENTRY_DSN",
+    "SENTRY_RELEASE",
+  ],
+  properties: {
+    NODE_ENV: { type: "string", default: "development" },
+    LOG_LEVEL: { type: "string", default: "info" },
+    DATABASE_URL: { type: "string" },
+    BETTER_AUTH_SECRET: { type: "string" },
+    BETTER_AUTH_URL: { type: "string" },
+    SENTRY_DSN: { type: "string" },
+    SENTRY_RELEASE: { type: "string" },
+    CORS_ORIGIN: { type: "string" },
+    FRONTEND_URL: { type: "string" },
+  },
+} as const;
 
 export function buildApp() {
-  instrument();
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || "info",
@@ -38,7 +66,45 @@ export function buildApp() {
     },
   });
 
-  Sentry.setupFastifyErrorHandler(app);
+  // Load and validate env vars from apps/server/.env
+  app.register(fastifyEnv, {
+    confKey: "config",
+    schema: envSchema,
+    dotenv: {
+      path: path.resolve(__dirname, "../.env"),
+    },
+  });
+
+  // After env is loaded, initialize Sentry with validated config
+  app.after((err) => {
+    if (err) {
+      app.log.error(err, "Error registering env plugin");
+      throw err;
+    }
+
+    const cfg = (app as any).config as any;
+
+    // Log key env values once at startup to verify they are loaded correctly
+    app.log.info(
+      {
+        NODE_ENV: cfg.NODE_ENV,
+        DATABASE_URL: cfg.DATABASE_URL ? "<set>" : "<missing>",
+        BETTER_AUTH_SECRET: cfg.BETTER_AUTH_SECRET ? "<set>" : "<missing>",
+        BETTER_AUTH_URL: cfg.BETTER_AUTH_URL || "<missing>",
+        SENTRY_DSN: cfg.SENTRY_DSN ? "<set>" : "<missing>",
+        SENTRY_RELEASE: cfg.SENTRY_RELEASE || "<missing>",
+      },
+      "Loaded environment configuration from apps/server/.env",
+    );
+
+    instrument({
+      SENTRY_DSN: cfg.SENTRY_DSN,
+      SENTRY_RELEASE: cfg.SENTRY_RELEASE,
+      NODE_ENV: cfg.NODE_ENV,
+    });
+
+    Sentry.setupFastifyErrorHandler(app);
+  });
 
   // Configure Zod type provider
   app.setValidatorCompiler(validatorCompiler);

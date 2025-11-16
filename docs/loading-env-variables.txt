@@ -1,0 +1,181 @@
+1. Environment Variables for Your Fastify API
+
+For your Fastify backend, it's best practice to use a dedicated library to load, validate, and manage your environment variables. The @fastify/env plugin is a popular and robust solution.
+
+Step 1: Install @fastify/env and dotenv
+
+In your Fastify application's directory, install the necessary packages:
+
+code
+Bash
+download
+content_copy
+expand_less
+# Navigate to your fastify app directory
+cd apps/api
+
+# Install the dependencies
+npm install @fastify/env dotenv
+
+Step 2: Create a .env file
+
+In the root of your Fastify app (apps/api), create a .env file to store your variables:
+
+code
+Code
+download
+content_copy
+expand_less
+# apps/api/.env
+
+PORT=3001
+DATABASE_URL="your-database-connection-string"
+API_SECRET="a-super-secret-key"
+
+Step 3: Configure @fastify/env in your Fastify server
+
+In your main server file (e.g., apps/server/src/server.ts), register the @fastify/env plugin and define a schema for your variables. This schema will also validate the variables at startup.
+
+code
+JavaScript
+download
+content_copy
+expand_less
+import Fastify from 'fastify';
+import fastifyEnv from '@fastify/env';
+
+const fastify = Fastify({
+  logger: true
+});
+
+const schema = {
+  type: 'object',
+  required: [ 'PORT', 'DATABASE_URL', 'API_SECRET' ],
+  properties: {
+    PORT: {
+      type: 'string',
+      default: 3001
+    },
+    DATABASE_URL: {
+      type: 'string'
+    },
+    API_SECRET: {
+      type: 'string'
+    }
+  }
+};
+
+const options = {
+  confKey: 'config', // The key where the config will be stored on the fastify instance
+  schema: schema,
+  dotenv: true // This will automatically load the .env file
+};
+
+fastify.register(fastifyEnv, options).ready((err) => {
+  if (err) console.error(err);
+
+  console.log('Environment variables loaded:', fastify.config);
+});
+
+// Your routes and other logic here...
+
+const start = async () => {
+  try {
+    await fastify.listen({ port: fastify.config.PORT });
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();
+
+You can now access your environment variables throughout your Fastify application via fastify.config.
+
+2. Environment Variables for Your React App
+
+For your React application, the method of loading environment variables depends on the bundler you are using (e.g., Vite, Create React App). Here, we'll cover the approach for Vite, which is a common choice in modern React development.
+
+Step 1: Create a .env file
+
+In the root of your React application's directory (apps/web), create a .env file. To expose variables to the client-side code, you must prefix them with VITE_.
+
+code
+Code
+download
+content_copy
+expand_less
+# apps/web/.env
+
+VITE_API_BASE_URL="http://localhost:3001"
+VITE_ANALYTICS_KEY="your-public-analytics-key"
+
+Step 2: Accessing Environment Variables in Your React Code
+
+Vite automatically loads .env files and makes the variables prefixed with VITE_ available on the import.meta.env object.
+
+code
+Jsx
+download
+content_copy
+expand_less
+// In any of your React components
+
+function MyComponent() {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  // ... your component logic
+}
+
+Important: Never store secrets or sensitive information in your React app's .env file, as these variables will be embedded in the bundled JavaScript and publicly accessible.
+
+3. Configuring Turborepo for Environment Variables
+
+Turborepo needs to be aware of which environment variables can affect the output of a task. This is crucial for its caching mechanism. If a task depends on an environment variable, a change in that variable's value should result in a cache miss.
+
+You configure this in your root turbo.json file using the env and globalEnv keys.
+
+Example turbo.json configuration:
+
+code
+JSON
+download
+content_copy
+expand_less
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"],
+      "env": [
+        // For the Fastify API
+        "DATABASE_URL",
+        "API_SECRET",
+        // For the React App
+        "VITE_API_BASE_URL",
+        "VITE_ANALYTICS_KEY"
+      ]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false
+    }
+  }
+}
+
+globalEnv: An array of environment variables that, if changed, will invalidate the cache for all tasks. NODE_ENV is a common example.[1]
+
+env: An array of environment variables that are specific to a particular task. A change in these variables will only invalidate the cache for that task.[1]
+
+By following these practices, you can maintain a clean separation of concerns for your frontend and backend environment variables while ensuring that Turborepo's caching works as expected.
+
+Sources
+help
+turborepo.com
+Google Search Suggestions
+how to load environment variables in a react turborepo
+how to load environment variables in a fastify api

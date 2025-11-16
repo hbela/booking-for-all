@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsdown",
     "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-fastify-api",
-     "check-types": "tsc -b",
+    "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/server.ts --outfile server",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
@@ -17,6 +17,7 @@
     "@booking-for-all/auth": "workspace:*",
     "@booking-for-all/db": "workspace:*",
     "@fastify/cors": "^10.1.0",
+    "@fastify/env": "^5.0.3",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/static": "^7.0.4",
     "@polar-sh/sdk": "^0.36.1",
