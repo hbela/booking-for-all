@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
+import { SentryBreakButton } from "@/components/SentryBreakButton";
 import "../index.css";
 
 export interface RouterAppContext {}
@@ -56,6 +57,7 @@ function RootComponent() {
 				</div>
 				<Toaster richColors />
 			</ThemeProvider>
+			<SentryBreakButton />
 			<TanStackRouterDevtools position="bottom-left" />
 		</>
 	);
