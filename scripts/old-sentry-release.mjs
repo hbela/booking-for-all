@@ -1,99 +1,69 @@
-import fs from "node:fs";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import SentryCli from "@sentry/cli";
+console.log("Starting Sentry release process...");
 
-function parseArgs(argv) {
-  const args = { project: undefined, dist: undefined, release: undefined };
+try {
+  const uploadScript = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "sentry-upload.mjs"
+  );
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  // 1. Propose a version and store it in a variable.
+  const release = execSync("sentry-cli releases propose-version")
+    .toString()
+    .trim();
+  console.log(`Creating Sentry release: ${release}`);
 
-    if (arg === "--project" || arg === "-p") {
-      args.project = argv[++i];
-    } else if (arg.startsWith("--project=")) {
-      args.project = arg.split("=", 2)[1];
-    } else if (arg === "--dist") {
-      args.dist = argv[++i];
-    } else if (arg.startsWith("--dist=")) {
-      args.dist = arg.split("=", 2)[1];
-    } else if (arg === "--release") {
-      args.release = argv[++i];
-    } else if (arg.startsWith("--release=")) {
-      args.release = arg.split("=", 2)[1];
-    }
-  }
+  // 2. Create the new release and associate it with all relevant projects.
+  execSync(
+    `sentry-cli releases new "${release}" --project booking-for-all-fastify-api --project booking-for-all-web`,
+    { stdio: "inherit" }
+  );
 
-  return args;
-}
-
-const cli = new SentryCli();
-
-async function main() {
-  const { project: argProject, dist: argDist, release: argRelease } =
-    parseArgs(process.argv.slice(2));
-
-  const release =
-    argRelease ||
-    process.env.SENTRY_RELEASE ||
-    (await cli.releases.proposeVersion());
-
-  const distDir =
-    argDist ||
-    process.env.SENTRY_SOURCEMAPS_DIR ||
-    path.resolve("apps/web/dist");
-
-  if (!fs.existsSync(distDir)) {
-    console.error(
-      `Sentry sourcemap upload skipped: build output not found at ${distDir}.` +
-        " Run the web build before invoking this script."
-    );
-    process.exit(1);
-  }
-
-  const projectSlug =
-    argProject || process.env.SENTRY_PROJECT || process.env.SENTRY_PROJECT_SLUG;
-
-  if (!projectSlug || projectSlug.trim().length === 0) {
-    console.error(
-      "Sentry project slug missing. Set SENTRY_PROJECT or pass --project <slug>."
-    );
-    process.exit(1);
-  }
-
-  const project = { projects: [projectSlug.trim()] };
-
-  console.log(`Creating Sentry release ${release}...`);
+  // 3. Associate commits with the release (best-effort).
   try {
-    await cli.releases.new(release, project);
-  } catch (error) {
-    if (
-      error &&
-      typeof error.message === "string" &&
-      /Release with this slug already exists/i.test(error.message)
-    ) {
-      console.log(`Release ${release} already exists. Continuing.`);
-    } else {
-      throw error;
-    }
+    execSync(`sentry-cli releases set-commits "${release}" --auto`, {
+      stdio: "inherit",
+    });
+  } catch (commitError) {
+    console.warn(
+      "Warning: Unable to automatically associate commits with the release."
+    );
+    console.warn(commitError?.message ?? commitError);
   }
 
-  console.log("Uploading source maps to Sentry...");
-  await cli.releases.uploadSourceMaps(release, {
-    include: [distDir],
-    urlPrefix: process.env.SENTRY_SOURCEMAPS_URL_PREFIX || "~/",
-    rewrite: true,
+  const sharedEnv = {
+    ...process.env,
+    SENTRY_RELEASE: release,
+  };
+
+  console.log("Uploading source maps for booking-for-all-web...");
+  execSync(
+    `node "${uploadScript}" --project booking-for-all-web --dist apps/web/dist --release "${release}"`,
+    {
+      stdio: "inherit",
+      env: sharedEnv,
+    }
+  );
+
+  console.log("Uploading source maps for booking-for-all-fastify-api...");
+  execSync(
+    `node "${uploadScript}" --project booking-for-all-fastify-api --dist apps/server/dist --release "${release}"`,
+    {
+      stdio: "inherit",
+      env: sharedEnv,
+    }
+  );
+
+  // 4. Finalize the release.
+  execSync(`sentry-cli releases finalize "${release}"`, {
+    stdio: "inherit",
   });
 
-  console.log("Finalizing Sentry release...");
-  await cli.releases.finalize(release);
-
-  console.log(`Sentry release ${release} finalized.`);
-}
-
-main().catch((error) => {
-  console.error("Sentry release failed.");
-  console.error(error);
+  console.log("Sentry release process completed successfully!");
+} catch (error) {
+  console.error("Sentry release process failed:");
   process.exit(1);
-});
-
+}

@@ -31,7 +31,7 @@ export default function UserMenu() {
         name: session.user.name,
         email: session.user.email,
         role: session.user.role,
-        needsPasswordChange: session.user.needsPasswordChange,
+        needsPasswordChange: (session.user as any).needsPasswordChange,
       });
     }
   }, [session]);
@@ -71,10 +71,18 @@ export default function UserMenu() {
               // Capture role and sessionStorage before signOut clears them
               const currentRole = userRole;
               const orgSlug = sessionStorage.getItem("sourceOrganization");
-              const externalAppOrigin = sessionStorage.getItem("externalAppOrigin");
-              
-              console.log("🔓 Sign out - Role:", currentRole, "Org:", orgSlug, "Origin:", externalAppOrigin);
-              
+              const externalAppOrigin =
+                sessionStorage.getItem("externalAppOrigin");
+
+              console.log(
+                "🔓 Sign out - Role:",
+                currentRole,
+                "Org:",
+                orgSlug,
+                "Origin:",
+                externalAppOrigin
+              );
+
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
@@ -84,7 +92,48 @@ export default function UserMenu() {
                       navigate({ to: "/login" });
                       return;
                     }
-                    
+
+                    const normalizedRole = currentRole?.toUpperCase();
+                    const requiresExternalRedirect =
+                      normalizedRole === "OWNER" ||
+                      normalizedRole === "PROVIDER" ||
+                      normalizedRole === "CLIENT";
+
+                    if (orgSlug && requiresExternalRedirect) {
+                      const env =
+                        import.meta.env.MODE === "production"
+                          ? "production"
+                          : "development";
+                      const normalizedSlug = orgSlug.toLowerCase();
+                      const externalPath = `${normalizedSlug}/${normalizedSlug}_external.html`;
+
+                      const envOrigins = {
+                        development:
+                          import.meta.env.VITE_EXTERNAL_DEV_ORIGIN ??
+                          "http://127.0.0.1:5500",
+                        production:
+                          import.meta.env.VITE_EXTERNAL_PROD_HOST_TEMPLATE?.replace(
+                            "{slug}",
+                            normalizedSlug
+                          ) ?? `https://${normalizedSlug}.appointer.hu`,
+                      };
+
+                      const resolvedOrigin = envOrigins[env]?.replace(
+                        /\/$/,
+                        ""
+                      );
+
+                      if (resolvedOrigin) {
+                        const resolvedUrl = `${resolvedOrigin}/${externalPath}`;
+                        console.log(
+                          "🔓 Organization user sign out - redirecting to slug-based URL:",
+                          resolvedUrl
+                        );
+                        window.location.href = resolvedUrl;
+                        return;
+                      }
+                    }
+
                     if (orgSlug && externalAppOrigin) {
                       // Redirect to the organization's external HTML page using the stored origin
                       // Files are in deployment folders: /wellness/wellness_external.html, /medicare/medicare_external.html
@@ -92,11 +141,16 @@ export default function UserMenu() {
                       // We need to add the folder path: /{orgSlug}/{orgSlug}_external.html
                       const baseUrl = externalAppOrigin.replace(/\/$/, ""); // Remove trailing slash if present
                       const redirectUrl = `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
-                      console.log("🔓 Organization user sign out - redirecting to:", redirectUrl);
+                      console.log(
+                        "🔓 Organization user sign out - redirecting via stored origin:",
+                        redirectUrl
+                      );
                       window.location.href = redirectUrl;
                     } else {
                       // No organization context, redirect to login
-                      console.log("🔓 No organization context - redirecting to /login");
+                      console.log(
+                        "🔓 No organization context - redirecting to /login"
+                      );
                       navigate({ to: "/login" });
                     }
                   },

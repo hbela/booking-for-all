@@ -216,17 +216,20 @@
           ? DEFAULT_LOCAL_PHP_SERVER
           : DEFAULT_PROD_PHP_SERVER);
 
+      const ORGANIZATION_SLUG = "wellness";
+
       async function connectToOrganization() {
         try {
           // Use the secure PHP proxy instead of direct API calls
           // Use full URL to connect.php on the PHP server
-          const url = `${PHP_SERVER_URL}/index.php`;
+          const url = `${PHP_SERVER_URL}/index.php?slug=${ORGANIZATION_SLUG}`;
           console.log("Connecting to:", url);
 
           const response = await fetch(url, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              "X-Organization-Slug": ORGANIZATION_SLUG,
             },
           });
 

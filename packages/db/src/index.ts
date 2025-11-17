@@ -1,13 +1,53 @@
 import { PrismaClient } from "../prisma/generated/index.js";
 import { withAccelerate } from "@prisma/extension-accelerate";
+import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-// DATABASE_URL is set by the server's dotenv/config at import time
-const databaseUrl = process.env.DATABASE_URL;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-console.log("🔍 DB Package - DATABASE_URL from env:", databaseUrl);
+const envCandidates = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "apps/server/.env"),
+  path.resolve(__dirname, "../../apps/server/.env"),
+  path.resolve(__dirname, "../../.env"),
+];
+
+for (const envPath of envCandidates) {
+  if (!fs.existsSync(envPath)) continue;
+  dotenv.config({ path: envPath, override: false });
+}
+
+const nodeEnv =
+  process.env.NODE_ENV ??
+  process.env.APP_ENV ??
+  process.env.VITE_NODE_ENV ??
+  "development";
+const normalizedEnv = nodeEnv.toLowerCase();
+const isProductionEnv = normalizedEnv === "production";
+const directUrl = process.env.DIRECT_URL?.trim();
+const accelerateUrl = process.env.DATABASE_URL?.trim();
+const shouldUseDirectUrl = !isProductionEnv && !!directUrl;
+
+const databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
+
+if (!databaseUrl) {
+  throw new Error(
+    "Prisma client failed to initialize: set DATABASE_URL (production) or DIRECT_URL (development).",
+  );
+}
+
+console.log(
+  `🔍 DB Package - selected ${
+    shouldUseDirectUrl ? "DIRECT_URL" : "DATABASE_URL"
+  }: ${databaseUrl}`,
+);
 
 // Check if using Accelerate (prisma+postgres://) or direct connection (postgresql://)
-const isAccelerateUrl = databaseUrl?.startsWith("prisma+postgres://");
+const isAccelerateUrl =
+  !shouldUseDirectUrl && databaseUrl.startsWith("prisma+postgres://");
 
 // Create base Prisma Client
 const basePrismaClient = new PrismaClient({

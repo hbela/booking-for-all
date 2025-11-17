@@ -43,6 +43,14 @@ function loadEnv($path)
 // Supports both .env and .env.php formats
 loadEnv(__DIR__ . '/.env');
 
+// Log all incoming requests for debugging
+error_log(sprintf(
+    '[PHP Proxy] %s %s from %s',
+    $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+    $_SERVER['REQUEST_URI'] ?? '/',
+    $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+));
+
 /**
  * Normalize a domain value from configuration.
  *
@@ -104,6 +112,19 @@ $allowedOrigins = getenv('ALLOWED_CORS_ORIGINS');
 $phpEnvRaw = getenv('APP_ENV') ?? 'development';
 $phpEnv = strtolower($phpEnvRaw);
 $isProduction = in_array($phpEnv, ['production', 'prod', 'live'], true);
+$shouldLogDebug = !$isProduction || filter_var(getenv('PHP_DEBUG_LOG'), FILTER_VALIDATE_BOOLEAN);
+
+function php_proxy_log($message)
+{
+    global $shouldLogDebug;
+
+    if (!$shouldLogDebug) {
+        return;
+    }
+
+    $formatted = is_string($message) ? $message : print_r($message, true);
+    error_log('[PHP Proxy] ' . $formatted);
+}
 if (!$allowedOrigins) {
     if ($isProduction) {
         $allowedOrigins = 'https://wellness.appointer.hu,https://medicare.appointer.hu';
@@ -133,13 +154,14 @@ if ($requestOrigin === 'http://[::1]:3001' || $requestOrigin === 'http://[::1]:5
 
 // Set CORS headers first (before any validation)
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, X-Organization-ID, X-API-Key");
+header("Access-Control-Allow-Headers: Content-Type, X-Organization-ID, X-API-Key, X-Organization-Slug");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Max-Age: 3600"); // Cache preflight for 1 hour
 
 // Handle OPTIONS preflight request FIRST
 // OPTIONS requests need CORS headers - actual origin validation happens on the real request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    error_log('[PHP Proxy] OPTIONS preflight - Origin: ' . ($requestOrigin ?: 'none'));
     // For OPTIONS preflight, check origin if present
     if (!empty($requestOrigin)) {
         // Normalize for comparison
@@ -189,6 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // For non-OPTIONS requests, validate origin strictly
+error_log('[PHP Proxy] Processing ' . $_SERVER['REQUEST_METHOD'] . ' request');
+error_log('[PHP Proxy] Request Origin: ' . ($requestOrigin ?: 'none'));
+error_log('[PHP Proxy] Allowed Origins: ' . implode(', ', $allowedOriginsArray));
+
 if (!empty($requestOrigin)) {
     // Normalize for comparison
     $normalizedOrigins = array_map(function ($origin) {
@@ -202,6 +228,7 @@ if (!empty($requestOrigin)) {
         in_array($requestOrigin, $allowedOriginsArray)
     ) {
         header("Access-Control-Allow-Origin: " . $requestOrigin);
+        error_log('[PHP Proxy] Origin allowed (exact match)');
     } else {
         // In development, allow localhost variations
         if (!$isProduction) {
@@ -211,7 +238,9 @@ if (!empty($requestOrigin)) {
                 strpos($requestOrigin, '127.0.0.1') !== false
             ) {
                 header("Access-Control-Allow-Origin: " . $requestOrigin);
+                error_log('[PHP Proxy] Origin allowed (localhost variation)');
             } else {
+                error_log('[PHP Proxy] Origin NOT allowed: ' . $requestOrigin);
                 http_response_code(403);
                 echo json_encode([
                     "success" => false,
@@ -221,6 +250,7 @@ if (!empty($requestOrigin)) {
             }
         } else {
             // Production: strict validation
+            error_log('[PHP Proxy] Origin NOT allowed (production): ' . $requestOrigin);
             http_response_code(403);
             echo json_encode([
                 "success" => false,
@@ -231,6 +261,7 @@ if (!empty($requestOrigin)) {
     }
 } else {
     // No origin header - allow (direct access)
+    error_log('[PHP Proxy] No origin header, using default');
     header("Access-Control-Allow-Origin: " . ($allowedOriginsArray[0] ?? '*'));
 }
 
@@ -307,22 +338,55 @@ if ($requestHost === '') {
 
 $organizationSlug = null;
 
-foreach ($organizationConfigs as $slug => $config) {
-    if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHost)) {
-        $organizationSlug = $slug;
-        break;
+$slugOverride = null;
+// Normalize request host by removing port for comparison
+$requestHostNormalized = $requestHost;
+if (strpos($requestHost, ':') !== false) {
+    $requestHostNormalized = substr($requestHost, 0, strpos($requestHost, ':'));
+}
+$allowSlugOverride = in_array(
+    $requestHostNormalized,
+    [
+        'localhost',
+        '127.0.0.1',
+        '[::1]',
+        '::1',
+    ],
+    true
+);
+
+if (!empty($_GET['slug'])) {
+    $slugOverride = strtolower(preg_replace('/[^a-z0-9-_]/i', '', $_GET['slug']));
+} elseif (!empty($_SERVER['HTTP_X_ORGANIZATION_SLUG'])) {
+    $slugOverride = strtolower(preg_replace('/[^a-z0-9-_]/i', '', $_SERVER['HTTP_X_ORGANIZATION_SLUG']));
+}
+
+if ($slugOverride && isset($organizationConfigs[$slugOverride]) && $allowSlugOverride) {
+    $organizationSlug = $slugOverride;
+    php_proxy_log("Using organization slug override from request: {$slugOverride}");
+}
+
+if (!$organizationSlug) {
+    foreach ($organizationConfigs as $slug => $config) {
+        if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHost)) {
+            $organizationSlug = $slug;
+            break;
+        }
     }
 }
 
-// SECURITY FIX: Remove debug logging in production
-// Only log in development mode
-if (getenv('PHP_ENV') === 'development') {
-    error_log("PHP Debug - Request Host: " . ($requestHost ?: 'null'));
-    error_log("PHP Debug - Matched Organization Slug: " . ($organizationSlug ?? 'null'));
-}
+php_proxy_log("Request Host: " . ($requestHost ?: 'null'));
+php_proxy_log("Request Host Normalized: " . ($requestHostNormalized ?? 'null'));
+php_proxy_log("Slug Override: " . ($slugOverride ?? 'null'));
+php_proxy_log("Allow Slug Override: " . ($allowSlugOverride ? 'true' : 'false'));
+php_proxy_log("Available Organization Configs: " . implode(', ', array_keys($organizationConfigs)));
+php_proxy_log("Matched Organization Slug: " . ($organizationSlug ?? 'null'));
 
 // ---- Validate organization ----
 if (!$organizationSlug || !isset($organizationConfigs[$organizationSlug])) {
+    php_proxy_log("Unable to determine organization for host: {$requestHost}");
+    php_proxy_log("Slug override was: " . ($slugOverride ?? 'null'));
+    php_proxy_log("Available slugs: " . implode(', ', array_keys($organizationConfigs)));
     http_response_code(400);
     echo json_encode([
         "success" => false,
@@ -334,6 +398,7 @@ if (!$organizationSlug || !isset($organizationConfigs[$organizationSlug])) {
 $orgConfig = $organizationConfigs[$organizationSlug];
 
 if (empty($orgConfig['api_key'])) {
+    php_proxy_log("Organization configuration incomplete for slug: {$organizationSlug}");
     http_response_code(500);
     echo json_encode([
         "success" => false,
@@ -355,11 +420,19 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Content-Type: application/json"
 ]);
 $response = curl_exec($ch);
+$curlError = curl_error($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 // ---- Handle errors ----
 if ($httpCode !== 200 || !$response) {
+    php_proxy_log([
+        'message' => 'Verification request failed',
+        'http_code' => $httpCode ?: 0,
+        'curl_error' => $curlError,
+        'verify_url' => $VERIFY_URL,
+        'organization' => $organizationSlug
+    ]);
     http_response_code($httpCode ?: 500);
     // SECURITY FIX: Remove sensitive details from error responses
     echo json_encode([
@@ -372,6 +445,11 @@ if ($httpCode !== 200 || !$response) {
 // ---- Parse the response ----
 $data = json_decode($response, true);
 if (!$data || !isset($data['organizationId'])) {
+    php_proxy_log([
+        'message' => 'Invalid verification response payload',
+        'response' => $response,
+        'organization' => $organizationSlug
+    ]);
     http_response_code(500);
     echo json_encode([
         "success" => false,
