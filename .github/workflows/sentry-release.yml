@@ -1,0 +1,121 @@
+name: Sentry Release & Source Maps
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.15.1'
+
+jobs:
+  sentry-release:
+    name: Create Sentry Release & Upload Source Maps
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for commit linking
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @booking-for-all/db exec prisma generate --no-engine
+
+      - name: Build applications
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          VITE_ENVIRONMENT: production
+        run: pnpm turbo run build
+
+      - name: Setup Sentry CLI
+        uses: getsentry/action-setup@v2
+        with:
+          version: latest
+
+      - name: Create Sentry Release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: elyscom
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: |
+          echo "🔖 Creating Sentry release: ${{ github.sha }}"
+          
+          # Create release for both projects
+          sentry-cli releases new "${{ github.sha }}" \
+            --project booking-for-all-web \
+            --project booking-for-all-fastify-api
+
+      - name: Link commits to release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: elyscom
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: |
+          echo "🔗 Linking commits to release..."
+          sentry-cli releases set-commits "${{ github.sha }}" --auto || echo "⚠️ Could not set commits automatically (not fatal)"
+
+      - name: Upload web source maps
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: elyscom
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: |
+          echo "📦 Uploading source maps for booking-for-all-web..."
+          node scripts/sentry-upload.mjs \
+            --project booking-for-all-web \
+            --dist apps/web/dist \
+            --release "${{ github.sha }}"
+
+      - name: Upload server source maps
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: elyscom
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: |
+          echo "📦 Uploading source maps for booking-for-all-fastify-api..."
+          node scripts/sentry-upload.mjs \
+            --project booking-for-all-fastify-api \
+            --dist apps/server/dist \
+            --release "${{ github.sha }}"
+
+      - name: Finalize Sentry Release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: elyscom
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: |
+          echo "✅ Finalizing Sentry release..."
+          sentry-cli releases finalize "${{ github.sha }}"
+          echo "🎉 Sentry release process completed successfully!"
+
