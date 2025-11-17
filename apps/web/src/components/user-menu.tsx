@@ -105,7 +105,12 @@ export default function UserMenu() {
                           ? "production"
                           : "development";
                       const normalizedSlug = orgSlug.toLowerCase();
-                      const externalPath = `${normalizedSlug}/${normalizedSlug}_external.html`;
+                      // In production, files are at root: /{slug}_external.html
+                      // In development, files may be in subfolders: /{slug}/{slug}_external.html
+                      const externalPath =
+                        env === "production"
+                          ? `${normalizedSlug}_external.html`
+                          : `${normalizedSlug}/${normalizedSlug}_external.html`;
 
                       const envOrigins = {
                         development:
@@ -136,11 +141,17 @@ export default function UserMenu() {
 
                     if (orgSlug && externalAppOrigin) {
                       // Redirect to the organization's external HTML page using the stored origin
-                      // Files are in deployment folders: /wellness/wellness_external.html, /medicare/medicare_external.html
-                      // externalAppOrigin is just the origin (e.g., https://wellness.appointer.hu)
-                      // We need to add the folder path: /{orgSlug}/{orgSlug}_external.html
+                      // In production, files are at root: /{slug}_external.html (e.g., /wellness_external.html)
+                      // In development, files may be in subfolders: /{slug}/{slug}_external.html
+                      const env =
+                        import.meta.env.MODE === "production"
+                          ? "production"
+                          : "development";
                       const baseUrl = externalAppOrigin.replace(/\/$/, ""); // Remove trailing slash if present
-                      const redirectUrl = `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
+                      const redirectUrl =
+                        env === "production"
+                          ? `${baseUrl}/${orgSlug}_external.html`
+                          : `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
                       console.log(
                         "🔓 Organization user sign out - redirecting via stored origin:",
                         redirectUrl
