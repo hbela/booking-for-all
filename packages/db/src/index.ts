@@ -29,7 +29,19 @@ const normalizedEnv = nodeEnv.toLowerCase();
 const isProductionEnv = normalizedEnv === "production";
 const directUrl = process.env.DIRECT_URL?.trim();
 const accelerateUrl = process.env.DATABASE_URL?.trim();
-const shouldUseDirectUrl = !isProductionEnv && !!directUrl;
+
+// Check if DATABASE_URL is an Accelerate/Data Proxy URL (prisma:// or prisma+postgres://)
+// If so, we must use it even in development (Prisma Client generated with --no-engine requires this)
+const isAccelerateOrDataProxyUrl =
+  accelerateUrl?.startsWith("prisma://") ||
+  accelerateUrl?.startsWith("prisma+postgres://");
+
+// In development, prefer DIRECT_URL only if:
+// 1. It's set AND
+// 2. DATABASE_URL is NOT an Accelerate/Data Proxy URL (which requires --no-engine)
+// Otherwise, use DATABASE_URL (which works with --no-engine)
+const shouldUseDirectUrl =
+  !isProductionEnv && !!directUrl && !isAccelerateOrDataProxyUrl;
 
 const databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
 
@@ -42,12 +54,13 @@ if (!databaseUrl) {
 console.log(
   `🔍 DB Package - selected ${
     shouldUseDirectUrl ? "DIRECT_URL" : "DATABASE_URL"
-  }: ${databaseUrl}`,
+  }: ${databaseUrl.substring(0, 50)}...`,
 );
 
-// Check if using Accelerate (prisma+postgres://) or direct connection (postgresql://)
+// Check if using Accelerate (prisma+postgres://) or Data Proxy (prisma://)
 const isAccelerateUrl =
-  !shouldUseDirectUrl && databaseUrl.startsWith("prisma+postgres://");
+  databaseUrl.startsWith("prisma+postgres://") ||
+  databaseUrl.startsWith("prisma://");
 
 // Create base Prisma Client
 const basePrismaClient = new PrismaClient({
