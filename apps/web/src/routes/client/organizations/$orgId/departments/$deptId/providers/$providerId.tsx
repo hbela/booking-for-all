@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -75,14 +76,73 @@ interface Provider {
   specialization?: string | null;
 }
 
+interface CreateBookingData {
+  eventId: string;
+  providerId: string;
+}
+
+// API functions
+const fetchProvider = async (providerId: string): Promise<Provider> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load provider");
+  }
+  return response.json();
+};
+
+const fetchAvailableEvents = async (providerId: string): Promise<Event[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}/available-events`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load available events");
+  }
+  const eventsData = await response.json();
+  // Convert to BigCalendar format
+  return eventsData.map((event: any) => ({
+    ...event,
+    start: new Date(event.start),
+    end: new Date(event.end),
+    isBooked: false, // All events from this endpoint are available (not booked)
+  }));
+};
+
+const createBooking = async (data: CreateBookingData): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/bookings`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        eventId: data.eventId,
+        providerId: data.providerId,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to create booking");
+  }
+  return response.json();
+};
+
 function ClientCalendar() {
   const { orgId, deptId, providerId } = Route.useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const [provider, setProvider] = useState<Provider | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
 
@@ -90,90 +150,48 @@ function ClientCalendar() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [providerId]);
+  // Query for provider
+  const {
+    data: provider,
+    isLoading: isLoadingProvider,
+    error: providerError,
+  } = useQuery({
+    queryKey: ["client", "providers", providerId],
+    queryFn: () => fetchProvider(providerId),
+  });
 
-  const fetchData = async () => {
-    try {
-      const [providerResponse, eventsResponse] = await Promise.all([
-        fetch(`http://localhost:3000/api/client/providers/${providerId}`, {
-          credentials: "include",
-        }),
-        fetch(
-          `http://localhost:3000/api/client/providers/${providerId}/available-events`,
-          {
-            credentials: "include",
-          }
-        ),
-      ]);
+  // Query for events
+  const {
+    data: events = [],
+    isLoading: isLoadingEvents,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useQuery({
+    queryKey: ["client", "providers", providerId, "events"],
+    queryFn: () => fetchAvailableEvents(providerId),
+  });
 
-      if (providerResponse.ok) {
-        const providerData = await providerResponse.json();
-        setProvider(providerData);
-      }
+  // Booking mutation
+  const bookingMutation = useMutation({
+    mutationFn: createBooking,
+    onSuccess: () => {
+      toast.success("Booking confirmed! Check your email for details.");
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["client", "bookings"] });
+      queryClient.invalidateQueries({
+        queryKey: ["client", "providers", providerId, "events"],
+      });
+      // Refetch events to update availability
+      refetchEvents();
+      setShowConfirmDialog(false);
+      setSelectedEvent(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create booking");
+    },
+  });
 
-      if (eventsResponse.ok) {
-        const eventsData = await eventsResponse.json();
-        console.log("Fetched events for provider", providerId, ":", eventsData);
-        // Convert to BigCalendar format
-        const formattedEvents = eventsData.map((event: any) => ({
-          ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
-          isBooked: false, // All events from this endpoint are available (not booked)
-        }));
-        console.log("Formatted events:", formattedEvents);
-        setEvents(formattedEvents);
-      } else {
-        console.error(
-          "Failed to fetch events:",
-          eventsResponse.status,
-          eventsResponse.statusText
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      toast.error("Failed to load calendar data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBookEvent = async (eventId: string) => {
-    setBooking(true);
-    try {
-      const response = await fetch(
-        "http://localhost:3000/api/client/bookings",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            eventId,
-            providerId,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const booking = await response.json();
-        toast.success("Booking confirmed! Check your email for details.");
-        // Refresh events to update availability
-        await fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to create booking");
-      }
-    } catch (error) {
-      console.error("Failed to book event:", error);
-      toast.error("Failed to create booking");
-    } finally {
-      setBooking(false);
-    }
-  };
+  const isLoading = isLoadingProvider || isLoadingEvents;
 
   // Event styling for BigCalendar
   const eventStyleGetter = (event: Event) => {
@@ -203,9 +221,10 @@ function ClientCalendar() {
     e.preventDefault();
     if (!selectedEvent) return;
 
-    await handleBookEvent(selectedEvent.id);
-    setShowConfirmDialog(false);
-    setSelectedEvent(null);
+    await bookingMutation.mutateAsync({
+      eventId: selectedEvent.id,
+      providerId,
+    });
   };
 
   // Cancel booking dialog
@@ -214,11 +233,19 @@ function ClientCalendar() {
     setSelectedEvent(null);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading calendar...</div>
       </div>
+    );
+  }
+
+  if (providerError || eventsError) {
+    toast.error(
+      providerError
+        ? "Failed to load provider"
+        : "Failed to load available events"
     );
   }
 
@@ -270,13 +297,25 @@ function ClientCalendar() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isMobile ? (
+          {eventsError ? (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Error loading calendar.{" "}
+                <button
+                  onClick={() => refetchEvents()}
+                  className="underline font-medium"
+                >
+                  Try again
+                </button>
+              </p>
+            </div>
+          ) : isMobile ? (
             <MobileCalendar
               events={events}
               selectedDate={date}
               onDateChange={setDate}
               onEventSelect={handleSelectEvent}
-              loading={loading}
+              loading={isLoadingEvents}
             />
           ) : (
             <div style={{ height: "600px" }}>
@@ -373,11 +412,17 @@ function ClientCalendar() {
           )}
 
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelBooking} disabled={booking}>
+            <AlertDialogCancel
+              onClick={cancelBooking}
+              disabled={bookingMutation.isPending}
+            >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBooking} disabled={booking}>
-              {booking ? "Booking..." : "Confirm Booking"}
+            <AlertDialogAction
+              onClick={confirmBooking}
+              disabled={bookingMutation.isPending}
+            >
+              {bookingMutation.isPending ? "Booking..." : "Confirm Booking"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

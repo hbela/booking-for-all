@@ -36,12 +36,24 @@ const isAccelerateOrDataProxyUrl =
   accelerateUrl?.startsWith("prisma://") ||
   accelerateUrl?.startsWith("prisma+postgres://");
 
+// Check if DIRECT_URL is actually a Prisma Accelerate URL (has Prisma token format)
+// Prisma Accelerate URLs in DIRECT_URL format: postgres://token@db.prisma.io:5432/...
+const isDirectUrlActuallyAccelerate =
+  directUrl?.includes("@db.prisma.io") ||
+  directUrl?.includes("prisma.io") ||
+  directUrl?.startsWith("prisma://") ||
+  directUrl?.startsWith("prisma+postgres://");
+
 // In development, prefer DIRECT_URL only if:
 // 1. It's set AND
-// 2. DATABASE_URL is NOT an Accelerate/Data Proxy URL (which requires --no-engine)
+// 2. DATABASE_URL is NOT an Accelerate/Data Proxy URL (which requires --no-engine) AND
+// 3. DIRECT_URL is NOT actually a Prisma Accelerate URL (it's a real direct PostgreSQL connection)
 // Otherwise, use DATABASE_URL (which works with --no-engine)
 const shouldUseDirectUrl =
-  !isProductionEnv && !!directUrl && !isAccelerateOrDataProxyUrl;
+  !isProductionEnv &&
+  !!directUrl &&
+  !isAccelerateOrDataProxyUrl &&
+  !isDirectUrlActuallyAccelerate;
 
 const databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
 

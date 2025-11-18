@@ -123,7 +123,7 @@ const departmentsRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // DELETE /api/departments/:id
-  app.delete('/:id', { preValidation: [requireAuthHook, requireOwnerHook] }, async (req, reply) => {
+  app.delete('/:id', { preValidation: [requireAuthHook] }, async (req, reply) => {
     try {
       const { id } = req.params as any;
       

@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/provider/")({
@@ -57,75 +58,98 @@ export const Route = createFileRoute("/provider/")({
   },
 });
 
+// API functions
+const fetchProvider = async (userId: string): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load provider");
+  }
+  const providers = await response.json();
+  if (providers.length === 0) {
+    throw new Error("You are not registered as a provider");
+  }
+  return providers[0];
+};
+
+const fetchEvents = async (providerId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load events");
+  }
+  return response.json();
+};
+
 function ProviderComponent() {
   const { session } = Route.useRouteContext();
-  const [provider, setProvider] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalEvents: 0,
-    bookedEvents: 0,
-    availableSlots: 0,
+  const userId = session.data?.user.id;
+
+  // Query for provider
+  const {
+    data: provider,
+    isLoading: isLoadingProvider,
+    error: providerError,
+  } = useQuery<any>({
+    queryKey: ["provider", { userId }],
+    queryFn: () => fetchProvider(userId!),
+    enabled: !!userId,
   });
 
-  useEffect(() => {
-    const loadProviderData = async () => {
-      try {
-        // Load provider info
-        const providerResponse = await fetch(
-          `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${
-            session.data?.user.id
-          }`,
-          {
-            credentials: "include",
-          }
-        );
+  // Query for events (enabled when provider is loaded)
+  const {
+    data: events = [],
+    isLoading: isLoadingEvents,
+    error: eventsError,
+  } = useQuery<any[]>({
+    queryKey: ["events", { providerId: provider?.id }],
+    queryFn: () => fetchEvents(provider.id),
+    enabled: !!provider?.id,
+  });
 
-        if (providerResponse.ok) {
-          const providers = await providerResponse.json();
-          if (providers.length > 0) {
-            setProvider(providers[0]);
+  // Calculate stats from events
+  const stats = useMemo(() => {
+    if (!events || events.length === 0) {
+      return {
+        totalEvents: 0,
+        bookedEvents: 0,
+        availableSlots: 0,
+      };
+    }
 
-            // Load events to calculate stats
-            const eventsResponse = await fetch(
-              `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${
-                providers[0].id
-              }`,
-              {
-                credentials: "include",
-              }
-            );
+    const now = new Date();
+    const futureEvents = events.filter(
+      (e: any) => new Date(e.start) > now
+    );
+    const bookedEvents = futureEvents.filter((e: any) => e.isBooked);
+    const availableSlots = futureEvents.filter((e: any) => !e.isBooked);
 
-            if (eventsResponse.ok) {
-              const events = await eventsResponse.json();
-              const now = new Date();
-              const futureEvents = events.filter(
-                (e: any) => new Date(e.start) > now
-              );
-              const bookedEvents = futureEvents.filter((e: any) => e.isBooked);
-              const availableSlots = futureEvents.filter(
-                (e: any) => !e.isBooked
-              );
-
-              setStats({
-                totalEvents: futureEvents.length,
-                bookedEvents: bookedEvents.length,
-                availableSlots: availableSlots.length,
-              });
-            }
-          } else {
-            toast.error("You are not registered as a provider");
-          }
-        }
-      } catch (err) {
-        console.error("Error loading provider data:", err);
-        toast.error("Error loading provider information");
-      } finally {
-        setLoading(false);
-      }
+    return {
+      totalEvents: futureEvents.length,
+      bookedEvents: bookedEvents.length,
+      availableSlots: availableSlots.length,
     };
+  }, [events]);
 
-    loadProviderData();
-  }, [session.data?.user.id]);
+  const loading = isLoadingProvider || isLoadingEvents;
+
+  // Show errors
+  useEffect(() => {
+    if (providerError) {
+      toast.error(providerError.message || "Error loading provider information");
+    }
+    if (eventsError) {
+      toast.error("Error loading events");
+    }
+  }, [providerError, eventsError]);
 
   if (loading) {
     return (

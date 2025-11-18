@@ -9,8 +9,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/")({
@@ -35,160 +36,187 @@ export const Route = createFileRoute("/admin/")({
   },
 });
 
+interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  enabled: boolean;
+  members?: any[];
+}
+
+interface CreateOrgData {
+  name: string;
+  slug: string;
+  logo?: string;
+  ownerName: string;
+  ownerEmail: string;
+}
+
+// API functions
+const fetchOrganizations = async (): Promise<Organization[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  return response.json();
+};
+
+const createOrganization = async (data: CreateOrgData): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/create`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        name: data.name,
+        slug: data.slug,
+        logo: data.logo || undefined,
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create organization");
+  }
+  return response.json();
+};
+
+const deleteOrganization = async (orgId: string): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to delete organization");
+  }
+};
+
+const createCheckout = async (
+  orgId: string
+): Promise<{ checkoutUrl: string }> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ organizationId: orgId }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create checkout");
+  }
+  return response.json();
+};
+
 function AdminComponent() {
   const { session } = Route.useRouteContext();
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const [newOrg, setNewOrg] = useState({
-    name: "",
-    slug: "",
-    logo: "",
-    ownerName: "",
-    ownerEmail: "",
+  // Query for organizations
+  const {
+    data: organizations = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["admin", "organizations"],
+    queryFn: fetchOrganizations,
+    enabled: false, // Don't auto-fetch, user clicks button
   });
 
-  // Load organizations
-  const loadOrganizations = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
-        {
-          credentials: "include",
-        }
+  // Create organization mutation
+  const createOrgMutation = useMutation({
+    mutationFn: createOrganization,
+    onSuccess: (data) => {
+      toast.success(data.message || "Organization created successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create organization");
+    },
+  });
+
+  // Delete organization mutation
+  const deleteOrgMutation = useMutation({
+    mutationFn: deleteOrganization,
+    onSuccess: () => {
+      toast.success("Organization deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+    },
+    onError: () => {
+      toast.error("Failed to delete organization");
+    },
+  });
+
+  // Subscribe mutation
+  const subscribeMutation = useMutation({
+    mutationFn: createCheckout,
+    onSuccess: (data, orgId) => {
+      // Find org name for toast
+      const org = organizations.find((o) => o.id === orgId);
+      toast.success(
+        `Redirecting to checkout for ${org?.name || "organization"}...`
       );
-      if (response.ok) {
-        const data = await response.json();
-        setOrganizations(data);
-      } else {
-        toast.error("Failed to load organizations");
-      }
-    } catch (err) {
-      toast.error("Error loading organizations");
-    } finally {
-      setLoading(false);
-    }
-  };
+      window.location.href = data.checkoutUrl;
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create checkout");
+    },
+  });
 
-  // Create organization
-  const handleCreateOrg = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !newOrg.name ||
-      !newOrg.slug ||
-      !newOrg.ownerName ||
-      !newOrg.ownerEmail
-    ) {
-      toast.error("Name, slug, owner name, and owner email are required");
-      return;
-    }
+  // TanStack Form for create organization
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      slug: "",
+      logo: "",
+      ownerName: "",
+      ownerEmail: "",
+    } as CreateOrgData,
+    onSubmit: async ({ value }) => {
+      await createOrgMutation.mutateAsync(value);
+      form.reset();
+    },
+  });
 
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/create`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: newOrg.name,
-            slug: newOrg.slug,
-            logo: newOrg.logo || undefined,
-            ownerName: newOrg.ownerName,
-            ownerEmail: newOrg.ownerEmail,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(data.message || "Organization created successfully");
-        setNewOrg({
-          name: "",
-          slug: "",
-          logo: "",
-          ownerName: "",
-          ownerEmail: "",
-        });
-        loadOrganizations();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create organization");
-      }
-    } catch (err) {
-      toast.error("Error creating organization");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Delete organization
   const handleDeleteOrg = async (orgId: string) => {
     if (!confirm("Are you sure you want to delete this organization?")) {
       return;
     }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Organization deleted successfully");
-        loadOrganizations();
-      } else {
-        toast.error("Failed to delete organization");
-      }
-    } catch (err) {
-      toast.error("Error deleting organization");
-    } finally {
-      setLoading(false);
-    }
+    await deleteOrgMutation.mutateAsync(orgId);
   };
 
-  // Create checkout and redirect to Polar
-  const handleSubscribe = async (orgId: string, orgName: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ organizationId: orgId }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(`Redirecting to checkout for ${orgName}...`);
-
-        // Redirect to Polar checkout
-        window.location.href = data.checkoutUrl;
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create checkout");
-      }
-    } catch (err) {
-      toast.error("Error creating checkout");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleSubscribe = async (orgId: string) => {
+    await subscribeMutation.mutateAsync(orgId);
   };
+
+  const isLoadingAny =
+    isLoading ||
+    createOrgMutation.isPending ||
+    deleteOrgMutation.isPending ||
+    subscribeMutation.isPending;
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
@@ -200,7 +228,7 @@ function AdminComponent() {
         <div className="mt-4">
           <Button
             variant="outline"
-            onClick={() => (window.location.href = "/admin/api-keys")}
+            onClick={() => navigate({ to: "/admin/api-keys" })}
             className="mr-2"
           >
             Manage API Keys
@@ -218,70 +246,189 @@ function AdminComponent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateOrg} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="org-name">Organization Name</Label>
-                <Input
-                  id="org-name"
-                  placeholder="Acme Corp"
-                  value={newOrg.name}
-                  onChange={(e) =>
-                    setNewOrg({ ...newOrg, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="org-slug">Slug (URL-friendly)</Label>
-                <Input
-                  id="org-slug"
-                  placeholder="acme-corp"
-                  value={newOrg.slug}
-                  onChange={(e) =>
-                    setNewOrg({ ...newOrg, slug: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="org-owner-name">Owner Name</Label>
-                <Input
-                  id="org-owner-name"
-                  placeholder="John Smith"
-                  value={newOrg.ownerName}
-                  onChange={(e) =>
-                    setNewOrg({ ...newOrg, ownerName: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="org-owner-email">Owner Email</Label>
-                <Input
-                  id="org-owner-email"
-                  type="email"
-                  placeholder="owner@example.com"
-                  value={newOrg.ownerEmail}
-                  onChange={(e) =>
-                    setNewOrg({ ...newOrg, ownerEmail: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="org-logo">Logo URL (optional)</Label>
-                <Input
-                  id="org-logo"
-                  type="url"
-                  placeholder="https://example.com/logo.png"
-                  value={newOrg.logo}
-                  onChange={(e) =>
-                    setNewOrg({ ...newOrg, logo: e.target.value })
-                  }
-                />
-              </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Creating..." : "Create Organization"}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit();
+              }}
+              className="space-y-4"
+            >
+              <form.Field
+                name="name"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return "Organization name is required";
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Organization Name</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Acme Corp"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="slug"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return "Slug is required";
+                    }
+                    if (!/^[a-z0-9-]+$/.test(value)) {
+                      return "Slug must contain only lowercase letters, numbers, and hyphens";
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Slug (URL-friendly)</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="acme-corp"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="ownerName"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return "Owner name is required";
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Owner Name</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="John Smith"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="ownerEmail"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return "Owner email is required";
+                    }
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                      return "Please enter a valid email address";
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Owner Email</Label>
+                    <Input
+                      id={field.name}
+                      type="email"
+                      placeholder="owner@example.com"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="logo"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value && value.trim().length > 0) {
+                      try {
+                        new URL(value);
+                      } catch {
+                        return "Please enter a valid URL";
+                      }
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Logo URL (optional)</Label>
+                    <Input
+                      id={field.name}
+                      type="url"
+                      placeholder="https://example.com/logo.png"
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <Button
+                type="submit"
+                disabled={createOrgMutation.isPending}
+                className="w-full"
+              >
+                {createOrgMutation.isPending
+                  ? "Creating..."
+                  : "Create Organization"}
               </Button>
             </form>
           </CardContent>
@@ -296,15 +443,20 @@ function AdminComponent() {
             Manage all organizations in the system
           </CardDescription>
           <Button
-            onClick={loadOrganizations}
-            disabled={loading}
+            onClick={() => refetch()}
+            disabled={isLoading}
             className="mt-2"
           >
-            {loading ? "Loading..." : "Load Organizations"}
+            {isLoading ? "Loading..." : "Load Organizations"}
           </Button>
         </CardHeader>
         <CardContent>
-          {organizations.length === 0 ? (
+          {error && (
+            <p className="text-sm text-red-500 mb-4">
+              Error loading organizations: {error.message}
+            </p>
+          )}
+          {organizations.length === 0 && !isLoading ? (
             <p className="text-sm text-muted-foreground">
               No organizations loaded. Click "Load Organizations" to fetch.
             </p>
@@ -352,8 +504,8 @@ function AdminComponent() {
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => handleSubscribe(org.id, org.name)}
-                        disabled={loading}
+                        onClick={() => handleSubscribe(org.id)}
+                        disabled={isLoadingAny}
                       >
                         Subscribe
                       </Button>
@@ -362,7 +514,7 @@ function AdminComponent() {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteOrg(org.id)}
-                      disabled={loading}
+                      disabled={isLoadingAny}
                     >
                       Delete
                     </Button>

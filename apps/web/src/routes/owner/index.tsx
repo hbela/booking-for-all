@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -63,58 +64,130 @@ export const Route = createFileRoute("/owner/")({
   },
 });
 
+// API functions
+const fetchMyOrganizations = async (): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  return response.json();
+};
+
+const fetchMySubscriptions = async (): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/my-subscriptions`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load subscriptions");
+  }
+  return response.json();
+};
+
+const createCheckout = async (organizationId: string): Promise<{ checkoutUrl: string }> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ organizationId }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create checkout");
+  }
+  return response.json();
+};
+
+const syncSubscription = async (organizationId: string): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/sync-from-polar`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ organizationId }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to sync subscription");
+  }
+  return response.json();
+};
+
 function OwnerComponent() {
   const { session } = Route.useRouteContext();
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [showSubscriptionDetails, setShowSubscriptionDetails] = useState<
     string | null
   >(null);
-  const [loading, setLoading] = useState(true);
-  const [syncingOrgId, setSyncingOrgId] = useState<string | null>(null);
 
-  // Load user's organizations and subscriptions
+  // Queries
+  const {
+    data: organizations = [],
+    isLoading: isLoadingOrganizations,
+    error: organizationsError,
+  } = useQuery<any[]>({
+    queryKey: ["organizations", "my-organizations"],
+    queryFn: fetchMyOrganizations,
+  });
+
+  const {
+    data: subscriptions = [],
+    isLoading: isLoadingSubscriptions,
+    error: subscriptionsError,
+  } = useQuery<any[]>({
+    queryKey: ["subscriptions", "my-subscriptions"],
+    queryFn: fetchMySubscriptions,
+  });
+
+  // Mutations
+  const subscribeMutation = useMutation({
+    mutationFn: ({ organizationId }: { organizationId: string; orgName: string }) =>
+      createCheckout(organizationId),
+    onSuccess: (data, variables) => {
+      toast.success(`Redirecting to checkout for ${variables.orgName}...`);
+      window.location.href = data.checkoutUrl;
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create checkout");
+    },
+  });
+
+  const syncSubscriptionMutation = useMutation({
+    mutationFn: ({ organizationId }: { organizationId: string; orgName: string }) =>
+      syncSubscription(organizationId),
+    onSuccess: (data, variables) => {
+      toast.success(`Subscription synced successfully for ${variables.orgName}!`);
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["organizations", "my-organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["subscriptions", "my-subscriptions"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to sync subscription");
+    },
+  });
+
+  const loading = isLoadingOrganizations || isLoadingSubscriptions;
+
+  // Check if returning from successful subscription
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load organizations
-        const orgResponse = await fetch(
-          `${
-            import.meta.env.VITE_SERVER_URL
-          }/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        if (orgResponse.ok) {
-          const orgData = await orgResponse.json();
-          setOrganizations(orgData);
-        }
-
-        // Load subscriptions
-        const subResponse = await fetch(
-          `${
-            import.meta.env.VITE_SERVER_URL
-          }/api/subscriptions/my-subscriptions`,
-          {
-            credentials: "include",
-          }
-        );
-        if (subResponse.ok) {
-          const subData = await subResponse.json();
-          setSubscriptions(subData);
-        }
-      } catch (err) {
-        console.error("Error loading data:", err);
-        toast.error("Error loading data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-
-    // Check if returning from successful subscription
     const urlParams = new URLSearchParams(window.location.search);
     const subscribed = urlParams.get("subscribed");
 
@@ -129,12 +202,23 @@ function OwnerComponent() {
       // Clean up URL
       window.history.replaceState({}, "", window.location.pathname);
 
-      // Reload organizations after a delay to get updated status
+      // Invalidate queries to refresh data after a delay
       setTimeout(() => {
-        loadData();
+        queryClient.invalidateQueries({ queryKey: ["organizations", "my-organizations"] });
+        queryClient.invalidateQueries({ queryKey: ["subscriptions", "my-subscriptions"] });
       }, 2000);
     }
-  }, []);
+  }, [queryClient]);
+
+  // Show error if queries fail
+  useEffect(() => {
+    if (organizationsError) {
+      toast.error("Error loading organizations");
+    }
+    if (subscriptionsError) {
+      toast.error("Error loading subscriptions");
+    }
+  }, [organizationsError, subscriptionsError]);
 
   // Helper functions
   const formatCurrency = (cents: number, currency: string = "USD") => {
@@ -177,37 +261,8 @@ function OwnerComponent() {
   };
 
   // Create checkout and redirect to Polar
-  const handleSubscribe = async (orgId: string, orgName: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ organizationId: orgId }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(`Redirecting to checkout for ${orgName}...`);
-
-        // Redirect to Polar checkout
-        window.location.href = data.checkoutUrl;
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create checkout");
-      }
-    } catch (err) {
-      toast.error("Error creating checkout");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleSubscribe = (orgId: string, orgName: string) => {
+    subscribeMutation.mutate({ organizationId: orgId, orgName });
   };
 
   const toggleSubscriptionDetails = (orgId: string) => {
@@ -217,62 +272,8 @@ function OwnerComponent() {
   };
 
   // Sync subscription from Polar API
-  const handleSyncSubscription = async (orgId: string, orgName: string) => {
-    setSyncingOrgId(orgId);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/sync-from-polar`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ organizationId: orgId }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(`Subscription synced successfully for ${orgName}!`);
-        
-        // Reload data to show updated subscription
-        setTimeout(() => {
-          const loadData = async () => {
-            try {
-              const orgResponse = await fetch(
-                `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
-                { credentials: "include" }
-              );
-              if (orgResponse.ok) {
-                const orgData = await orgResponse.json();
-                setOrganizations(orgData);
-              }
-
-              const subResponse = await fetch(
-                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/my-subscriptions`,
-                { credentials: "include" }
-              );
-              if (subResponse.ok) {
-                const subData = await subResponse.json();
-                setSubscriptions(subData);
-              }
-            } catch (err) {
-              console.error("Error reloading data:", err);
-            }
-          };
-          loadData();
-        }, 1000);
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to sync subscription");
-      }
-    } catch (err) {
-      toast.error("Error syncing subscription");
-      console.error(err);
-    } finally {
-      setSyncingOrgId(null);
-    }
+  const handleSyncSubscription = (orgId: string, orgName: string) => {
+    syncSubscriptionMutation.mutate({ organizationId: orgId, orgName });
   };
 
   // User role is OWNER, all their organizations are shown
@@ -441,7 +442,7 @@ function OwnerComponent() {
                           {!org.enabled && !subscription && (
                             <Button
                               onClick={() => handleSubscribe(org.id, org.name)}
-                              disabled={loading}
+                              disabled={loading || subscribeMutation.isPending}
                             >
                               Subscribe Now
                             </Button>
@@ -450,9 +451,9 @@ function OwnerComponent() {
                             <Button
                               variant="outline"
                               onClick={() => handleSyncSubscription(org.id, org.name)}
-                              disabled={syncingOrgId === org.id || loading}
+                              disabled={syncSubscriptionMutation.isPending || loading}
                             >
-                              {syncingOrgId === org.id ? "Syncing..." : "Sync Subscription"}
+                              {syncSubscriptionMutation.isPending ? "Syncing..." : "Sync Subscription"}
                             </Button>
                           )}
                           {subscription && (

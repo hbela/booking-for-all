@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -74,38 +74,34 @@ interface Booking {
   };
 }
 
+// API function
+const fetchClientBookings = async (): Promise<Booking[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/bookings`,
+    {
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to load bookings");
+  }
+  return response.json();
+};
+
 function ClientBookings() {
   const { session } = Route.useRouteContext();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBookings();
-  }, []);
-
-  const loadBookings = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/bookings`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setBookings(data);
-      } else {
-        toast.error("Failed to load bookings");
-      }
-    } catch (err) {
-      console.error("Error loading bookings:", err);
-      toast.error("Error loading bookings");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Query for bookings
+  const {
+    data: bookings = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["client", "bookings"],
+    queryFn: fetchClientBookings,
+  });
 
   const now = new Date();
 
@@ -133,12 +129,16 @@ function ClientBookings() {
       return dateB - dateA; // Descending: most recent first
     });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="text-center">Loading bookings...</div>
       </div>
     );
+  }
+
+  if (error) {
+    toast.error("Failed to load bookings");
   }
 
   return (
@@ -158,6 +158,19 @@ function ClientBookings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Error loading bookings.{" "}
+                <button
+                  onClick={() => refetch()}
+                  className="underline font-medium"
+                >
+                  Try again
+                </button>
+              </p>
+            </div>
+          )}
           <Tabs defaultValue="current" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="current">

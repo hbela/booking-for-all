@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Key, Calendar, User } from "lucide-react";
 
@@ -69,142 +71,154 @@ interface Organization {
   enabled: boolean;
 }
 
+interface GenerateKeyData {
+  organizationId: string;
+  name: string;
+  expiresInDays?: number;
+}
+
+// API functions
+const fetchApiKeys = async (): Promise<ApiKey[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load API keys");
+  }
+  return response.json();
+};
+
+const fetchOrganizations = async (): Promise<Organization[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  return response.json();
+};
+
+const generateApiKey = async (
+  data: GenerateKeyData
+): Promise<{ key: string }> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/generate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        organizationId: data.organizationId,
+        name: data.name,
+        expiresInDays: data.expiresInDays || undefined,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to generate API key");
+  }
+  return response.json();
+};
+
+const revokeApiKey = async (keyId: string): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/${keyId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to revoke API key");
+  }
+};
+
 function ApiKeysComponent() {
   const { session } = Route.useRouteContext();
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [showGeneratedKey, setShowGeneratedKey] = useState(false);
 
-  const [newKey, setNewKey] = useState({
-    organizationId: "",
-    name: "",
-    expiresInDays: "",
+  // Query for API keys
+  const {
+    data: apiKeys = [],
+    isLoading: isLoadingKeys,
+    error: keysError,
+    refetch: refetchKeys,
+  } = useQuery({
+    queryKey: ["admin", "api-keys"],
+    queryFn: fetchApiKeys,
   });
 
-  // Load API keys
-  const loadApiKeys = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setApiKeys(data);
-      } else {
-        toast.error("Failed to load API keys");
-      }
-    } catch (err) {
-      toast.error("Error loading API keys");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Query for organizations
+  const {
+    data: organizations = [],
+    isLoading: isLoadingOrgs,
+    error: orgsError,
+  } = useQuery({
+    queryKey: ["admin", "organizations"],
+    queryFn: fetchOrganizations,
+  });
 
-  // Load organizations
-  const loadOrganizations = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setOrganizations(data);
-      } else {
-        toast.error("Failed to load organizations");
-      }
-    } catch (err) {
-      toast.error("Error loading organizations");
-    }
-  };
+  // Generate API key mutation
+  const generateKeyMutation = useMutation({
+    mutationFn: generateApiKey,
+    onSuccess: (data) => {
+      setGeneratedKey(data.key);
+      setShowGeneratedKey(true);
+      form.reset();
+      toast.success("API key generated successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "api-keys"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to generate API key");
+    },
+  });
 
-  // Generate API key
-  const handleGenerateKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newKey.organizationId || !newKey.name) {
-      toast.error("Organization and name are required");
-      return;
-    }
+  // Revoke API key mutation
+  const revokeKeyMutation = useMutation({
+    mutationFn: revokeApiKey,
+    onSuccess: () => {
+      toast.success("API key revoked successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "api-keys"] });
+    },
+    onError: () => {
+      toast.error("Failed to revoke API key");
+    },
+  });
 
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            organizationId: newKey.organizationId,
-            name: newKey.name,
-            expiresInDays: newKey.expiresInDays
-              ? parseInt(newKey.expiresInDays)
-              : undefined,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedKey(data.key);
-        setShowGeneratedKey(true);
-        setNewKey({ organizationId: "", name: "", expiresInDays: "" });
-        toast.success("API key generated successfully");
-        loadApiKeys();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to generate API key");
-      }
-    } catch (err) {
-      toast.error("Error generating API key");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Revoke API key
-  const handleRevokeKey = async (keyId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to revoke this API key? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/${keyId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("API key revoked successfully");
-        loadApiKeys();
-      } else {
-        toast.error("Failed to revoke API key");
-      }
-    } catch (err) {
-      toast.error("Error revoking API key");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // TanStack Form for generate API key
+  const form = useForm({
+    defaultValues: {
+      organizationId: "",
+      name: "",
+      expiresInDays: "",
+    } as {
+      organizationId: string;
+      name: string;
+      expiresInDays: string;
+    },
+    onSubmit: async ({ value }) => {
+      await generateKeyMutation.mutateAsync({
+        organizationId: value.organizationId,
+        name: value.name,
+        expiresInDays: value.expiresInDays
+          ? parseInt(value.expiresInDays)
+          : undefined,
+      });
+    },
+  });
 
   // Copy to clipboard
   const copyToClipboard = async (text: string) => {
@@ -234,10 +248,22 @@ function ApiKeysComponent() {
     return new Date(expiresAt) < new Date();
   };
 
-  useEffect(() => {
-    loadApiKeys();
-    loadOrganizations();
-  }, []);
+  const handleRevokeKey = async (keyId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to revoke this API key? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+    await revokeKeyMutation.mutateAsync(keyId);
+  };
+
+  const isLoadingAny =
+    isLoadingKeys ||
+    isLoadingOrgs ||
+    generateKeyMutation.isPending ||
+    revokeKeyMutation.isPending;
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
@@ -298,56 +324,131 @@ function ApiKeysComponent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleGenerateKey} className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit();
+              }}
+              className="space-y-4"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
-                  <Select
-                    value={newKey.organizationId}
-                    onValueChange={(value) =>
-                      setNewKey({ ...newKey, organizationId: value })
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select organization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {organizations.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
-                          {org.name} {!org.enabled && "(Disabled)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Key Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="External App Integration"
-                    value={newKey.name}
-                    onChange={(e) =>
-                      setNewKey({ ...newKey, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+                <form.Field
+                  name="organizationId"
+                  validators={{
+                    onChange: ({ value }) => {
+                      if (!value || value.trim().length === 0) {
+                        return "Organization is required";
+                      }
+                      return undefined;
+                    },
+                  }}
+                >
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>Organization</Label>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(value) => field.handleChange(value)}
+                        disabled={generateKeyMutation.isPending}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select organization" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name} {!org.enabled && "(Disabled)"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-red-500">
+                          {field.state.meta.errors[0]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+
+                <form.Field
+                  name="name"
+                  validators={{
+                    onChange: ({ value }) => {
+                      if (!value || value.trim().length === 0) {
+                        return "Key name is required";
+                      }
+                      return undefined;
+                    },
+                  }}
+                >
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>Key Name</Label>
+                      <Input
+                        id={field.name}
+                        placeholder="External App Integration"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        disabled={generateKeyMutation.isPending}
+                      />
+                      {field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-red-500">
+                          {field.state.meta.errors[0]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="expires">Expires In (days, optional)</Label>
-                <Input
-                  id="expires"
-                  type="number"
-                  placeholder="30"
-                  value={newKey.expiresInDays}
-                  onChange={(e) =>
-                    setNewKey({ ...newKey, expiresInDays: e.target.value })
-                  }
-                />
-              </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Generating..." : "Generate API Key"}
+
+              <form.Field
+                name="expiresInDays"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value && value.trim().length > 0) {
+                      const days = parseInt(value);
+                      if (isNaN(days) || days < 1) {
+                        return "Expiration days must be a positive number";
+                      }
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>
+                      Expires In (days, optional)
+                    </Label>
+                    <Input
+                      id={field.name}
+                      type="number"
+                      placeholder="30"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={generateKeyMutation.isPending}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <Button
+                type="submit"
+                disabled={generateKeyMutation.isPending}
+                className="w-full"
+              >
+                {generateKeyMutation.isPending
+                  ? "Generating..."
+                  : "Generate API Key"}
               </Button>
             </form>
           </CardContent>
@@ -359,16 +460,21 @@ function ApiKeysComponent() {
             <CardTitle>API Keys</CardTitle>
             <CardDescription>Manage existing API keys</CardDescription>
             <Button
-              onClick={loadApiKeys}
-              disabled={loading}
+              onClick={() => refetchKeys()}
+              disabled={isLoadingKeys}
               variant="outline"
               className="mt-2"
             >
-              {loading ? "Loading..." : "Refresh"}
+              {isLoadingKeys ? "Loading..." : "Refresh"}
             </Button>
           </CardHeader>
           <CardContent>
-            {apiKeys.length === 0 ? (
+            {keysError && (
+              <p className="text-sm text-red-500 mb-4">
+                Error loading API keys: {keysError.message}
+              </p>
+            )}
+            {apiKeys.length === 0 && !isLoadingKeys ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No API keys found. Generate one to get started.
               </p>
@@ -446,7 +552,7 @@ function ApiKeysComponent() {
                         variant="destructive"
                         size="sm"
                         onClick={() => handleRevokeKey(key.id)}
-                        disabled={loading}
+                        disabled={isLoadingAny}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Revoke

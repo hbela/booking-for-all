@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/providers")({
@@ -67,202 +69,216 @@ export const Route = createFileRoute("/owner/providers")({
   },
 });
 
+// API functions
+const fetchMyOrganizations = async (): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  const data = await response.json();
+  // User has OWNER role, filter only enabled organizations
+  return data.filter((org: any) => org.enabled);
+};
+
+const fetchDepartments = async (organizationId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/departments?organizationId=${organizationId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load departments");
+  }
+  return response.json();
+};
+
+const fetchProviders = async (organizationId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?organizationId=${organizationId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load providers");
+  }
+  return response.json();
+};
+
+const createProvider = async (data: {
+  name: string;
+  email: string;
+  organizationId: string;
+  departmentId: string;
+}): Promise<{ tempPassword: string }> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers/create-user`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create provider");
+  }
+  return response.json();
+};
+
+const deleteProvider = async (providerId: string): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers/${providerId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete provider");
+  }
+};
+
+interface CreateProviderData {
+  name: string;
+  email: string;
+  departmentId: string;
+}
+
 function ProvidersComponent() {
   const { session } = Route.useRouteContext();
-  const [organizations, setOrganizations] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [providers, setProviders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const departmentFieldInteracted = useRef(false);
 
-  const [newProvider, setNewProvider] = useState({
-    name: "",
-    email: "",
-    departmentId: "",
+  // Query for organizations
+  const {
+    data: organizations = [],
+    isLoading: isLoadingOrganizations,
+    error: organizationsError,
+  } = useQuery<any[]>({
+    queryKey: ["organizations", "my-organizations"],
+    queryFn: fetchMyOrganizations,
   });
 
-  // Load user's owned organizations
+  // Auto-select first organization when organizations load
   useEffect(() => {
-    const loadOrganizations = async () => {
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_SERVER_URL
-          }/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          // User has OWNER role, filter only enabled organizations
-          const ownedOrgs = data.filter((org: any) => org.enabled);
-          setOrganizations(ownedOrgs);
+    if (organizations.length > 0 && !selectedOrgId) {
+      setSelectedOrgId(organizations[0].id);
+    }
+  }, [organizations, selectedOrgId]);
 
-          // Auto-select first organization
-          if (ownedOrgs.length > 0) {
-            setSelectedOrgId(ownedOrgs[0].id);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading organizations:", err);
-        toast.error("Error loading organizations");
+  // Query for departments (enabled when organization is selected)
+  const {
+    data: departments = [],
+    isLoading: isLoadingDepartments,
+    error: departmentsError,
+  } = useQuery<any[]>({
+    queryKey: ["departments", { organizationId: selectedOrgId }],
+    queryFn: () => fetchDepartments(selectedOrgId),
+    enabled: !!selectedOrgId,
+  });
+
+  // Query for providers (enabled when organization is selected)
+  const {
+    data: providers = [],
+    isLoading: isLoadingProviders,
+    error: providersError,
+  } = useQuery<any[]>({
+    queryKey: ["providers", { organizationId: selectedOrgId }],
+    queryFn: () => fetchProviders(selectedOrgId),
+    enabled: !!selectedOrgId,
+  });
+
+  // Mutations
+  const createProviderMutation = useMutation({
+    mutationFn: createProvider,
+    onSuccess: (data) => {
+      toast.success(`Provider created! Temporary password: ${data.tempPassword}`, {
+        duration: 10000,
+        description:
+          "The provider will need to change this password on first login.",
+      });
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create provider");
+    },
+  });
+
+  const deleteProviderMutation = useMutation({
+    mutationFn: deleteProvider,
+    onSuccess: () => {
+      toast.success("Provider deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete provider");
+    },
+  });
+
+  // TanStack Form for create provider
+  const form = useForm<CreateProviderData>({
+    defaultValues: {
+      name: "",
+      email: "",
+      departmentId: "",
+    },
+    onSubmit: async ({ value }) => {
+      if (!selectedOrgId) {
+        toast.error("Please select an organization");
+        return;
       }
-    };
+      await createProviderMutation.mutateAsync({
+        name: value.name,
+        email: value.email,
+        organizationId: selectedOrgId,
+        departmentId: value.departmentId,
+      });
+    },
+  });
 
-    loadOrganizations();
-  }, []);
-
-  // Load departments and providers when organization is selected
+  // Auto-select first department when departments load
   useEffect(() => {
-    if (selectedOrgId) {
-      loadDepartments();
-      loadProviders();
+    if (departments.length > 0 && !form.state.values.departmentId) {
+      // Use setFieldValue without triggering validation
+      form.setFieldValue("departmentId", departments[0].id);
     }
-  }, [selectedOrgId]);
+  }, [departments, form]);
 
-  const loadDepartments = async () => {
-    if (!selectedOrgId) return;
+  const loading = isLoadingOrganizations || isLoadingDepartments || isLoadingProviders;
 
-    try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL
-        }/api/departments?organizationId=${selectedOrgId}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setDepartments(data);
-        // Auto-select first department if none selected
-        if (data.length > 0 && !newProvider.departmentId) {
-          setNewProvider((prev) => ({
-            ...prev,
-            departmentId: data[0].id,
-          }));
-        }
-      }
-    } catch (err) {
-      console.error("Error loading departments:", err);
+  // Show errors
+  useEffect(() => {
+    if (organizationsError) {
+      toast.error("Error loading organizations");
     }
-  };
-
-  const loadProviders = async () => {
-    if (!selectedOrgId) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL
-        }/api/providers?organizationId=${selectedOrgId}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setProviders(data);
-      } else {
-        toast.error("Failed to load providers");
-      }
-    } catch (err) {
-      console.error("Error loading providers:", err);
+    if (departmentsError) {
+      toast.error("Error loading departments");
+    }
+    if (providersError) {
       toast.error("Error loading providers");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [organizationsError, departmentsError, providersError]);
 
-  const handleCreateProvider = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProvider.name || !newProvider.email || !newProvider.departmentId) {
-      toast.error("Name, email, and department are required");
-      return;
-    }
-
-    if (!selectedOrgId) {
-      toast.error("Please select an organization");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/providers/create-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: newProvider.name,
-            email: newProvider.email,
-            organizationId: selectedOrgId,
-            departmentId: newProvider.departmentId,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(
-          `Provider created! Temporary password: ${data.tempPassword}`,
-          {
-            duration: 10000,
-            description:
-              "The provider will need to change this password on first login.",
-          }
-        );
-        setNewProvider({
-          name: "",
-          email: "",
-          departmentId: newProvider.departmentId,
-        });
-        loadProviders();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create provider");
-      }
-    } catch (err) {
-      toast.error("Error creating provider");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteProvider = async (providerId: string) => {
+  const handleDeleteProvider = (providerId: string) => {
     if (!confirm("Are you sure you want to delete this provider?")) {
       return;
     }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/providers/${providerId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Provider deleted successfully");
-        loadProviders();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to delete provider");
-      }
-    } catch (err) {
-      toast.error("Error deleting provider");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    deleteProviderMutation.mutate(providerId);
   };
 
   const getDepartmentName = (departmentId: string) => {
@@ -342,62 +358,141 @@ function ProvidersComponent() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleCreateProvider} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="provider-name">Provider Name</Label>
-                        <Input
-                          id="provider-name"
-                          placeholder="e.g., Dr. John Smith"
-                          value={newProvider.name}
-                          onChange={(e) =>
-                            setNewProvider({
-                              ...newProvider,
-                              name: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="provider-email">Email</Label>
-                        <Input
-                          id="provider-email"
-                          type="email"
-                          placeholder="john.smith@example.com"
-                          value={newProvider.email}
-                          onChange={(e) =>
-                            setNewProvider({
-                              ...newProvider,
-                              email: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="provider-dept">Department</Label>
-                        <Select
-                          value={newProvider.departmentId}
-                          onValueChange={(value) =>
-                            setNewProvider({
-                              ...newProvider,
-                              departmentId: value,
-                            })
-                          }
-                          required
-                        >
-                          <SelectTrigger id="provider-dept">
-                            <SelectValue placeholder="Select Department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept.id} value={dept.id}>
-                                {dept.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        form.handleSubmit();
+                      }}
+                      className="space-y-4"
+                    >
+                      <form.Field
+                        name="name"
+                        validators={{
+                          onChange: ({ value }) => {
+                            if (!value || value.length < 2) {
+                              return "Provider name must be at least 2 characters";
+                            }
+                            return undefined;
+                          },
+                        }}
+                      >
+                        {(field) => (
+                          <div className="space-y-2">
+                            <Label htmlFor="provider-name">Provider Name</Label>
+                            <Input
+                              id="provider-name"
+                              placeholder="e.g., Dr. John Smith"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              onBlur={field.handleBlur}
+                            />
+                            {field.state.meta.errors.length > 0 && (
+                              <p className="text-sm text-destructive">
+                                {field.state.meta.errors[0]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field
+                        name="email"
+                        validators={{
+                          onChange: ({ value }) => {
+                            if (!value) {
+                              return "Email is required";
+                            }
+                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                            if (!emailRegex.test(value)) {
+                              return "Please enter a valid email address";
+                            }
+                            return undefined;
+                          },
+                        }}
+                      >
+                        {(field) => (
+                          <div className="space-y-2">
+                            <Label htmlFor="provider-email">Email</Label>
+                            <Input
+                              id="provider-email"
+                              type="email"
+                              placeholder="john.smith@example.com"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              onBlur={field.handleBlur}
+                            />
+                            {field.state.meta.errors.length > 0 && (
+                              <p className="text-sm text-destructive">
+                                {field.state.meta.errors[0]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field
+                        name="departmentId"
+                        validators={{
+                          onBlur: ({ value }) => {
+                            if (!value) {
+                              return "Department is required";
+                            }
+                            return undefined;
+                          },
+                          onSubmit: ({ value }) => {
+                            if (!value) {
+                              return "Department is required";
+                            }
+                            return undefined;
+                          },
+                        }}
+                      >
+                        {(field) => {
+                          // Only show error if user has interacted with the field or form has been submitted
+                          const shouldShowError = 
+                            (departmentFieldInteracted.current || form.state.isSubmitted) &&
+                            field.state.meta.errors.length > 0 &&
+                            !field.state.value;
+                          
+                          return (
+                            <div className="space-y-2">
+                              <Label htmlFor="provider-dept">Department</Label>
+                              <Select
+                                value={field.state.value}
+                                onValueChange={(value) => {
+                                  departmentFieldInteracted.current = true;
+                                  field.handleChange(value);
+                                }}
+                                onOpenChange={(open) => {
+                                  if (open) {
+                                    departmentFieldInteracted.current = true;
+                                  }
+                                }}
+                              >
+                                <SelectTrigger 
+                                  id="provider-dept"
+                                  onFocus={() => {
+                                    departmentFieldInteracted.current = true;
+                                  }}
+                                >
+                                  <SelectValue placeholder="Select Department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {departments.map((dept) => (
+                                    <SelectItem key={dept.id} value={dept.id}>
+                                      {dept.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {shouldShowError && (
+                                <p className="text-sm text-destructive">
+                                  {field.state.meta.errors[0]}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }}
+                      </form.Field>
                       <div className="rounded-md bg-muted p-3 text-sm">
                         <p className="font-medium mb-1">Temporary Password:</p>
                         <p className="text-muted-foreground">
@@ -409,13 +504,21 @@ function ProvidersComponent() {
                           Provider must change password on first login
                         </p>
                       </div>
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full"
+                      <form.Subscribe
+                        selector={(state) => [state.canSubmit, state.isSubmitting]}
                       >
-                        {loading ? "Creating..." : "Create Provider"}
-                      </Button>
+                        {([canSubmit, isSubmitting]) => (
+                          <Button
+                            type="submit"
+                            disabled={!canSubmit || loading || isSubmitting}
+                            className="w-full"
+                          >
+                            {isSubmitting || createProviderMutation.isPending
+                              ? "Creating..."
+                              : "Create Provider"}
+                          </Button>
+                        )}
+                      </form.Subscribe>
                     </form>
                   </CardContent>
                 </Card>
@@ -488,7 +591,7 @@ function ProvidersComponent() {
                                 onClick={() =>
                                   handleDeleteProvider(provider.id)
                                 }
-                                disabled={loading}
+                                disabled={loading || deleteProviderMutation.isPending}
                               >
                                 Remove
                               </Button>

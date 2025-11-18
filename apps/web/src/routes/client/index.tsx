@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Building2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/client/")({
   component: ClientDashboard,
@@ -79,38 +80,48 @@ interface Organization {
   };
 }
 
+// API function
+const fetchClientOrganizations = async (): Promise<Organization[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  return response.json();
+};
+
 function ClientDashboard() {
   const { data: session } = authClient.useSession();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchOrganizations();
-  }, []);
+  // Query for organizations
+  const {
+    data: organizations = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["client", "organizations"],
+    queryFn: fetchClientOrganizations,
+  });
 
-  const fetchOrganizations = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:3000/api/client/organizations",
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setOrganizations(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch organizations:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading organizations...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    toast.error("Failed to load organizations");
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-red-500">
+          Error loading organizations. Please try again.
+        </div>
       </div>
     );
   }

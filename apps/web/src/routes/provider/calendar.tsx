@@ -15,8 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import type { View } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -29,7 +41,7 @@ import {
   startOfHour,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/react";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
@@ -71,16 +83,132 @@ interface CalendarEvent {
   booking?: any;
 }
 
+// API functions
+const fetchProvider = async (userId: string): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load provider");
+  }
+  const providers = await response.json();
+  if (providers.length === 0) {
+    throw new Error("You are not registered as a provider");
+  }
+  return providers[0];
+};
+
+const fetchEvents = async (providerId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load events");
+  }
+  return response.json();
+};
+
+const createEvent = async (data: {
+  providerId: string;
+  title: string;
+  description?: string;
+  start: string;
+  end: string;
+}): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/events`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create event");
+  }
+  return response.json();
+};
+
+const updateEvent = async (data: {
+  eventId: string;
+  title: string;
+  description?: string;
+}): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/events/${data.eventId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update event");
+  }
+  return response.json();
+};
+
+const deleteEvent = async (eventId: string): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/events/${eventId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = "Failed to delete event";
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      // If response is not JSON, use status text
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+  // Success - response might be empty (204 No Content)
+};
+
+interface EventFormData {
+  title: string;
+  description: string;
+  duration: number;
+}
+
 function ProviderCalendarComponent() {
   const { session } = Route.useRouteContext();
-  const [provider, setProvider] = useState<any>(null);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const userId = session.data?.user.id;
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(
+    null
+  );
   const [selectedSlot, setSelectedSlot] = useState<{
     start: Date;
     end: Date;
@@ -89,132 +217,139 @@ function ProviderCalendarComponent() {
     null
   );
 
-  const [eventForm, setEventForm] = useState({
-    title: "",
-    description: "",
-    duration: 30,
+  // Query for provider
+  const {
+    data: provider,
+    isLoading: isLoadingProvider,
+    error: providerError,
+  } = useQuery<any>({
+    queryKey: ["provider", { userId }],
+    queryFn: () => fetchProvider(userId!),
+    enabled: !!userId,
   });
 
-  // Load provider info
-  useEffect(() => {
-    const loadProvider = async () => {
-      try {
-        // Get user's provider info
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${
-            session.data?.user.id
-          }`,
-          {
-            credentials: "include",
-          }
-        );
+  // Query for events (enabled when provider is loaded)
+  const {
+    data: rawEvents = [],
+    isLoading: isLoadingEvents,
+    error: eventsError,
+  } = useQuery<any[]>({
+    queryKey: ["events", { providerId: provider?.id }],
+    queryFn: () => fetchEvents(provider.id),
+    enabled: !!provider?.id,
+  });
 
-        if (response.ok) {
-          const providers = await response.json();
-          if (providers.length > 0) {
-            setProvider(providers[0]);
-          } else {
-            toast.error("You are not registered as a provider");
-          }
-        }
-      } catch (err) {
-        console.error("Error loading provider:", err);
-        toast.error("Error loading provider information");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProvider();
-  }, [session.data?.user.id]);
-
-  // Load events
-  useEffect(() => {
-    if (provider) {
-      loadEvents();
+  // Format events for calendar
+  const events = useMemo(() => {
+    if (!rawEvents || rawEvents.length === 0) {
+      return [];
     }
-  }, [provider]);
 
-  const loadEvents = async () => {
-    if (!provider) return;
+    const now = new Date();
+    const pastCutoff = new Date();
+    pastCutoff.setDate(pastCutoff.getDate() - 30);
 
-    setLoading(true);
-    try {
-      const url = `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${
-        provider.id
-      }`;
-      console.log(
-        "📅 Fetching events for provider:",
-        provider.id,
-        "from:",
-        url
-      );
+    return rawEvents
+      .map((event: any) => ({
+        id: event.id,
+        title: event.isBooked
+          ? `${event.title} - Booked by ${
+              event.booking?.member?.name || "Client"
+            }`
+          : event.title,
+        description: event.description,
+        start: new Date(event.start),
+        end: new Date(event.end),
+        isBooked: event.isBooked,
+        booking: event.booking,
+      }))
+      .filter((event: CalendarEvent) => event.start >= pastCutoff);
+  }, [rawEvents]);
 
-      const response = await fetch(url, {
-        credentials: "include",
+  // Mutations
+  const createEventMutation = useMutation({
+    mutationFn: createEvent,
+    onSuccess: () => {
+      toast.success("Event created successfully");
+      setShowModal(false);
+      queryClient.invalidateQueries({
+        queryKey: ["events", { providerId: provider?.id }],
       });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create event");
+    },
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("📅 Raw events from API:", data.length, "events", data);
+  const updateEventMutation = useMutation({
+    mutationFn: updateEvent,
+    onSuccess: () => {
+      toast.success("Event updated successfully");
+      setShowModal(false);
+      queryClient.invalidateQueries({
+        queryKey: ["events", { providerId: provider?.id }],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update event");
+    },
+  });
 
-        const now = new Date();
-        // Show events from the last 30 days onwards (for providers to see recent history)
-        const pastCutoff = new Date();
-        pastCutoff.setDate(pastCutoff.getDate() - 30);
+  const deleteEventMutation = useMutation({
+    mutationFn: deleteEvent,
+    onSuccess: () => {
+      toast.success("Event deleted successfully");
+      setShowModal(false);
+      queryClient.invalidateQueries({
+        queryKey: ["events", { providerId: provider?.id }],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete event");
+    },
+  });
 
-        const formattedEvents = data
-          .map((event: any) => ({
-            id: event.id,
-            title: event.isBooked
-              ? `${event.title} - Booked by ${
-                  event.booking?.member?.name || "Client"
-                }`
-              : event.title,
-            description: event.description,
-            start: new Date(event.start),
-            end: new Date(event.end),
-            isBooked: event.isBooked,
-            booking: event.booking,
-          }))
-          .filter((event: CalendarEvent) => event.start >= pastCutoff); // Show events from last 30 days onwards
-
-        console.log(
-          "📅 Loaded events for provider:",
-          formattedEvents.length,
-          "events (showing from last 30 days)"
-        );
-        console.log(
-          "📅 Total events from API:",
-          data.length,
-          "Filtered to:",
-          formattedEvents.length
-        );
-        console.log(
-          "📅 Booked events:",
-          formattedEvents.filter((e: CalendarEvent) => e.isBooked).length
-        );
-        console.log(
-          "📅 Future events:",
-          formattedEvents.filter((e: CalendarEvent) => e.start > now).length
-        );
-        console.log(
-          "📅 Past events (within 30 days):",
-          formattedEvents.filter((e: CalendarEvent) => e.start <= now).length
-        );
-        setEvents(formattedEvents);
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to load events:", response.status, errorText);
-        toast.error("Failed to load events");
+  // TanStack Form for event
+  const form = useForm({
+    defaultValues: {
+      title: "",
+      description: "",
+      duration: 30,
+    },
+    onSubmit: async ({ value }) => {
+      if (selectedEvent) {
+        // Update existing event
+        await updateEventMutation.mutateAsync({
+          eventId: selectedEvent.id,
+          title: value.title,
+          description: value.description,
+        });
+      } else if (selectedSlot && provider) {
+        // Create new event
+        await createEventMutation.mutateAsync({
+          providerId: provider.id,
+          title: value.title,
+          description: value.description,
+          start: selectedSlot.start.toISOString(),
+          end: selectedSlot.end.toISOString(),
+        });
       }
-    } catch (err) {
-      console.error("Error loading events:", err);
-      toast.error("Error loading events");
-    } finally {
-      setLoading(false);
+    },
+  });
+
+  const loading = isLoadingProvider || isLoadingEvents;
+
+  // Show errors
+  useEffect(() => {
+    if (providerError) {
+      toast.error(
+        providerError.message || "Error loading provider information"
+      );
     }
-  };
+    if (eventsError) {
+      toast.error("Error loading events");
+    }
+  }, [providerError, eventsError]);
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     // Check if the selected date is in the past
@@ -236,7 +371,8 @@ function ProviderCalendarComponent() {
 
     setSelectedSlot({ start: roundedStart, end: roundedEnd });
     setSelectedEvent(null);
-    setEventForm({ title: "", description: "", duration: 30 });
+    form.reset();
+    form.setFieldValue("duration", 30);
     setShowModal(true);
   };
 
@@ -246,126 +382,27 @@ function ProviderCalendarComponent() {
     // Calculate duration from event start/end times
     const durationMs = event.end.getTime() - event.start.getTime();
     const durationMinutes = Math.round(durationMs / (1000 * 60));
-    setEventForm({
-      title: event.title,
-      description: event.description || "",
-      duration: durationMinutes,
-    });
+    form.setFieldValue("title", event.title);
+    form.setFieldValue("description", event.description || "");
+    form.setFieldValue("duration", durationMinutes);
     setShowModal(true);
   };
 
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!provider || !selectedSlot) return;
-
-    if (!eventForm.title) {
-      toast.error("Title is required");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/events`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            providerId: provider.id,
-            title: eventForm.title,
-            description: eventForm.description,
-            start: selectedSlot.start.toISOString(),
-            end: selectedSlot.end.toISOString(),
-          }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Event created successfully");
-        setShowModal(false);
-        loadEvents();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create event");
-      }
-    } catch (err) {
-      toast.error("Error creating event");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleDeleteClick = (event: CalendarEvent) => {
+    setEventToDelete(event);
+    setShowDeleteDialog(true);
   };
 
-  const handleUpdateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEvent) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/events/${selectedEvent.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            title: eventForm.title,
-            description: eventForm.description,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Event updated successfully");
+  const handleDeleteConfirm = () => {
+    if (eventToDelete) {
+      deleteEventMutation.mutate(eventToDelete.id);
+      setShowDeleteDialog(false);
+      setEventToDelete(null);
+      // Also close the event modal if it's open
+      if (selectedEvent?.id === eventToDelete.id) {
         setShowModal(false);
-        loadEvents();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to update event");
+        setSelectedEvent(null);
       }
-    } catch (err) {
-      toast.error("Error updating event");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!selectedEvent) return;
-
-    if (!confirm("Are you sure you want to delete this event?")) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/events/${selectedEvent.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Event deleted successfully");
-        setShowModal(false);
-        loadEvents();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to delete event");
-      }
-    } catch (err) {
-      toast.error("Error deleting event");
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -575,68 +612,94 @@ function ProviderCalendarComponent() {
                 </div>
               ) : (
                 <form
-                  onSubmit={
-                    selectedEvent ? handleUpdateEvent : handleCreateEvent
-                  }
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    form.handleSubmit();
+                  }}
                   className="space-y-4"
                 >
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      placeholder="Available for consultation"
-                      value={eventForm.title}
-                      onChange={(e) =>
-                        setEventForm({ ...eventForm, title: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (optional)</Label>
-                    <Input
-                      id="description"
-                      placeholder="Add notes..."
-                      value={eventForm.description}
-                      onChange={(e) =>
-                        setEventForm({
-                          ...eventForm,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                  <form.Field
+                    name="title"
+                    validators={{
+                      onChange: ({ value }) => {
+                        if (!value || value.length < 2) {
+                          return "Title must be at least 2 characters";
+                        }
+                        return undefined;
+                      },
+                    }}
+                  >
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Title</Label>
+                        <Input
+                          id="title"
+                          placeholder="Available for consultation"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                        />
+                        {field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-destructive">
+                            {field.state.meta.errors[0]}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </form.Field>
+                  <form.Field name="description">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="description">
+                          Description (optional)
+                        </Label>
+                        <Input
+                          id="description"
+                          placeholder="Add notes..."
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                        />
+                      </div>
+                    )}
+                  </form.Field>
                   {!selectedEvent && selectedSlot && (
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">Duration</Label>
-                      <Select
-                        value={eventForm.duration.toString()}
-                        onValueChange={(value) => {
-                          const duration = parseInt(value, 10);
-                          setEventForm({ ...eventForm, duration });
-                          // Update selectedSlot.end based on new duration
-                          if (selectedSlot) {
-                            const newEnd = new Date(
-                              selectedSlot.start.getTime() + duration * 60000
-                            );
-                            setSelectedSlot({
-                              ...selectedSlot,
-                              end: newEnd,
-                            });
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select duration" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 minutes</SelectItem>
-                          <SelectItem value="30">30 minutes</SelectItem>
-                          <SelectItem value="45">45 minutes</SelectItem>
-                          <SelectItem value="60">60 minutes</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <form.Field name="duration">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor="duration">Duration</Label>
+                          <Select
+                            value={field.state.value.toString()}
+                            onValueChange={(value) => {
+                              const duration = parseInt(value, 10);
+                              field.handleChange(duration);
+                              // Update selectedSlot.end based on new duration
+                              if (selectedSlot) {
+                                const newEnd = new Date(
+                                  selectedSlot.start.getTime() +
+                                    duration * 60000
+                                );
+                                setSelectedSlot({
+                                  ...selectedSlot,
+                                  end: newEnd,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="15">15 minutes</SelectItem>
+                              <SelectItem value="30">30 minutes</SelectItem>
+                              <SelectItem value="45">45 minutes</SelectItem>
+                              <SelectItem value="60">60 minutes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </form.Field>
                   )}
                   <div className="flex gap-2">
                     <Button
@@ -647,23 +710,44 @@ function ProviderCalendarComponent() {
                     >
                       Cancel
                     </Button>
-                    {selectedEvent && (
+                    {selectedEvent && !selectedEvent.isBooked && (
                       <Button
                         type="button"
                         variant="destructive"
-                        onClick={handleDeleteEvent}
-                        disabled={loading}
+                        onClick={() => handleDeleteClick(selectedEvent)}
+                        disabled={loading || deleteEventMutation.isPending}
                       >
                         Delete
                       </Button>
                     )}
-                    <Button type="submit" disabled={loading} className="flex-1">
-                      {loading
-                        ? "Saving..."
-                        : selectedEvent
-                        ? "Update"
-                        : "Create"}
-                    </Button>
+                    <form.Subscribe
+                      selector={(state) => [
+                        state.canSubmit,
+                        state.isSubmitting,
+                      ]}
+                    >
+                      {([canSubmit, isSubmitting]) => (
+                        <Button
+                          type="submit"
+                          disabled={
+                            !canSubmit ||
+                            loading ||
+                            isSubmitting ||
+                            createEventMutation.isPending ||
+                            updateEventMutation.isPending
+                          }
+                          className="flex-1"
+                        >
+                          {isSubmitting ||
+                          createEventMutation.isPending ||
+                          updateEventMutation.isPending
+                            ? "Saving..."
+                            : selectedEvent
+                            ? "Update"
+                            : "Create"}
+                        </Button>
+                      )}
+                    </form.Subscribe>
                   </div>
                 </form>
               )}
@@ -671,6 +755,39 @@ function ProviderCalendarComponent() {
           </Card>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Event</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this event? This action cannot be
+              undone.
+              {eventToDelete && (
+                <div className="mt-2">
+                  <strong>Event:</strong> {eventToDelete.title}
+                  <br />
+                  <strong>Time:</strong> {format(eventToDelete.start, "PPP p")}{" "}
+                  - {format(eventToDelete.end, "p")}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEventToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteEventMutation.isPending}
+            >
+              {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

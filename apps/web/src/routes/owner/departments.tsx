@@ -15,8 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -67,174 +79,207 @@ export const Route = createFileRoute("/owner/departments")({
   },
 });
 
+// API functions
+const fetchMyOrganizations = async (): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load organizations");
+  }
+  const data = await response.json();
+  // User has OWNER role, filter only enabled organizations
+  return data.filter((org: any) => org.enabled);
+};
+
+const fetchDepartments = async (organizationId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/departments?organizationId=${organizationId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load departments");
+  }
+  return response.json();
+};
+
+const fetchProviders = async (organizationId: string): Promise<any[]> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?organizationId=${organizationId}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load providers");
+  }
+  return response.json();
+};
+
+const createDepartment = async (data: { name: string; organizationId: string }): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/departments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create department");
+  }
+  return response.json();
+};
+
+const deleteDepartment = async (departmentId: string): Promise<void> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/departments/${departmentId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete department");
+  }
+};
+
+interface CreateDepartmentData {
+  name: string;
+}
+
 function DepartmentsComponent() {
   const { session } = Route.useRouteContext();
-  const [organizations, setOrganizations] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [providers, setProviders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const [newDepartment, setNewDepartment] = useState({
-    name: "",
+  // Query for organizations
+  const {
+    data: organizations = [],
+    isLoading: isLoadingOrganizations,
+    error: organizationsError,
+  } = useQuery<any[]>({
+    queryKey: ["organizations", "my-organizations"],
+    queryFn: fetchMyOrganizations,
   });
 
-  // Load user's owned organizations
+  // Auto-select first organization when organizations load
   useEffect(() => {
-    const loadOrganizations = async () => {
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_SERVER_URL
-          }/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          // User has OWNER role, filter only enabled organizations
-          const ownedOrgs = data.filter((org: any) => org.enabled);
-          setOrganizations(ownedOrgs);
-
-          // Auto-select first organization
-          if (ownedOrgs.length > 0) {
-            setSelectedOrgId(ownedOrgs[0].id);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading organizations:", err);
-        toast.error("Error loading organizations");
-      }
-    };
-
-    loadOrganizations();
-  }, []);
-
-  // Load departments when organization is selected
-  useEffect(() => {
-    if (selectedOrgId) {
-      loadDepartments();
-      loadProviders();
+    if (organizations.length > 0 && !selectedOrgId) {
+      setSelectedOrgId(organizations[0].id);
     }
-  }, [selectedOrgId]);
+  }, [organizations, selectedOrgId]);
 
-  const loadDepartments = async () => {
-    if (!selectedOrgId) return;
+  // Query for departments (enabled when organization is selected)
+  const {
+    data: departments = [],
+    isLoading: isLoadingDepartments,
+    error: departmentsError,
+  } = useQuery<any[]>({
+    queryKey: ["departments", { organizationId: selectedOrgId }],
+    queryFn: () => fetchDepartments(selectedOrgId),
+    enabled: !!selectedOrgId,
+  });
 
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL
-        }/api/departments?organizationId=${selectedOrgId}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setDepartments(data);
-      } else {
-        toast.error("Failed to load departments");
+  // Query for providers (enabled when organization is selected)
+  const {
+    data: providers = [],
+    isLoading: isLoadingProviders,
+    error: providersError,
+  } = useQuery<any[]>({
+    queryKey: ["providers", { organizationId: selectedOrgId }],
+    queryFn: () => fetchProviders(selectedOrgId),
+    enabled: !!selectedOrgId,
+  });
+
+  // Mutations
+  const createDepartmentMutation = useMutation({
+    mutationFn: createDepartment,
+    onSuccess: () => {
+      toast.success("Department created successfully");
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
+      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create department");
+    },
+  });
+
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: deleteDepartment,
+    onSuccess: () => {
+      toast.success("Department deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
+      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete department");
+    },
+  });
+
+  // TanStack Form for create department
+  const form = useForm<CreateDepartmentData>({
+    defaultValues: {
+      name: "",
+    },
+    onSubmit: async ({ value }) => {
+      if (!selectedOrgId) {
+        toast.error("Please select an organization");
+        return;
       }
-    } catch (err) {
-      console.error("Error loading departments:", err);
+      await createDepartmentMutation.mutateAsync({
+        name: value.name,
+        organizationId: selectedOrgId,
+      });
+    },
+  });
+
+  const loading = isLoadingOrganizations || isLoadingDepartments || isLoadingProviders;
+
+  // Show errors
+  useEffect(() => {
+    if (organizationsError) {
+      toast.error("Error loading organizations");
+    }
+    if (departmentsError) {
       toast.error("Error loading departments");
-    } finally {
-      setLoading(false);
+    }
+    if (providersError) {
+      toast.error("Error loading providers");
+    }
+  }, [organizationsError, departmentsError, providersError]);
+
+  const handleDeleteClick = (departmentId: string) => {
+    const department = departments.find((d) => d.id === departmentId);
+    if (department) {
+      setDepartmentToDelete({ id: department.id, name: department.name });
+      setShowDeleteDialog(true);
     }
   };
 
-  const loadProviders = async () => {
-    if (!selectedOrgId) return;
-
-    try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL
-        }/api/providers?organizationId=${selectedOrgId}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setProviders(data);
-      }
-    } catch (err) {
-      console.error("Error loading providers:", err);
-    }
-  };
-
-  const handleCreateDepartment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDepartment.name || !selectedOrgId) {
-      toast.error("Department name and organization are required");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/departments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: newDepartment.name,
-            organizationId: selectedOrgId,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Department created successfully");
-        setNewDepartment({ name: "" });
-        loadDepartments();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create department");
-      }
-    } catch (err) {
-      toast.error("Error creating department");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteDepartment = async (departmentId: string) => {
-    if (!confirm("Are you sure you want to delete this department?")) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/departments/${departmentId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Department deleted successfully");
-        loadDepartments();
-        loadProviders();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to delete department");
-      }
-    } catch (err) {
-      toast.error("Error deleting department");
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const handleDeleteConfirm = () => {
+    if (departmentToDelete) {
+      deleteDepartmentMutation.mutate(departmentToDelete.id);
+      setShowDeleteDialog(false);
+      setDepartmentToDelete(null);
     }
   };
 
@@ -297,22 +342,58 @@ function DepartmentsComponent() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleCreateDepartment} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dept-name">Department Name</Label>
-                    <Input
-                      id="dept-name"
-                      placeholder="e.g., Cardiology, Pediatrics"
-                      value={newDepartment.name}
-                      onChange={(e) =>
-                        setNewDepartment({ name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Creating..." : "Create Department"}
-                  </Button>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    form.handleSubmit();
+                  }}
+                  className="space-y-4"
+                >
+                  <form.Field
+                    name="name"
+                    validators={{
+                      onChange: ({ value }) => {
+                        if (!value || value.length < 2) {
+                          return "Department name must be at least 2 characters";
+                        }
+                        return undefined;
+                      },
+                    }}
+                  >
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="dept-name">Department Name</Label>
+                        <Input
+                          id="dept-name"
+                          placeholder="e.g., Cardiology, Pediatrics"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                        />
+                        {field.state.meta.errors.length > 0 && (
+                          <p className="text-sm text-destructive">
+                            {field.state.meta.errors[0]}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </form.Field>
+                  <form.Subscribe
+                    selector={(state) => [state.canSubmit, state.isSubmitting]}
+                  >
+                    {([canSubmit, isSubmitting]) => (
+                      <Button
+                        type="submit"
+                        disabled={!canSubmit || loading || isSubmitting}
+                        className="w-full"
+                      >
+                        {isSubmitting || createDepartmentMutation.isPending
+                          ? "Creating..."
+                          : "Create Department"}
+                      </Button>
+                    )}
+                  </form.Subscribe>
                 </form>
               </CardContent>
             </Card>
@@ -412,8 +493,8 @@ function DepartmentsComponent() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteDepartment(dept.id)}
-                            disabled={loading}
+                            onClick={() => handleDeleteClick(dept.id)}
+                            disabled={loading || deleteDepartmentMutation.isPending}
                           >
                             Delete
                           </Button>
@@ -427,6 +508,48 @@ function DepartmentsComponent() {
           </Card>
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Department</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this department? This action cannot be
+              undone.
+              {departmentToDelete && (
+                <div className="mt-2">
+                  <strong>Department:</strong> {departmentToDelete.name}
+                  {(() => {
+                    const deptProviders = providers.filter(
+                      (p) => p.departmentId === departmentToDelete.id
+                    );
+                    return deptProviders.length > 0 ? (
+                      <div className="mt-1 text-destructive">
+                        <strong>Warning:</strong> This department has {deptProviders.length}{" "}
+                        {deptProviders.length === 1 ? "provider" : "providers"}. They will
+                        need to be reassigned or removed.
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDepartmentToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteDepartmentMutation.isPending}
+            >
+              {deleteDepartmentMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

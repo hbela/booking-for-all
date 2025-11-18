@@ -102,6 +102,89 @@ const eventsRoutes: FastifyPluginAsync = async (app) => {
     if (!event) return reply.status(404).send({ error: 'Event not found' });
     reply.send(event);
   });
+
+  app.put('/:id', { preValidation: [requireAuthHook] }, async (req, reply) => {
+    const { id } = req.params as any;
+    const { title, description } = (req.body as any) || {};
+    
+    // @ts-expect-error from auth
+    const user = req.user;
+    
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        provider: { include: { user: { select: { id: true } } } },
+        booking: true,
+      },
+    });
+
+    if (!event) {
+      return reply.status(404).send({ error: 'Event not found' });
+    }
+
+    // Verify the event belongs to the provider
+    if (event.provider.userId !== user.id) {
+      return reply.status(403).send({ error: 'Forbidden - Only the provider can update their events' });
+    }
+
+    // Can't update booked events
+    if (event.isBooked) {
+      return reply.status(400).send({ error: 'Cannot update a booked event' });
+    }
+
+    if (!title) {
+      return reply.status(400).send({ error: 'Title is required' });
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: {
+        title,
+        description: description || null,
+      },
+      include: {
+        provider: { include: { user: { select: { id: true, name: true, email: true } } } },
+        booking: { include: { member: { select: { id: true, name: true, email: true } } } },
+      },
+    });
+
+    reply.send(updatedEvent);
+  });
+
+  app.delete('/:id', { preValidation: [requireAuthHook] }, async (req, reply) => {
+    const { id } = req.params as any;
+    
+    // @ts-expect-error from auth
+    const user = req.user;
+    
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: {
+        provider: { include: { user: { select: { id: true } } } },
+        booking: true,
+      },
+    });
+
+    if (!event) {
+      return reply.status(404).send({ error: 'Event not found' });
+    }
+
+    // Verify the event belongs to the provider
+    if (event.provider.userId !== user.id) {
+      return reply.status(403).send({ error: 'Forbidden - Only the provider can delete their events' });
+    }
+
+    // Can't delete booked events
+    if (event.isBooked) {
+      return reply.status(400).send({ error: 'Cannot delete a booked event' });
+    }
+
+    await prisma.event.delete({
+      where: { id },
+    });
+
+    reply.status(204).send();
+  });
 };
 
 export default eventsRoutes;
