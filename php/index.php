@@ -516,6 +516,8 @@ foreach ($envVars as $key => $value) {
 
 // ---- Detect requesting domain ----
 // Priority: Origin header > Referer header > HTTP_HOST
+// This extracts the domain (e.g., wellness.appointer.hu or medicare.appointer.hu)
+// regardless of the URL path (e.g., /wellness_external.html or /medicare_external.html)
 $requestHost = '';
 if (!empty($requestOrigin)) {
     $originParts = parse_url($requestOrigin);
@@ -576,6 +578,10 @@ if ($slugOverride && isset($organizationConfigs[$slugOverride]) && $allowSlugOve
 
 if (!$organizationSlug) {
     // Match domain using normalized host (without port) for proper comparison
+    // This works for ALL organizations dynamically (wellness, medicare, hospital, etc.)
+    // The domain is extracted from the Origin header (e.g., wellness.appointer.hu or medicare.appointer.hu)
+    // and matched against WELLNESS_DOMAIN, MEDICARE_DOMAIN, etc. from environment variables
+    // Works regardless of URL path (e.g., /wellness_external.html or /wellness/wellness_external.html)
     foreach ($organizationConfigs as $slug => $config) {
         if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHostNormalized)) {
             $organizationSlug = $slug;
