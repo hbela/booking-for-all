@@ -204,32 +204,71 @@
 
       const storedPhpOverride = sessionStorage.getItem("phpServerOverride");
 
-      const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
-      const isLocalEnvironment = LOCAL_HOSTS.includes(window.location.hostname);
+      // PHP server URLs to try (in order) - will fetch config from PHP to determine which to use
+      const PHP_SERVER_CANDIDATES = [
+        "http://localhost:8000",
+        "https://php.appointer.hu",
+      ];
 
-      const DEFAULT_LOCAL_PHP_SERVER = "http://localhost:8000";
-      const DEFAULT_PROD_PHP_SERVER = "https://php.appointer.hu";
+      let PHP_SERVER_URL = storedPhpOverride;
 
-      const PHP_SERVER_URL =
-        storedPhpOverride ||
-        (isLocalEnvironment
-          ? DEFAULT_LOCAL_PHP_SERVER
-          : DEFAULT_PROD_PHP_SERVER);
+      // Fetch PHP server URL from config endpoint based on APP_ENV
+      async function getPhpServerUrl() {
+        if (PHP_SERVER_URL) {
+          return PHP_SERVER_URL;
+        }
 
-      const ORGANIZATION_SLUG = "wellness";
+        // Check sessionStorage for cached URL
+        const cachedUrl = sessionStorage.getItem("phpServerUrl");
+        if (cachedUrl) {
+          PHP_SERVER_URL = cachedUrl;
+          return PHP_SERVER_URL;
+        }
+
+        // Try each candidate until one responds with config
+        for (const candidate of PHP_SERVER_CANDIDATES) {
+          try {
+            const response = await fetch(`${candidate}/index.php?config=1`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+
+            if (response.ok) {
+              const config = await response.json();
+              PHP_SERVER_URL = config.phpServerUrl;
+              sessionStorage.setItem("phpServerUrl", PHP_SERVER_URL);
+              return PHP_SERVER_URL;
+            }
+          } catch (error) {
+            // Try next candidate
+            continue;
+          }
+        }
+
+        // Fallback to first candidate if all fail
+        PHP_SERVER_URL = PHP_SERVER_CANDIDATES[0];
+        return PHP_SERVER_URL;
+      }
+
+      // Organization slug is no longer needed - PHP detects it from the domain
+      // const ORGANIZATION_SLUG = "wellness"; // Removed - domain-based detection
 
       async function connectToOrganization() {
         try {
+          // Get PHP server URL based on APP_ENV (fetched from PHP config endpoint)
+          const phpServerUrl = await getPhpServerUrl();
+
           // Use the secure PHP proxy instead of direct API calls
-          // Use full URL to connect.php on the PHP server
-          const url = `${PHP_SERVER_URL}/index.php?slug=${ORGANIZATION_SLUG}`;
+          // The PHP proxy automatically detects the organization from the domain
+          // (e.g., wellness.hu -> WELLNESS_DOMAIN -> wellness slug)
+          const url = `${phpServerUrl}/index.php`;
           console.log("Connecting to:", url);
+          console.log("Request origin:", window.location.origin);
 
           const response = await fetch(url, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "X-Organization-Slug": ORGANIZATION_SLUG,
             },
           });
 
@@ -303,8 +342,9 @@
           window.location.href = redirectUrl.toString();
         } catch (error) {
           console.error("Error connecting to organization:", error);
+          const phpServerUrl = PHP_SERVER_URL || (await getPhpServerUrl());
           alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${PHP_SERVER_URL}\n2. WELLNESS_DOMAIN matches ${window.location.hostname}\n3. API credentials are configured on the PHP server`
+            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${phpServerUrl}\n2. WELLNESS_DOMAIN matches ${window.location.hostname}\n3. API credentials are configured on the PHP server`
           );
         }
       }

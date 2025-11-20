@@ -6,10 +6,20 @@
 function loadEnv($path)
 {
     if (!file_exists($path)) {
+        error_log('[PHP Proxy] loadEnv: File does not exist: ' . $path);
         return;
     }
+
+    if (!is_readable($path)) {
+        error_log('[PHP Proxy] loadEnv: File is not readable: ' . $path);
+        return;
+    }
+
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
+    error_log('[PHP Proxy] loadEnv: Read ' . count($lines) . ' lines from .env file');
+
+    $loadedCount = 0;
+    foreach ($lines as $lineNum => $line) {
         $line = trim($line);
         // Skip empty lines and comments
         if (empty($line) || strpos($line, '#') === 0) {
@@ -35,13 +45,108 @@ function loadEnv($path)
             putenv(sprintf('%s=%s', $name, $value));
             $_ENV[$name] = $value;
             $_SERVER[$name] = $value;
+            $loadedCount++;
+            error_log('[PHP Proxy] loadEnv: Loaded ' . $name . ' = ' . (strpos($name, 'KEY') !== false ? '***' : $value));
+        } else {
+            error_log('[PHP Proxy] loadEnv: Skipped ' . $name . ' (already set)');
         }
     }
+    error_log('[PHP Proxy] loadEnv: Successfully loaded ' . $loadedCount . ' environment variables');
 }
 
 // Load .env file from the same directory as this script
 // Supports both .env and .env.php formats
-loadEnv(__DIR__ . '/.env');
+$envPath = __DIR__ . '/.env';
+error_log('[PHP Proxy] Attempting to load .env from: ' . $envPath);
+error_log('[PHP Proxy] .env file exists: ' . (file_exists($envPath) ? 'YES' : 'NO'));
+if (file_exists($envPath)) {
+    error_log('[PHP Proxy] .env file is readable: ' . (is_readable($envPath) ? 'YES' : 'NO'));
+}
+loadEnv($envPath);
+// Verify loading worked
+$wellnessCheck = getenv('WELLNESS_DOMAIN');
+$medicareCheck = getenv('MEDICARE_DOMAIN');
+error_log('[PHP Proxy] After loadEnv - WELLNESS_DOMAIN: ' . ($wellnessCheck ?: 'NOT SET'));
+error_log('[PHP Proxy] After loadEnv - MEDICARE_DOMAIN: ' . ($medicareCheck ?: 'NOT SET'));
+
+// Determine environment early (needed for config endpoint)
+$phpEnvRaw = getenv('APP_ENV') ?? 'development';
+$phpEnv = strtolower($phpEnvRaw);
+$isProduction = in_array($phpEnv, ['production', 'prod', 'live'], true);
+
+// Handle config endpoint EARLY - returns PHP server URL based on APP_ENV
+// This must be before CORS validation so it's always accessible
+if (isset($_GET['config']) && $_GET['config'] === '1') {
+    // Set CORS headers for config endpoint
+    $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['ORIGIN'] ?? '';
+    if ($requestOrigin) {
+        header("Access-Control-Allow-Origin: " . $requestOrigin);
+        header("Access-Control-Allow-Credentials: true");
+    } else {
+        // Allow from any origin for config endpoint (it's safe, just returns URLs)
+        header("Access-Control-Allow-Origin: *");
+    }
+    header("Content-Type: application/json");
+
+    $phpServerUrl = $isProduction
+        ? (getenv('PHP_SERVER_URL') ?: 'https://php.appointer.hu')
+        : (getenv('PHP_SERVER_URL') ?: 'http://localhost:8000');
+
+    echo json_encode([
+        'phpServerUrl' => $phpServerUrl,
+        'environment' => $phpEnv
+    ]);
+    exit;
+}
+
+// Handle debug endpoint - shows loaded env vars and organization configs (development only)
+if (isset($_GET['debug']) && $_GET['debug'] === '1' && !$isProduction) {
+    header("Content-Type: application/json");
+
+    // Load organization configs to show them
+    $organizationConfigs = [];
+    $envVars = array_merge($_SERVER, $_ENV);
+
+    foreach ($envVars as $key => $value) {
+        if (!is_string($key)) {
+            continue;
+        }
+        if (preg_match('/^([A-Z0-9_]+)_(DOMAIN|API_KEY|NAME|ORG_ID)$/', $key, $matches)) {
+            $slug = strtolower($matches[1]);
+            $type = $matches[2];
+            if (!isset($organizationConfigs[$slug])) {
+                $organizationConfigs[$slug] = ['domain' => '', 'api_key' => '', 'name' => '', 'organization_id' => ''];
+            }
+            switch ($type) {
+                case 'DOMAIN':
+                    $organizationConfigs[$slug]['domain'] = normalizeDomain($value);
+                    break;
+                case 'API_KEY':
+                    if ($value && $value !== "YOUR_" . strtoupper($matches[1]) . "_API_KEY_HERE") {
+                        $organizationConfigs[$slug]['api_key'] = $value ? '***SET***' : '';
+                    }
+                    break;
+                case 'NAME':
+                    $organizationConfigs[$slug]['name'] = $value;
+                    break;
+                case 'ORG_ID':
+                    $organizationConfigs[$slug]['organization_id'] = $value;
+                    break;
+            }
+        }
+    }
+
+    echo json_encode([
+        'envFileExists' => file_exists(__DIR__ . '/.env'),
+        'envFile' => __DIR__ . '/.env',
+        'wellnessDomain' => getenv('WELLNESS_DOMAIN'),
+        'medicareDomain' => getenv('MEDICARE_DOMAIN'),
+        'organizationConfigs' => $organizationConfigs,
+        'requestOrigin' => $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['ORIGIN'] ?? 'none',
+        'requestHost' => $_SERVER['HTTP_HOST'] ?? 'none'
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
 
 // Log all incoming requests for debugging
 error_log(sprintf(
@@ -108,10 +213,7 @@ function domainsMatch($domainA, $domainB)
 // ---- CORS Configuration ----
 // SECURITY FIX: Restrict CORS to specific allowed origins
 $allowedOrigins = getenv('ALLOWED_CORS_ORIGINS');
-// Determine environment
-$phpEnvRaw = getenv('APP_ENV') ?? 'development';
-$phpEnv = strtolower($phpEnvRaw);
-$isProduction = in_array($phpEnv, ['production', 'prod', 'live'], true);
+// Environment already determined above
 $shouldLogDebug = !$isProduction || filter_var(getenv('PHP_DEBUG_LOG'), FILTER_VALIDATE_BOOLEAN);
 
 function php_proxy_log($message)
@@ -125,12 +227,23 @@ function php_proxy_log($message)
     $formatted = is_string($message) ? $message : print_r($message, true);
     error_log('[PHP Proxy] ' . $formatted);
 }
-if (!$allowedOrigins) {
+
+// Build dynamic allowed origins from organization configs (will be populated later)
+// This function will be called after organization configs are loaded
+function buildDynamicAllowedOrigins($organizationConfigs, $isProduction)
+{
+    $origins = [];
+
     if ($isProduction) {
-        $allowedOrigins = 'https://wellness.appointer.hu,https://medicare.appointer.hu';
+        // In production, use https:// for all organization domains
+        foreach ($organizationConfigs as $slug => $config) {
+            if (!empty($config['domain'])) {
+                $origins[] = 'https://' . $config['domain'];
+            }
+        }
     } else {
-        // Default development origins (both IPv4 and IPv6)
-        $allowedOrigins = implode(',', [
+        // In development, include localhost variants and http:// for org domains with :5500 port
+        $origins = [
             'http://localhost:3001',
             'http://localhost:5173',
             'http://localhost:5500',
@@ -139,8 +252,23 @@ if (!$allowedOrigins) {
             'http://127.0.0.1:5500',
             'http://[::1]:3001',
             'http://[::1]:5173',
-        ]);
+        ];
+
+        // Add all organization domains with :5500 port for development
+        foreach ($organizationConfigs as $slug => $config) {
+            if (!empty($config['domain'])) {
+                $origins[] = 'http://' . $config['domain'] . ':5500';
+            }
+        }
     }
+
+    return $origins;
+}
+
+if (!$allowedOrigins) {
+    // We'll build this dynamically after organization configs are loaded
+    // For now, set a placeholder that will be replaced
+    $allowedOrigins = ''; // Will be set dynamically
 }
 $allowedOriginsArray = array_map('trim', explode(',', $allowedOrigins));
 
@@ -177,13 +305,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         ) {
             header("Access-Control-Allow-Origin: " . $requestOrigin);
         } else {
-            // In development, allow localhost variations for OPTIONS
+            // In development, allow localhost variations and any configured organization domains for OPTIONS
             if (!$isProduction) {
-                if (
-                    strpos($requestOrigin, 'localhost') !== false ||
+                $isLocalhost = strpos($requestOrigin, 'localhost') !== false ||
                     strpos($requestOrigin, '[::1]') !== false ||
-                    strpos($requestOrigin, '127.0.0.1') !== false
-                ) {
+                    strpos($requestOrigin, '127.0.0.1') !== false;
+
+                // Check if origin matches any configured organization domain
+                // For OPTIONS, we check env vars directly since organizationConfigs not loaded yet
+                $matchesOrgDomain = false;
+                $envVarsForCors = array_merge($_SERVER, $_ENV);
+                foreach ($envVarsForCors as $key => $value) {
+                    if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key) && is_string($value)) {
+                        $domain = normalizeDomain($value);
+                        if (!empty($domain) && strpos($requestOrigin, $domain) !== false) {
+                            $matchesOrgDomain = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($isLocalhost || $matchesOrgDomain) {
                     header("Access-Control-Allow-Origin: " . $requestOrigin);
                 } else {
                     // Deny unknown origins
@@ -230,15 +372,28 @@ if (!empty($requestOrigin)) {
         header("Access-Control-Allow-Origin: " . $requestOrigin);
         error_log('[PHP Proxy] Origin allowed (exact match)');
     } else {
-        // In development, allow localhost variations
+        // In development, allow localhost variations and any configured organization domains
         if (!$isProduction) {
-            if (
-                strpos($requestOrigin, 'localhost') !== false ||
+            $isLocalhost = strpos($requestOrigin, 'localhost') !== false ||
                 strpos($requestOrigin, '[::1]') !== false ||
-                strpos($requestOrigin, '127.0.0.1') !== false
-            ) {
+                strpos($requestOrigin, '127.0.0.1') !== false;
+
+            // Check if origin matches any configured organization domain
+            $matchesOrgDomain = false;
+            foreach ($organizationConfigs as $slug => $config) {
+                if (!empty($config['domain'])) {
+                    $domain = $config['domain'];
+                    // Check if origin contains the domain (with or without port)
+                    if (strpos($requestOrigin, $domain) !== false) {
+                        $matchesOrgDomain = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($isLocalhost || $matchesOrgDomain) {
                 header("Access-Control-Allow-Origin: " . $requestOrigin);
-                error_log('[PHP Proxy] Origin allowed (localhost variation)');
+                error_log('[PHP Proxy] Origin allowed (localhost/organization domain variation)');
             } else {
                 error_log('[PHP Proxy] Origin NOT allowed: ' . $requestOrigin);
                 http_response_code(403);
@@ -277,7 +432,46 @@ $FRONTEND_REDIRECT = getenv('FRONTEND_REDIRECT') ?: "http://localhost:3001/login
 // ---- Organization configuration from environment ----
 // Load values defined as <PREFIX>_DOMAIN, <PREFIX>_API_KEY, <PREFIX>_NAME, <PREFIX>_ORG_ID
 $organizationConfigs = [];
+// Check both $_ENV and getenv() to ensure we catch all env vars
 $envVars = array_merge($_SERVER, $_ENV);
+
+// Handle backwards format: wellness.hu=wellness -> WELLNESS_DOMAIN=wellness.hu
+// This is a fallback for incorrectly formatted .env files
+foreach ($envVars as $key => $value) {
+    if (!is_string($key) || !is_string($value)) {
+        continue;
+    }
+    // Check if key is a domain (e.g., wellness.hu) and value is a slug (e.g., wellness)
+    if (preg_match('/^[a-z0-9.-]+\.(hu|com|net|org|app)$/i', $key) && preg_match('/^[a-z0-9-_]+$/i', $value)) {
+        // Convert wellness.hu=wellness -> WELLNESS_DOMAIN=wellness.hu
+        $slug = strtoupper($value);
+        $domainKey = $slug . '_DOMAIN';
+        if (!isset($envVars[$domainKey])) {
+            $envVars[$domainKey] = $key;
+            putenv(sprintf('%s=%s', $domainKey, $key));
+            $_ENV[$domainKey] = $key;
+            $_SERVER[$domainKey] = $key;
+            php_proxy_log("Converted backwards format: {$key}={$value} -> {$domainKey}={$key}");
+        }
+    }
+}
+
+// Also check getenv() for variables that might not be in $_ENV
+$wellnessDomain = getenv('WELLNESS_DOMAIN');
+$medicareDomain = getenv('MEDICARE_DOMAIN');
+if ($wellnessDomain && !isset($envVars['WELLNESS_DOMAIN'])) {
+    $envVars['WELLNESS_DOMAIN'] = $wellnessDomain;
+}
+if ($medicareDomain && !isset($envVars['MEDICARE_DOMAIN'])) {
+    $envVars['MEDICARE_DOMAIN'] = $medicareDomain;
+}
+
+php_proxy_log("Loading organization configs from environment...");
+php_proxy_log("WELLNESS_DOMAIN from getenv(): " . ($wellnessDomain ?: 'NOT SET'));
+php_proxy_log("MEDICARE_DOMAIN from getenv(): " . ($medicareDomain ?: 'NOT SET'));
+
+// Build dynamic allowed origins from organization configs (before they're populated)
+// This will be updated after configs are loaded
 
 foreach ($envVars as $key => $value) {
     if (!is_string($key)) {
@@ -299,7 +493,9 @@ foreach ($envVars as $key => $value) {
 
         switch ($type) {
             case 'DOMAIN':
-                $organizationConfigs[$slug]['domain'] = normalizeDomain($value);
+                $normalized = normalizeDomain($value);
+                $organizationConfigs[$slug]['domain'] = $normalized;
+                php_proxy_log("Loaded {$key} = '{$value}' -> normalized to '{$normalized}' for slug '{$slug}'");
                 break;
             case 'API_KEY':
                 if ($value && $value !== "YOUR_" . strtoupper($matches[1]) . "_API_KEY_HERE") {
@@ -317,11 +513,13 @@ foreach ($envVars as $key => $value) {
 }
 
 // ---- Detect requesting domain ----
+// Priority: Origin header > Referer header > HTTP_HOST
 $requestHost = '';
 if (!empty($requestOrigin)) {
     $originParts = parse_url($requestOrigin);
     if ($originParts && isset($originParts['host'])) {
         $requestHost = strtolower($originParts['host']);
+        php_proxy_log("Extracted host from Origin header: {$requestHost}");
     }
 }
 
@@ -329,11 +527,19 @@ if ($requestHost === '' && !empty($_SERVER['HTTP_REFERER'])) {
     $refererParts = parse_url($_SERVER['HTTP_REFERER']);
     if ($refererParts && isset($refererParts['host'])) {
         $requestHost = strtolower($refererParts['host']);
+        php_proxy_log("Extracted host from Referer header: {$requestHost}");
     }
 }
 
 if ($requestHost === '') {
     $requestHost = strtolower($_SERVER['HTTP_HOST'] ?? '');
+    if ($requestHost) {
+        php_proxy_log("Extracted host from HTTP_HOST: {$requestHost}");
+    }
+}
+
+if ($requestHost === '') {
+    php_proxy_log("WARNING: Could not extract request host from any source!");
 }
 
 $organizationSlug = null;
@@ -367,30 +573,63 @@ if ($slugOverride && isset($organizationConfigs[$slugOverride]) && $allowSlugOve
 }
 
 if (!$organizationSlug) {
+    // Match domain using normalized host (without port) for proper comparison
     foreach ($organizationConfigs as $slug => $config) {
-        if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHost)) {
+        if (!empty($config['domain']) && domainsMatch($config['domain'], $requestHostNormalized)) {
             $organizationSlug = $slug;
+            php_proxy_log("Matched organization slug '{$slug}' for domain '{$requestHostNormalized}' (config domain: '{$config['domain']}')");
             break;
         }
     }
 }
 
+// Now that organization configs are loaded, build dynamic CORS origins if not explicitly set
+if (empty($allowedOrigins)) {
+    $dynamicOrigins = buildDynamicAllowedOrigins($organizationConfigs, $isProduction);
+    $allowedOrigins = implode(',', $dynamicOrigins);
+    php_proxy_log("Built dynamic allowed origins from organization configs: " . $allowedOrigins);
+    // Rebuild allowed origins array with the new dynamic origins
+    $allowedOriginsArray = array_map('trim', explode(',', $allowedOrigins));
+}
+
+php_proxy_log("Request Origin: " . ($requestOrigin ?: 'null'));
 php_proxy_log("Request Host: " . ($requestHost ?: 'null'));
 php_proxy_log("Request Host Normalized: " . ($requestHostNormalized ?? 'null'));
 php_proxy_log("Slug Override: " . ($slugOverride ?? 'null'));
 php_proxy_log("Allow Slug Override: " . ($allowSlugOverride ? 'true' : 'false'));
 php_proxy_log("Available Organization Configs: " . implode(', ', array_keys($organizationConfigs)));
+if (!empty($organizationConfigs)) {
+    foreach ($organizationConfigs as $slug => $config) {
+        php_proxy_log("  - {$slug}: domain='{$config['domain']}'");
+    }
+}
 php_proxy_log("Matched Organization Slug: " . ($organizationSlug ?? 'null'));
 
 // ---- Validate organization ----
+if (empty($organizationConfigs)) {
+    php_proxy_log("ERROR: No organization configurations found in environment variables!");
+    php_proxy_log("Please ensure .env file contains variables like WELLNESS_DOMAIN, WELLNESS_API_KEY, etc.");
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "No organization configurations found. Please check PHP server environment variables."
+    ]);
+    exit;
+}
+
 if (!$organizationSlug || !isset($organizationConfigs[$organizationSlug])) {
     php_proxy_log("Unable to determine organization for host: {$requestHost}");
+    php_proxy_log("Request Origin: {$requestOrigin}");
+    php_proxy_log("Request Host Normalized: {$requestHostNormalized}");
     php_proxy_log("Slug override was: " . ($slugOverride ?? 'null'));
     php_proxy_log("Available slugs: " . implode(', ', array_keys($organizationConfigs)));
+    php_proxy_log("Available domains: " . implode(', ', array_map(function ($c) {
+        return $c['domain'];
+    }, array_values($organizationConfigs))));
     http_response_code(400);
     echo json_encode([
         "success" => false,
-        "message" => "Unable to determine organization for this domain"
+        "message" => "Unable to determine organization for this domain. Request host: {$requestHostNormalized}. Please ensure WELLNESS_DOMAIN (or MEDICARE_DOMAIN) matches this domain in your .env file."
     ]);
     exit;
 }
