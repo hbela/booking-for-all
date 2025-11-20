@@ -203,50 +203,63 @@
       }
 
       const storedPhpOverride = sessionStorage.getItem("phpServerOverride");
+
+      // Detect if we're in production (https://) or development (http://localhost or custom dev domains)
+      const isProduction = window.location.protocol === "https:";
       
-      // PHP server URLs to try (in order) - will fetch config from PHP to determine which to use
-      const PHP_SERVER_CANDIDATES = [
-        "http://localhost:8000",
-        "https://php.appointer.hu"
-      ];
-      
+      // PHP server URLs to try (in order) - try production first if on production domain
+      const PHP_SERVER_CANDIDATES = isProduction
+        ? [
+            "https://php.appointer.hu",
+            "http://localhost:8000", // Fallback for testing
+          ]
+        : [
+            "http://localhost:8000",
+            "https://php.appointer.hu", // Fallback
+          ];
+
       let PHP_SERVER_URL = storedPhpOverride;
-      
+
       // Fetch PHP server URL from config endpoint based on APP_ENV
       async function getPhpServerUrl() {
         if (PHP_SERVER_URL) {
           return PHP_SERVER_URL;
         }
-        
+
         // Check sessionStorage for cached URL
         const cachedUrl = sessionStorage.getItem("phpServerUrl");
         if (cachedUrl) {
           PHP_SERVER_URL = cachedUrl;
           return PHP_SERVER_URL;
         }
-        
+
         // Try each candidate until one responds with config
+        let lastError = null;
         for (const candidate of PHP_SERVER_CANDIDATES) {
           try {
             const response = await fetch(`${candidate}/index.php?config=1`, {
               method: "GET",
-              headers: { "Content-Type": "application/json" }
+              headers: { "Content-Type": "application/json" },
             });
-            
+
             if (response.ok) {
               const config = await response.json();
               PHP_SERVER_URL = config.phpServerUrl;
               sessionStorage.setItem("phpServerUrl", PHP_SERVER_URL);
+              console.log("✅ PHP server URL determined:", PHP_SERVER_URL);
               return PHP_SERVER_URL;
             }
           } catch (error) {
+            lastError = error;
+            console.warn(`⚠️ Failed to fetch config from ${candidate}:`, error.message);
             // Try next candidate
             continue;
           }
         }
-        
-        // Fallback to first candidate if all fail
-        PHP_SERVER_URL = PHP_SERVER_CANDIDATES[0];
+
+        // If all candidates failed, use production URL if on https, otherwise localhost
+        PHP_SERVER_URL = isProduction ? "https://php.appointer.hu" : "http://localhost:8000";
+        console.warn("⚠️ Could not fetch config, using fallback:", PHP_SERVER_URL, lastError);
         return PHP_SERVER_URL;
       }
 
@@ -342,9 +355,13 @@
           window.location.href = redirectUrl.toString();
         } catch (error) {
           console.error("Error connecting to organization:", error);
-          const phpServerUrl = PHP_SERVER_URL || await getPhpServerUrl();
+          const phpServerUrl = PHP_SERVER_URL || (await getPhpServerUrl());
+          const isProd = window.location.protocol === "https:";
+          const domainCheck = isProd 
+            ? `2. MEDICARE_DOMAIN matches ${window.location.hostname}`
+            : `2. MEDICARE_DOMAIN matches ${window.location.hostname} (dev: ${window.location.hostname})`;
           alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${phpServerUrl}\n2. MEDICARE_DOMAIN matches ${window.location.hostname}\n3. API credentials are configured on the PHP server`
+            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${phpServerUrl}\n${domainCheck}\n3. API credentials are configured on the PHP server\n4. CORS is properly configured for ${window.location.origin}`
           );
         }
       }
