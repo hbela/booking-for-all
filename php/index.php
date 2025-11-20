@@ -70,9 +70,11 @@ error_log('[PHP Proxy] After loadEnv - WELLNESS_DOMAIN: ' . ($wellnessCheck ?: '
 error_log('[PHP Proxy] After loadEnv - MEDICARE_DOMAIN: ' . ($medicareCheck ?: 'NOT SET'));
 
 // Determine environment early (needed for config endpoint)
+// Production: production, prod, live, local (Coolify uses 'local' for VPS/production)
+// Development: development, dev, staging, test, etc.
 $phpEnvRaw = getenv('APP_ENV') ?? 'development';
 $phpEnv = strtolower($phpEnvRaw);
-$isProduction = in_array($phpEnv, ['production', 'prod', 'live'], true);
+$isProduction = in_array($phpEnv, ['production', 'prod', 'live', 'local'], true);
 
 // Handle config endpoint EARLY - returns PHP server URL based on APP_ENV
 // This must be before CORS validation so it's always accessible
