@@ -123,7 +123,7 @@ const fetchProviders = async (organizationId: string): Promise<any[]> => {
 
 const createDepartment = async (data: { name: string; organizationId: string }): Promise<any> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/departments`,
+    `${import.meta.env.VITE_SERVER_URL}/api/owner/departments`,
     {
       method: "POST",
       headers: {
@@ -143,7 +143,7 @@ const createDepartment = async (data: { name: string; organizationId: string }):
 
 const deleteDepartment = async (departmentId: string): Promise<void> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/departments/${departmentId}`,
+    `${import.meta.env.VITE_SERVER_URL}/api/owner/departments/${departmentId}`,
     {
       method: "DELETE",
       credentials: "include",

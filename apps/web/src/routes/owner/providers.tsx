@@ -118,7 +118,7 @@ const createProvider = async (data: {
   departmentId: string;
 }): Promise<{ tempPassword: string }> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers/create-user`,
+    `${import.meta.env.VITE_SERVER_URL}/api/owner/providers/create-user`,
     {
       method: "POST",
       headers: {
@@ -138,7 +138,7 @@ const createProvider = async (data: {
 
 const deleteProvider = async (providerId: string): Promise<void> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers/${providerId}`,
+    `${import.meta.env.VITE_SERVER_URL}/api/owner/providers/${providerId}`,
     {
       method: "DELETE",
       credentials: "include",

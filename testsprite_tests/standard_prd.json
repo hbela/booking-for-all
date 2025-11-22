@@ -1,0 +1,625 @@
+{
+  "meta": {
+    "project": "Admin Management System",
+    "date": "2025-11-19",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "The Admin Management System provides a secure API platform for managing organizations, users, and API keys within an administrative scope. It offers RESTful endpoints that require authentication and admin roles to maintain security and control over organizational data and access credentials.",
+  "core_goals": [
+    "Enable administrators to view and manage organizations securely.",
+    "Provide functionality to create new organizations while assigning an owner with secured credentials.",
+    "Allow administrators to create and manage users with role-based access controls and password management policies.",
+    "Offer API key management capabilities including the generation, listing, and revocation of keys for organizations.",
+    "Ensure all administrative operations require proper authentication and authorization to protect sensitive data."
+  ],
+  "key_features": [
+    "Admin Organizations API for retrieving and creating organizations with detailed metadata and owner assignments.",
+    "Admin Users API to create user accounts with temporary passwords and enforced password change on first login.",
+    "Admin API Keys API to list, generate, and revoke API keys associated with organizations and users.",
+    "Secure endpoints protected by JWT bearer authentication and role-based access for admins only.",
+    "Automated email notifications for new organization owners with temporary credentials and welcome messages."
+  ],
+  "user_flow_summary": [
+    "Admin logs in and authenticates using bearer token.",
+    "Admin retrieves a list of all organizations or specific organization details.",
+    "Admin creates a new organization, specifying organization and owner details; system generates a temp password and emails the owner.",
+    "Admin creates new users providing name, email, and role; the user receives a temporary password and is required to change it on first login.",
+    "Admin lists all API keys, generates new keys with optional expiration, and revokes keys when necessary, ensuring proper audit trails and access control."
+  ],
+  "validation_criteria": [
+    "All API endpoints enforce admin authentication and return appropriate 401/403 responses for unauthorized access.",
+    "Creating organizations verifies the uniqueness of names, slugs, and owner email addresses, responding correctly to conflicts.",
+    "User creation enforces unique email constraints and differentiates roles with user role mapping internally.",
+    "API key management handles expiration, enable/disable status, and soft deletion correctly with auditability.",
+    "Automated emails are successfully sent to organization owners upon creation with temporary passwords and welcome messages.",
+    "System responses comply with the documented OpenAPI 3.0 specifications and handle errors gracefully with proper status codes."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Fastify",
+      "Prisma",
+      "SQLite"
+    ],
+    "features": [
+      {
+        "name": "Admin Organizations API",
+        "description": "Retrieves all organizations in the system. Returns organization details including id, name, slug, enabled status, and creation date. Requires authentication and admin role.",
+        "files": [
+          "apps/server/src/features/admin/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Admin Organizations API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/admin/organizations": {
+              "get": {
+                "summary": "Get all organizations",
+                "description": "Returns a list of all organizations in the system. Requires admin authentication.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "List of organizations",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            },
+            "/api/admin/organizations/create": {
+              "post": {
+                "summary": "Create organization",
+                "description": "Creates a new organization with an owner user. Generates a temporary password for the owner and sends a welcome email.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "ownerName",
+                          "ownerEmail"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Organization name"
+                          },
+                          "slug": {
+                            "type": "string",
+                            "description": "Optional organization slug. If not provided, generated from name."
+                          },
+                          "ownerName": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Owner's full name"
+                          },
+                          "ownerEmail": {
+                            "type": "string",
+                            "format": "email",
+                            "description": "Owner's email address"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Organization created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "organization": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "owner": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Bad request - User already exists or slug already exists"
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Admin API Keys API",
+        "description": "Manages API keys for organizations. Allows listing all API keys, generating new API keys, and revoking (soft-deleting) API keys. Requires authentication and admin role.",
+        "files": [
+          "apps/server/src/features/admin/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Admin API Keys API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/admin/api-keys": {
+              "get": {
+                "summary": "Get all API keys",
+                "description": "Returns a list of all API keys in the system with their associated user information. Requires admin authentication.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "List of API keys",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "prefix": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "type": "string"
+                              },
+                              "user": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "email": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "expiresAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "lastRequest": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              },
+                              "remaining": {
+                                "type": "integer",
+                                "nullable": true
+                              },
+                              "requestCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            },
+            "/api/admin/api-keys/generate": {
+              "post": {
+                "summary": "Generate API key",
+                "description": "Generates a new API key for an organization. The key can optionally have an expiration date.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "required": [
+                          "organizationId",
+                          "name"
+                        ],
+                        "properties": {
+                          "organizationId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "ID of the organization"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Name for the API key"
+                          },
+                          "expiresInDays": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Number of days until expiration (optional)"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "API key generated successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            },
+            "/api/admin/api-keys/{id}": {
+              "delete": {
+                "summary": "Delete (revoke) API key",
+                "description": "Soft-deletes an API key by setting its enabled status to false. Can be identified by ID or key value.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "API key ID or key value"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "API key revoked successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "404": {
+                    "description": "API key not found"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Admin Users API",
+        "description": "Creates new users in the system. Generates a temporary password for the user and sets the needsPasswordChange flag. Requires authentication and admin role.",
+        "files": [
+          "apps/server/src/features/admin/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Admin Users API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/admin/users": {
+              "post": {
+                "summary": "Create user",
+                "description": "Creates a new user account with a generated temporary password. The user will be required to change their password on first login.",
+                "tags": [
+                  "Admin"
+                ],
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "email"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "User's full name"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "description": "User's email address"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ADMIN",
+                              "OWNER",
+                              "PROVIDER",
+                              "CLIENT",
+                              "USER"
+                            ],
+                            "default": "USER",
+                            "description": "User's role. USER is mapped to CLIENT internally."
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "User created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "emailVerified": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string"
+                                },
+                                "needsPasswordChange": {
+                                  "type": "boolean"
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "updatedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "tempPassword": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Bad request - User with this email already exists"
+                  },
+                  "401": {
+                    "description": "Unauthorized"
+                  },
+                  "403": {
+                    "description": "Forbidden - Admin access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

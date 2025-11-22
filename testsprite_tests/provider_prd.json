@@ -1,0 +1,650 @@
+{
+  "meta": {
+    "project": "Provider Management System",
+    "date": "2025-11-21",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "The Provider Management System provides a secure API platform for managing providers within organizations. It allows organization owners to create provider accounts with user credentials, list providers with filtering capabilities, and manage provider records. GET endpoints work with any authenticated user (including PROVIDER role), while POST/DELETE endpoints require OWNER role. The system integrates with departments and organizations, ensuring proper access control and organizational structure.",
+  "core_goals": [
+    "Enable organization owners to manage providers within their organizations.",
+    "Provide functionality to create provider accounts with user credentials and temporary passwords.",
+    "Allow filtering and retrieval of providers by user, department, or organization.",
+    "Ensure all provider operations require proper authentication and owner authorization.",
+    "Automate welcome email notifications for newly created providers."
+  ],
+  "key_features": [
+    "Provider List API for retrieving providers with optional filters (userId, organizationId, departmentId).",
+    "Provider Detail API to get specific provider information by ID.",
+    "Provider Creation API to create provider accounts with user credentials, temporary passwords, and welcome emails.",
+    "Provider Management API for creating provider records and deleting providers.",
+    "Secure endpoints protected by Better Auth session authentication and owner role authorization.",
+    "Organization integration to verify ownership and department relationships."
+  ],
+  "user_flow_summary": [
+    "Owner logs in and authenticates using Better Auth session cookies.",
+    "Owner retrieves a list of providers, optionally filtered by userId, organizationId, or departmentId.",
+    "Owner views specific provider details by ID.",
+    "Owner creates a new provider account with user credentials (name, email, organizationId, departmentId); system validates ownership, creates user account with temporary password, creates provider record, adds provider as organization member, sends welcome email, and attempts to enable organization if conditions are met.",
+    "Owner creates a provider record directly (for existing users).",
+    "Owner deletes a provider, removing the provider record, organization membership, and checking if organization should be disabled."
+  ],
+  "validation_criteria": [
+    "All API endpoints enforce authentication and return appropriate 401/403 responses for unauthorized access.",
+    "Owner-only endpoints verify that the requester is an OWNER and a member of the specified organization.",
+    "Provider creation validates department belongs to organization and owner is a member of the organization.",
+    "Provider creation enforces unique email addresses for new users.",
+    "Provider creation generates temporary passwords and requires password change on first login.",
+    "Provider creation sends welcome emails with credentials and login links.",
+    "Provider deletion removes provider records and organization memberships correctly.",
+    "Provider deletion checks if organization should be disabled when no providers or departments remain.",
+    "List endpoints respect owner access to disabled organizations vs other roles requiring enabled organizations.",
+    "System responses comply with RESTful conventions and handle errors gracefully with proper status codes."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Fastify",
+      "Prisma",
+      "SQLite",
+      "Better Auth"
+    ],
+    "features": [
+      {
+        "name": "Provider List API",
+        "description": "Retrieves providers with optional filtering by userId, organizationId, or departmentId. Requires authentication. Owners can access providers from disabled organizations, other roles only see enabled organizations. Returns providers with department and organization information, and user details.",
+        "files": [
+          "apps/server/src/features/providers/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Provider List API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/providers": {
+              "get": {
+                "summary": "Get providers",
+                "description": "Returns a list of providers with optional filtering. Requires authentication via Better Auth session cookies. Supports query parameters: userId, organizationId, departmentId. Owners can access disabled organizations, other roles only see enabled organizations.",
+                "tags": [
+                  "Providers"
+                ],
+                "security": [
+                  {
+                    "sessionAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "userId",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Filter by user ID"
+                  },
+                  {
+                    "name": "organizationId",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Filter by organization ID"
+                  },
+                  {
+                    "name": "departmentId",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Filter by department ID"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "List of providers",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "type": "string"
+                              },
+                              "departmentId": {
+                                "type": "string"
+                              },
+                              "bio": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "specialization": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "department": {
+                                "type": "object",
+                                "properties": {
+                                  "organizationId": {
+                                    "type": "string"
+                                  },
+                                  "organization": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "slug": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "user": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "email": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized - Authentication required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "sessionAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "better-auth.session_token",
+                "description": "Better Auth session cookie. Authenticate via POST /api/auth/sign-in/email first to obtain session cookies."
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Provider Detail API",
+        "description": "Retrieves a specific provider by ID with department, organization, and user information. Requires authentication.",
+        "files": [
+          "apps/server/src/features/providers/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Provider Detail API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/providers/{id}": {
+              "get": {
+                "summary": "Get provider by ID",
+                "description": "Returns a specific provider with department, organization, and user details. Requires authentication via Better Auth session cookies.",
+                "tags": [
+                  "Providers"
+                ],
+                "security": [
+                  {
+                    "sessionAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Provider ID"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Provider details",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "userId": {
+                              "type": "string"
+                            },
+                            "departmentId": {
+                              "type": "string"
+                            },
+                            "bio": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "specialization": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "department": {
+                              "type": "object",
+                              "properties": {
+                                "organizationId": {
+                                  "type": "string"
+                                },
+                                "organization": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "slug": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized - Authentication required"
+                  },
+                  "404": {
+                    "description": "Provider not found"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "sessionAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "better-auth.session_token",
+                "description": "Better Auth session cookie. Authenticate via POST /api/auth/sign-in/email first to obtain session cookies."
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Provider Creation API",
+        "description": "Creates a provider account with user credentials. Validates owner membership, department ownership, creates user account with temporary password, creates provider record, adds provider as organization member, sends welcome email, and attempts to enable organization. Requires authentication and owner role.",
+        "files": [
+          "apps/server/src/features/providers/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Provider Creation API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/providers/create-user": {
+              "post": {
+                "summary": "Create provider with user account",
+                "description": "Creates a new provider account with user credentials. Validates that the owner is a member of the organization, verifies the department belongs to the organization, creates a user account with temporary password, creates provider record, adds provider as organization member, sends welcome email, and attempts to enable organization if conditions are met. Requires authentication and owner role via Better Auth session cookies.",
+                "tags": [
+                  "Providers"
+                ],
+                "security": [
+                  {
+                    "sessionAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "email",
+                          "organizationId",
+                          "departmentId"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Provider's full name"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "description": "Provider's email address"
+                          },
+                          "organizationId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "ID of the organization"
+                          },
+                          "departmentId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "ID of the department"
+                          },
+                          "bio": {
+                            "type": "string",
+                            "description": "Provider's bio (optional)"
+                          },
+                          "specialization": {
+                            "type": "string",
+                            "description": "Provider's specialization (optional)"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "Provider created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "provider": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "userId": {
+                                  "type": "string"
+                                },
+                                "departmentId": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "tempPassword": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Bad request - User with this email already exists"
+                  },
+                  "401": {
+                    "description": "Unauthorized - Authentication required"
+                  },
+                  "403": {
+                    "description": "Forbidden - Owner access required or not a member of the organization"
+                  },
+                  "404": {
+                    "description": "Department not found or does not belong to this organization"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            },
+            "/api/providers": {
+              "post": {
+                "summary": "Create provider record",
+                "description": "Creates a provider record for an existing user. Requires authentication and owner role via Better Auth session cookies. Attempts to enable organization if conditions are met.",
+                "tags": [
+                  "Providers"
+                ],
+                "security": [
+                  {
+                    "sessionAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "description": "User ID"
+                          },
+                          "departmentId": {
+                            "type": "string",
+                            "description": "Department ID"
+                          },
+                          "bio": {
+                            "type": "string",
+                            "description": "Provider's bio"
+                          },
+                          "specialization": {
+                            "type": "string",
+                            "description": "Provider's specialization"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "Provider created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "userId": {
+                              "type": "string"
+                            },
+                            "departmentId": {
+                              "type": "string"
+                            },
+                            "bio": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "specialization": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized - Authentication required"
+                  },
+                  "403": {
+                    "description": "Forbidden - Owner access required"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "sessionAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "better-auth.session_token",
+                "description": "Better Auth session cookie. Authenticate via POST /api/auth/sign-in/email first to obtain session cookies."
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Provider Deletion API",
+        "description": "Deletes a provider record, removes organization membership, and checks if organization should be disabled. Requires authentication and owner role.",
+        "files": [
+          "apps/server/src/features/providers/routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "Provider Deletion API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/api/providers/{id}": {
+              "delete": {
+                "summary": "Delete provider",
+                "description": "Deletes a provider record, removes the provider from organization members if exists, and checks if the organization should be disabled (when no departments or providers remain). Requires authentication and owner role via Better Auth session cookies.",
+                "tags": [
+                  "Providers"
+                ],
+                "security": [
+                  {
+                    "sessionAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    },
+                    "description": "Provider ID"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Provider deleted successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Unauthorized - Authentication required"
+                  },
+                  "403": {
+                    "description": "Forbidden - Owner access required"
+                  },
+                  "404": {
+                    "description": "Provider not found"
+                  },
+                  "500": {
+                    "description": "Internal server error"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "sessionAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "better-auth.session_token",
+                "description": "Better Auth session cookie. Authenticate via POST /api/auth/sign-in/email first to obtain session cookies."
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "authentication": {
+    "type": "session",
+    "provider": "Better Auth",
+    "endpoint": "/api/auth/sign-in/email",
+    "method": "POST",
+    "description": "This application uses Better Auth with session-based authentication (cookies), NOT bearer tokens. Authentication is done via POST request to /api/auth/sign-in/email with email and password. The response includes session cookies in Set-Cookie headers. Use requests.Session() to automatically manage cookies. Include session cookies in all subsequent requests. DO NOT use Authorization: Bearer headers.",
+    "credentials": {
+      "email": "elysprovider1@gmail.com",
+      "password": "bel2000BELLE$",
+      "name": "Jones Doe",
+      "role": "PROVIDER",
+      "note": "This user has PROVIDER role. GET endpoints work with any authenticated user. POST/DELETE endpoints require OWNER role. If this user is also an owner of an organization, they can test POST/DELETE endpoints."
+    },
+    "example": "session = requests.Session(); session.post('http://localhost:3000/api/auth/sign-in/email', json={'email': 'elysprovider1@gmail.com', 'password': 'bel2000BELLE$'}); response = session.get('http://localhost:3000/api/providers')"
+  }
+}
+

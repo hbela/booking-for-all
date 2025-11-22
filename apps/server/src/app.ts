@@ -23,6 +23,8 @@ import { auth } from "@booking-for-all/auth";
 import { toNodeHandler } from "better-auth/node";
 import subscriptionsRoutes from "./features/subscriptions/routes";
 import departmentsRoutes from "./features/departments/routes";
+import ownerRoutes from "./features/owner/routes";
+import providerRoutes from "./features/provider/routes";
 import authRoutes from "./features/auth/routes";
 import { instrument } from "./instrument";
 import * as Sentry from "@sentry/node";
@@ -166,6 +168,8 @@ export function buildApp() {
   });
   app.register(organizationsRoutes, { prefix: "/api/organizations" });
   app.register(adminRoutes, { prefix: "/api/admin" });
+  app.register(ownerRoutes, { prefix: "/api/owner" });
+  app.register(providerRoutes, { prefix: "/api/provider" });
   app.register(providersRoutes, { prefix: "/api/providers" });
   app.register(departmentsRoutes, { prefix: "/api/departments" });
   app.register(bookingsRoutes, { prefix: "/api/bookings" });

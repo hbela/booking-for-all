@@ -122,7 +122,7 @@ const createEvent = async (data: {
   end: string;
 }): Promise<any> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/events`,
+    `${import.meta.env.VITE_SERVER_URL}/api/provider/events`,
     {
       method: "POST",
       headers: {
@@ -146,7 +146,7 @@ const updateEvent = async (data: {
   description?: string;
 }): Promise<any> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/events/${data.eventId}`,
+    `${import.meta.env.VITE_SERVER_URL}/api/provider/events/${data.eventId}`,
     {
       method: "PUT",
       headers: {
@@ -169,7 +169,7 @@ const updateEvent = async (data: {
 
 const deleteEvent = async (eventId: string): Promise<void> => {
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/events/${eventId}`,
+    `${import.meta.env.VITE_SERVER_URL}/api/provider/events/${eventId}`,
     {
       method: "DELETE",
       credentials: "include",
