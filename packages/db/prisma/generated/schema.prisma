@@ -76,17 +76,20 @@ model Verification {
 }
 
 model Organization {
-  id            String         @id @map("_id")
-  name          String
-  description   String?
-  slug          String         @unique
-  logo          String?
-  enabled       Boolean        @default(false)
-  createdAt     DateTime
-  metadata      String?
-  members       Member[]
-  departments   Department[]
-  subscriptions Subscription[]
+  id                    String         @id @map("_id")
+  name                  String
+  description           String?
+  slug                  String         @unique
+  logo                  String?
+  enabled               Boolean        @default(false)
+  timeZone              String         @default("Europe/Budapest") // IANA timezone (e.g., "Europe/London", "America/New_York")
+  availabilityStartHour Int            @default(8) // Business hours start (0-23)
+  availabilityEndHour   Int            @default(20) // Business hours end (0-23)
+  createdAt             DateTime
+  metadata              String?
+  members               Member[]
+  departments           Department[]
+  subscriptions         Subscription[]
 
   @@map("organization")
 }

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Calendar, Clock, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/client/bookings")({
   component: ClientBookings,
@@ -76,17 +77,9 @@ interface Booking {
 
 // API function
 const fetchClientBookings = async (): Promise<Booking[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/bookings`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Booking[]>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/bookings`
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to load bookings");
-  }
-  return response.json();
 };
 
 function ClientBookings() {

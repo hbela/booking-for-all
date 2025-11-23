@@ -3,6 +3,7 @@ import prisma from "@booking-for-all/db";
 import { requireAuthHook } from "../../plugins/authz";
 import crypto from "crypto";
 import { tryEnableOrganization } from "../../utils/organization-utils";
+import { AppError } from "../../errors/AppError";
 
 // Types for Polar API responses
 interface PolarCheckoutSession {
@@ -74,54 +75,52 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
     "/my-subscriptions",
     { preValidation: [requireAuthHook] },
     async (req, reply) => {
-      try {
-        const user = req.user;
+      const user = req.user;
 
-        // Get all subscriptions for the user with related data
-        const subscriptions = await prisma.subscription.findMany({
-          where: { userId: user.id },
-          include: {
-            organization: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                slug: true,
-                logo: true,
-                enabled: true,
-              },
-            },
-            product: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                priceCents: true,
-                currency: true,
-                interval: true,
-              },
-            },
-            payments: {
-              orderBy: { createdAt: "desc" },
-              take: 5, // Last 5 payments
-              select: {
-                id: true,
-                amount: true,
-                currency: true,
-                status: true,
-                receiptUrl: true,
-                createdAt: true,
-              },
+      // Get all subscriptions for the user with related data
+      const subscriptions = await prisma.subscription.findMany({
+        where: { userId: user.id },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              slug: true,
+              logo: true,
+              enabled: true,
             },
           },
-          orderBy: { createdAt: "desc" },
-        });
+          product: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              priceCents: true,
+              currency: true,
+              interval: true,
+            },
+          },
+          payments: {
+            orderBy: { createdAt: "desc" },
+            take: 5, // Last 5 payments
+            select: {
+              id: true,
+              amount: true,
+              currency: true,
+              status: true,
+              receiptUrl: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
 
-        reply.send(subscriptions);
-      } catch (error) {
-        app.log.error(error, "Error fetching user subscriptions");
-        reply.status(500).send({ error: "Failed to fetch subscriptions" });
-      }
+      reply.send({
+        success: true,
+        data: subscriptions,
+      });
     }
   );
 
@@ -134,28 +133,36 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
         const { organizationId } = body || {};
         const user = req.user;
         if (!organizationId) {
-          return reply.status(400).send({ error: "Organization ID required" });
+          throw new AppError(
+            "Organization ID required",
+            "VALIDATION_ERROR",
+            400
+          );
         }
 
         // Verify user membership and that org is not already enabled
         const organization = await prisma.organization.findUnique({
           where: { id: organizationId },
         });
-        if (!organization)
-          return reply.status(404).send({ error: "Organization not found" });
-        if (organization.enabled)
-          return reply
-            .status(400)
-            .send({ error: "Organization is already subscribed" });
+        if (!organization) {
+          throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+        }
+        if (organization.enabled) {
+          throw new AppError(
+            "Organization is already subscribed",
+            "ORG_ALREADY_SUBSCRIBED",
+            400
+          );
+        }
 
         const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;
         const polarProductId = process.env.POLAR_PRODUCT_ID;
         if (!polarAccessToken || !polarProductId) {
-          return reply
-            .status(500)
-            .send({
-              error: "Payment system not configured. Please contact support.",
-            });
+          throw new AppError(
+            "Payment system not configured. Please contact support.",
+            "PAYMENT_NOT_CONFIGURED",
+            500
+          );
         }
 
         const baseSuccessUrl =
@@ -201,24 +208,34 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
           } catch {
             err = { message: text };
           }
-          return reply
-            .status(500)
-            .send({
-              error: "Failed to create checkout session",
-              polarError: err,
-            });
+          app.log.error({ polarError: err }, "Polar API error");
+          throw new AppError(
+            "Failed to create checkout session",
+            "POLAR_CHECKOUT_FAILED",
+            500
+          );
         }
         const checkoutSession = (await resp.json()) as PolarCheckoutSession;
         return reply.send({
-          checkoutUrl: checkoutSession.url,
-          organizationId: organization.id,
-          organizationName: organization.name,
-          amount: "$10.00/month",
-          message: "Complete payment to activate your organization",
+          success: true,
+          data: {
+            checkoutUrl: checkoutSession.url,
+            organizationId: organization.id,
+            organizationName: organization.name,
+            amount: "$10.00/month",
+            message: "Complete payment to activate your organization",
+          },
         });
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, "Error creating checkout");
-        return reply.status(500).send({ error: "Internal Server Error" });
+        throw new AppError(
+          "Failed to create checkout",
+          "CREATE_CHECKOUT_FAILED",
+          500
+        );
       }
     }
   );
@@ -233,14 +250,18 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
         const { organizationId } = body || {};
         const user = req.user;
         if (!organizationId) {
-          return reply.status(400).send({ error: "Organization ID required" });
+          throw new AppError(
+            "Organization ID required",
+            "VALIDATION_ERROR",
+            400
+          );
         }
 
         const organization = await prisma.organization.findUnique({
           where: { id: organizationId },
         });
         if (!organization) {
-          return reply.status(404).send({ error: "Organization not found" });
+          throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
         }
 
         // Check if subscription already exists
@@ -248,16 +269,20 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
           where: { organizationId },
         });
         if (existingSubscription && existingSubscription.status === "active") {
-          return reply
-            .status(400)
-            .send({ error: "Subscription already exists and is active" });
+          throw new AppError(
+            "Subscription already exists and is active",
+            "SUBSCRIPTION_EXISTS",
+            400
+          );
         }
 
         const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;
         if (!polarAccessToken) {
-          return reply
-            .status(500)
-            .send({ error: "Payment system not configured" });
+          throw new AppError(
+            "Payment system not configured",
+            "PAYMENT_NOT_CONFIGURED",
+            500
+          );
         }
 
         const useSandbox = process.env.POLAR_SANDBOX === "true";
@@ -282,9 +307,11 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
             { error: errorText },
             "Failed to fetch orders from Polar"
           );
-          return reply
-            .status(500)
-            .send({ error: "Failed to fetch subscriptions from Polar" });
+          throw new AppError(
+            "Failed to fetch subscriptions from Polar",
+            "POLAR_FETCH_FAILED",
+            500
+          );
         }
 
         const orders = (await ordersResp.json()) as PolarOrdersResponse;
@@ -338,10 +365,11 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
         }
 
         if (!matchedOrder) {
-          return reply.status(404).send({
-            error:
-              "No subscription found in Polar for this organization. Please check Polar dashboard or contact support.",
-          });
+          throw new AppError(
+            "No subscription found in Polar for this organization. Please check Polar dashboard or contact support.",
+            "SUBSCRIPTION_NOT_FOUND",
+            404
+          );
         }
 
         app.log.info(
@@ -357,11 +385,11 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
         const extractedUserId = metadata.userId || metadata.user_id || user.id;
 
         if (extractedOrgId !== organizationId) {
-          return reply
-            .status(400)
-            .send({
-              error: "Organization ID mismatch in Polar subscription metadata",
-            });
+          throw new AppError(
+            "Organization ID mismatch in Polar subscription metadata",
+            "ORG_ID_MISMATCH",
+            400
+          );
         }
 
         // Process the order similar to webhook handler
@@ -570,21 +598,28 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
 
         reply.send({
           success: true,
-          message: "Subscription synced successfully",
-          subscription: {
-            id: subscription.id,
-            status: subscription.status,
-          },
-          organization: {
-            id: organizationId,
-            enabled: subscription.status === "active",
+          data: {
+            message: "Subscription synced successfully",
+            subscription: {
+              id: subscription.id,
+              status: subscription.status,
+            },
+            organization: {
+              id: organizationId,
+              enabled: subscription.status === "active",
+            },
           },
         });
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, "Error syncing subscription from Polar");
-        return reply
-          .status(500)
-          .send({ error: "Failed to sync subscription from Polar" });
+        throw new AppError(
+          "Failed to sync subscription from Polar",
+          "SYNC_SUBSCRIPTION_FAILED",
+          500
+        );
       }
     }
   );

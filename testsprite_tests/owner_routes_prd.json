@@ -1,0 +1,497 @@
+{
+  "meta": {
+    "project": "Owner Management API",
+    "date": "2025-01-22",
+    "prepared_by": "Software Development Manager",
+    "version": "2.0",
+    "note": "Actor-based mutations for OWNER role - Provider and Department management"
+  },
+  "product_overview": "The Owner Management API enables organization owners to manage providers and departments within their organizations. This API uses an actor-based architecture where all mutations (POST, DELETE) are organized by actor (/api/owner/*). Owners can create providers with user accounts, create provider records for existing users, delete providers, create departments, and delete departments. All operations require OWNER role and verify organization membership.",
+  "architecture_note": "This API follows an actor-based approach: All mutations are under /api/owner/* to clearly indicate who can perform the action. Mutations require OWNER role and verify that the owner is a member of the organization being managed.",
+  "core_goals": [
+    "Enable owners to create provider user accounts and provider records within their organizations.",
+    "Enable owners to manage departments within their organizations.",
+    "Ensure owners can only manage resources in organizations they belong to.",
+    "Enforce organization membership verification for all operations.",
+    "Maintain clear actor-based structure for authorization."
+  ],
+  "key_features": [
+    "Provider Creation API to create provider with user account (creates user, account, provider record, and adds to organization members).",
+    "Provider Record Creation API to create provider record for existing users.",
+    "Provider Deletion API to delete providers and clean up organization memberships.",
+    "Department Creation API to create departments within owner's organization.",
+    "Department Deletion API to delete departments and manage organization state.",
+    "Organization membership verification for all operations.",
+    "Automatic organization enable/disable logic based on departments and providers.",
+    "Secure endpoints protected by Better Auth session authentication and owner role authorization."
+  ],
+  "user_flow_summary": [
+    "Owner logs in and authenticates using Better Auth session cookies.",
+    "Owner creates departments for their organization via POST /api/owner/departments.",
+    "Owner creates providers with user accounts via POST /api/owner/providers/create-user (creates user, account, provider, and adds to org members).",
+    "Owner creates provider records for existing users via POST /api/owner/providers.",
+    "Owner manages providers via DELETE /api/owner/providers/:id.",
+    "Owner manages departments via DELETE /api/owner/departments/:id.",
+    "System verifies organization membership for all operations.",
+    "System automatically enables/disables organizations based on resources."
+  ],
+  "validation_criteria": [
+    "All API endpoints enforce authentication and return appropriate 401/403 responses for unauthorized access.",
+    "Owner mutation endpoints verify that the owner is a member of the organization being managed.",
+    "Provider creation validates required fields (name, email, organizationId, departmentId).",
+    "Provider creation prevents duplicate email addresses.",
+    "Department creation validates required fields (name, organizationId).",
+    "Department creation verifies department belongs to owner's organization.",
+    "Provider deletion removes provider record and cleans up organization membership.",
+    "Department deletion removes department and checks if organization should be disabled.",
+    "All mutations verify organization membership before allowing operations."
+  ],
+  "test_requirements": {
+    "authentication": {
+      "type": "session-based",
+      "method": "Better Auth",
+      "note": "Use session cookies, NOT bearer tokens. Authenticate via POST /api/auth/sign-in/email first."
+    },
+    "test_scenarios": [
+      "Owner authentication and session management",
+      "Create provider with user account (complete flow: user, account, provider, member)",
+      "Create provider validation (missing required fields, duplicate email, invalid organization/department)",
+      "Create provider record for existing user",
+      "Delete provider (removes provider and organization membership)",
+      "Delete provider validation (not found, not owner's organization)",
+      "Create department with valid data",
+      "Create department validation (missing required fields, invalid organization, not owner's organization)",
+      "Delete department (removes department, checks organization state)",
+      "Delete department validation (not found, not owner's organization)",
+      "Authorization checks (owner can only manage own organization resources)"
+    ]
+  },
+  "api_endpoints": {
+    "actor_based_mutations": {
+      "note": "All endpoints are actor-based (/api/owner/*) - clearly indicate who can perform the action",
+      "endpoints": [
+        {
+          "path": "/api/owner/providers/create-user",
+          "method": "POST",
+          "description": "Creates a new provider with a user account. Creates user, account, provider record, and adds provider to organization members. Sends welcome email with temporary password. Returns provider details and temporary password.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireOwnerHook"]
+          },
+          "authorization": {
+            "role": "OWNER",
+            "membership_check": "Owner must be a member of the specified organization"
+          },
+          "request_body": {
+            "required": true,
+            "content_type": "application/json",
+            "schema": {
+              "name": {
+                "type": "string",
+                "required": true,
+                "description": "Provider's full name"
+              },
+              "email": {
+                "type": "string",
+                "required": true,
+                "description": "Provider's email address (must be unique)"
+              },
+              "organizationId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of the organization (owner must be a member)"
+              },
+              "departmentId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of the department (must belong to the organization)"
+              },
+              "bio": {
+                "type": "string",
+                "required": false,
+                "description": "Optional provider biography"
+              },
+              "specialization": {
+                "type": "string",
+                "required": false,
+                "description": "Optional provider specialization"
+              }
+            }
+          },
+          "validation_rules": [
+            "name, email, organizationId, and departmentId are required",
+            "Email must be a valid email format",
+            "Email must be unique (user with email must not exist)",
+            "Owner must be a member of the specified organization",
+            "Department must belong to the specified organization"
+          ],
+          "success_response": {
+            "status_code": 201,
+            "description": "Provider created successfully with user account",
+            "body": {
+              "provider": {
+                "id": "string",
+                "userId": "string",
+                "departmentId": "string"
+              },
+              "user": {
+                "id": "string",
+                "name": "string",
+                "email": "string"
+              },
+              "tempPassword": "string"
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 400,
+              "scenarios": [
+                "Missing required fields (name, email, organizationId, or departmentId)",
+                "Invalid email format",
+                "User with email already exists"
+              ],
+              "body": {
+                "error": "string (descriptive error message)"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Owner is not a member of the specified organization"
+              ],
+              "body": {
+                "error": "You are not a member of this organization"
+              }
+            },
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Department not found or does not belong to the organization"
+              ],
+              "body": {
+                "error": "Department not found or does not belong to this organization"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/owner/providers",
+          "method": "POST",
+          "description": "Creates a provider record for an existing user. Used when the user already exists and needs to be associated with a department as a provider. Attempts to enable organization if conditions are met.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireOwnerHook"]
+          },
+          "authorization": {
+            "role": "OWNER",
+            "membership_check": "Owner must be a member of the organization"
+          },
+          "request_body": {
+            "required": true,
+            "content_type": "application/json",
+            "schema": {
+              "userId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of existing user"
+              },
+              "departmentId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of the department"
+              },
+              "bio": {
+                "type": "string",
+                "required": false,
+                "description": "Optional provider biography"
+              },
+              "specialization": {
+                "type": "string",
+                "required": false,
+                "description": "Optional provider specialization"
+              }
+            }
+          },
+          "success_response": {
+            "status_code": 201,
+            "description": "Provider record created successfully",
+            "body": {
+              "id": "string",
+              "userId": "string",
+              "departmentId": "string",
+              "bio": "string | null",
+              "specialization": "string | null",
+              "department": {
+                "organizationId": "string"
+              }
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Owner is not a member of the organization"
+              ],
+              "body": {
+                "error": "You are not a member of this organization"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/owner/providers/:id",
+          "method": "DELETE",
+          "description": "Deletes a provider record and removes the provider from organization members if they are a member. Checks if organization should be disabled after deletion.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireOwnerHook"]
+          },
+          "authorization": {
+            "role": "OWNER",
+            "membership_check": "Owner must be a member of the organization that owns the provider"
+          },
+          "request_body": {
+            "required": false
+          },
+          "validation_rules": [
+            "Provider must exist",
+            "Owner must be a member of the provider's organization"
+          ],
+          "success_response": {
+            "status_code": 200,
+            "description": "Provider deleted successfully",
+            "body": {
+              "success": true
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Provider not found"
+              ],
+              "body": {
+                "error": "Provider not found"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Owner is not a member of the provider's organization"
+              ],
+              "body": {
+                "error": "You are not a member of this organization"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/owner/departments",
+          "method": "POST",
+          "description": "Creates a new department within the owner's organization. Verifies owner is a member of the organization. Attempts to enable organization if conditions are met.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireOwnerHook"]
+          },
+          "authorization": {
+            "role": "OWNER",
+            "membership_check": "Owner must be a member of the specified organization"
+          },
+          "request_body": {
+            "required": true,
+            "content_type": "application/json",
+            "schema": {
+              "name": {
+                "type": "string",
+                "required": true,
+                "description": "Department name"
+              },
+              "description": {
+                "type": "string",
+                "required": false,
+                "description": "Optional department description"
+              },
+              "organizationId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of the organization (owner must be a member)"
+              }
+            }
+          },
+          "validation_rules": [
+            "name and organizationId are required",
+            "Owner must be a member of the specified organization",
+            "Organization must exist"
+          ],
+          "success_response": {
+            "status_code": 201,
+            "description": "Department created successfully",
+            "body": {
+              "id": "string",
+              "name": "string",
+              "description": "string | null",
+              "organizationId": "string",
+              "createdAt": "ISO 8601 datetime",
+              "updatedAt": "ISO 8601 datetime"
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 400,
+              "scenarios": [
+                "Missing required fields (name or organizationId)"
+              ],
+              "body": {
+                "error": "Name and organizationId are required"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Owner is not a member of the specified organization"
+              ],
+              "body": {
+                "error": "You are not a member of this organization"
+              }
+            },
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Organization not found"
+              ],
+              "body": {
+                "error": "Organization not found"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/owner/departments/:id",
+          "method": "DELETE",
+          "description": "Deletes a department. Verifies owner is a member of the department's organization. Checks if organization should be disabled after deletion.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireOwnerHook"]
+          },
+          "authorization": {
+            "role": "OWNER",
+            "membership_check": "Owner must be a member of the department's organization"
+          },
+          "request_body": {
+            "required": false
+          },
+          "validation_rules": [
+            "Department must exist",
+            "Owner must be a member of the department's organization"
+          ],
+          "success_response": {
+            "status_code": 200,
+            "description": "Department deleted successfully",
+            "body": {
+              "success": true
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Department not found"
+              ],
+              "body": {
+                "error": "Department not found"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Owner is not a member of the department's organization"
+              ],
+              "body": {
+                "error": "You are not a member of this organization"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "authentication": {
+    "endpoint": "/api/auth/sign-in/email",
+    "method": "POST",
+    "description": "This application uses Better Auth with session-based authentication (cookies), NOT bearer tokens. Authentication is done via POST request to /api/auth/sign-in/email with email and password. The response includes session cookies in Set-Cookie headers. Use requests.Session() to automatically manage cookies. Include session cookies in all subsequent requests. DO NOT use Authorization: Bearer headers.",
+    "credentials": {
+      "email": "elystrade@gmail.com",
+      "password": "bel2000BELLE$",
+      "name": "John Smith",
+      "role": "OWNER",
+      "note": "This user has OWNER role and can test all owner mutation endpoints. The owner must be a member of an organization to test the endpoints effectively."
+    },
+    "example": "session = requests.Session(); session.post('http://localhost:3000/api/auth/sign-in/email', json={'email': 'elystrade@gmail.com', 'password': 'bel2000BELLE$'}); response = session.post('http://localhost:3000/api/owner/departments', json={'name': 'Test Department', 'organizationId': '<orgId>'})"
+  },
+  "test_instructions": {
+    "note": "TestSprite should generate tests that:",
+    "requirements": [
+      "Use session-based authentication (Better Auth cookies), NOT bearer tokens",
+      "Test owner mutations at /api/owner/* endpoints (actor-based)",
+      "Verify organization membership checks - owners can only manage their own organization resources",
+      "Test validation rules (required fields, duplicate emails, invalid organizations/departments)",
+      "Test authorization - unauthorized users cannot access owner mutation endpoints",
+      "Use the provided owner credentials for mutation tests",
+      "Test provider creation with user account (complete flow)",
+      "Test provider record creation for existing users",
+      "Test department creation and deletion",
+      "Test provider deletion and cleanup"
+    ]
+  }
+}
+

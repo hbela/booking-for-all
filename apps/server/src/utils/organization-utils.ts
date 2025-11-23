@@ -72,3 +72,17 @@ export async function checkAndDisableOrganization(organizationId: string): Promi
   }
 }
 
+/**
+ * Check if organization has an active subscription
+ */
+export async function hasActiveSubscription(organizationId: string): Promise<boolean> {
+  const subscription = await prisma.subscription.findFirst({
+    where: {
+      organizationId,
+      status: 'active',
+    },
+  });
+
+  return !!subscription;
+}
+

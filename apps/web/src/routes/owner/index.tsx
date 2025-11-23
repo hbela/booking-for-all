@@ -11,6 +11,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/owner/")({
   component: OwnerComponent,
@@ -35,15 +36,10 @@ export const Route = createFileRoute("/owner/")({
     // OWNER must have organization membership
     if (role === "OWNER") {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        
-        if (response.ok) {
-          const organizations = await response.json();
+        try {
+          const organizations = await apiFetch<any[]>(
+            `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`
+          );
           if (!organizations || organizations.length === 0) {
             // Owner has no organizations - redirect to login with error
             throw redirect({
@@ -53,6 +49,13 @@ export const Route = createFileRoute("/owner/")({
               },
             });
           }
+        } catch (error) {
+          throw redirect({
+            to: "/login",
+            search: {
+              error: "Connect using your organization.",
+            },
+          });
         }
       } catch (error) {
         console.error("Error checking organization membership:", error);
@@ -66,69 +69,36 @@ export const Route = createFileRoute("/owner/")({
 
 // API functions
 const fetchMyOrganizations = async (): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  return response.json();
 };
 
 const fetchMySubscriptions = async (): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/my-subscriptions`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/my-subscriptions`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load subscriptions");
-  }
-  return response.json();
 };
 
 const createCheckout = async (organizationId: string): Promise<{ checkoutUrl: string }> => {
-  const response = await fetch(
+  const data = await apiFetch<{ checkoutUrl: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({ organizationId }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create checkout");
-  }
-  return response.json();
+  return data;
 };
 
 const syncSubscription = async (organizationId: string): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/sync-from-polar`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({ organizationId }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to sync subscription");
-  }
-  return response.json();
 };
 
 function OwnerComponent() {
@@ -165,8 +135,12 @@ function OwnerComponent() {
       toast.success(`Redirecting to checkout for ${variables.orgName}...`);
       window.location.href = data.checkoutUrl;
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create checkout");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create checkout");
+      }
     },
   });
 
@@ -179,8 +153,12 @@ function OwnerComponent() {
       queryClient.invalidateQueries({ queryKey: ["organizations", "my-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["subscriptions", "my-subscriptions"] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to sync subscription");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to sync subscription");
+      }
     },
   });
 

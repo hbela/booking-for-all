@@ -1,19 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify';
 import prisma from '@booking-for-all/db';
 import { requireAuthHook } from '../../plugins/authz';
+import { AppError } from '../../errors/AppError';
 
 const organizationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', async (_req, reply) => {
-    try {
-      const organizations = await prisma.organization.findMany({
-        select: { id: true, name: true, slug: true, logo: true },
-        orderBy: { name: 'asc' },
-      });
-      reply.send(organizations);
-    } catch (error) {
-      app.log.error(error, 'Error fetching organizations');
-      reply.status(500).send({ error: 'Failed to fetch organizations' });
-    }
+    const organizations = await prisma.organization.findMany({
+      select: { id: true, name: true, slug: true, logo: true },
+      orderBy: { name: 'asc' },
+    });
+    reply.send({
+      success: true,
+      data: organizations,
+    });
   });
 
   app.get('/my-organizations', { preValidation: [requireAuthHook] }, async (req, reply) => {
@@ -50,10 +49,17 @@ const organizationsRoutes: FastifyPluginAsync = async (app) => {
         .filter(Boolean)
         .sort((a: any, b: any) => a.name.localeCompare(b.name));
       
-      reply.send(organizations);
+      reply.send({
+        success: true,
+        data: organizations,
+      });
     } catch (error) {
       app.log.error(error, 'Error fetching user organizations');
-      reply.status(500).send({ error: 'Failed to fetch organizations' });
+      throw new AppError(
+        'Failed to fetch organizations',
+        'FETCH_ORGS_FAILED',
+        500
+      );
     }
   });
 };

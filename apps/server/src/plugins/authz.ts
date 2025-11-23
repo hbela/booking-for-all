@@ -24,6 +24,20 @@ export async function requireAdminHook(request: FastifyRequest, reply: FastifyRe
 export async function requireOwnerHook(request: FastifyRequest, reply: FastifyReply) {
   // @ts-expect-error populated by requireAuthHook
   const user = request.user;
+  
+  if (user.role !== 'OWNER') {
+    return reply.status(403).send({ error: 'Forbidden - Owner access required' });
+  }
+  
+  // For DELETE endpoints, organizationId is not in the request - it needs to be fetched from the database
+  // So we skip the organizationId check for DELETE and let the route handler fetch it first
+  const method = request.method;
+  if (method === 'DELETE') {
+    // For DELETE endpoints, just verify the role and let the route handler fetch organizationId
+    return;
+  }
+  
+  // For POST/PUT/PATCH, organizationId should be in the request
   // @ts-expect-error use narrow type as needed
   const organizationId = (request.body as any)?.organizationId || (request.params as any)?.organizationId || (request.query as any)?.organizationId;
   if (!organizationId) {
@@ -38,9 +52,11 @@ export async function requireOwnerHook(request: FastifyRequest, reply: FastifyRe
       },
     },
   });
-  if (user.role !== 'OWNER') {
-    return reply.status(403).send({ error: 'Forbidden - Owner access required' });
+  
+  if (!member) {
+    return reply.status(403).send({ error: 'You are not a member of this organization' });
   }
+  
   // @ts-expect-error attach for handlers
   request.organizationId = organizationId;
 }

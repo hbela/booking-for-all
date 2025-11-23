@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import type { View } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -83,29 +84,15 @@ interface CreateBookingData {
 
 // API functions
 const fetchProvider = async (providerId: string): Promise<Provider> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Provider>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load provider");
-  }
-  return response.json();
 };
 
 const fetchAvailableEvents = async (providerId: string): Promise<Event[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}/available-events`,
-    {
-      credentials: "include",
-    }
+  const eventsData = await apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/providers/${providerId}/available-events`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load available events");
-  }
-  const eventsData = await response.json();
   // Convert to BigCalendar format
   return eventsData.map((event: any) => ({
     ...event,
@@ -116,26 +103,16 @@ const fetchAvailableEvents = async (providerId: string): Promise<Event[]> => {
 };
 
 const createBooking = async (data: CreateBookingData): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/bookings`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({
         eventId: data.eventId,
         providerId: data.providerId,
       }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create booking");
-  }
-  return response.json();
 };
 
 function ClientCalendar() {
@@ -186,8 +163,12 @@ function ClientCalendar() {
       setShowConfirmDialog(false);
       setSelectedEvent(null);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create booking");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create booking");
+      }
     },
   });
 

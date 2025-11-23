@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar, Building2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/client/")({
   component: ClientDashboard,
@@ -46,21 +47,20 @@ export const Route = createFileRoute("/client/")({
     // CLIENT must have organization membership
     if (role === "CLIENT") {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        
-        if (response.ok) {
-          const organizations = await response.json();
+        try {
+          const organizations = await apiFetch<any[]>(
+            `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`
+          );
           if (!organizations || organizations.length === 0) {
             // Client has no organizations - redirect to login
             throw redirect({
               to: "/login",
             });
           }
+        } catch (error) {
+          throw redirect({
+            to: "/login",
+          });
         }
       } catch (error) {
         console.error("Error checking organization membership:", error);
@@ -82,16 +82,9 @@ interface Organization {
 
 // API function
 const fetchClientOrganizations = async (): Promise<Organization[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Organization[]>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  return response.json();
 };
 
 function ClientDashboard() {

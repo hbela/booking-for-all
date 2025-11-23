@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { validateApiKeyHook } from '../../plugins/authz';
+import { AppError } from '../../errors/AppError';
 
 const externalRoutes: FastifyPluginAsync = async (app) => {
   // SECURITY FIX: Register rate limiting for external routes (per-route configuration)
@@ -33,8 +34,20 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
     }
   }, async (req, reply) => {
     const { sessionToken } = (req.query as any) || {};
-    if (!sessionToken) return reply.status(401).send({ error: 'Session token required' });
-    reply.send({ valid: true, message: 'Session validation endpoint - implement session checking' });
+    if (!sessionToken) {
+      throw new AppError(
+        'Session token required',
+        'SESSION_TOKEN_REQUIRED',
+        401
+      );
+    }
+    reply.send({
+      success: true,
+      data: {
+        valid: true,
+        message: 'Session validation endpoint - implement session checking',
+      },
+    });
   });
 
   // SECURITY FIX: Apply strict rate limiting to verify endpoint
@@ -53,10 +66,13 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
     // @ts-expect-error set in hook
     const organization = req.organization;
     reply.send({
-      organizationId,
-      organizationName: organization.name,
-      organizationSlug: organization.slug,
-      redirectUrl: `${process.env.CORS_ORIGIN}/login?org=${organizationId}&referrer=${encodeURIComponent((req.headers.referer as string) || '')}`,
+      success: true,
+      data: {
+        organizationId,
+        organizationName: organization.name,
+        organizationSlug: organization.slug,
+        redirectUrl: `${process.env.CORS_ORIGIN}/login?org=${organizationId}&referrer=${encodeURIComponent((req.headers.referer as string) || '')}`,
+      },
     });
   });
 };

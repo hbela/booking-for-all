@@ -11,6 +11,7 @@ import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/provider/")({
   component: ProviderComponent,
@@ -34,21 +35,20 @@ export const Route = createFileRoute("/provider/")({
 
     // PROVIDER must have provider record (which implies organization membership)
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/providers?userId=${session.data.user.id}`,
-        {
-          credentials: "include",
-        }
-      );
-      
-      if (response.ok) {
-        const providers = await response.json();
+      try {
+        const providers = await apiFetch<any[]>(
+          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/providers?userId=${session.data.user.id}`
+        );
         if (!providers || providers.length === 0) {
           // Provider has no provider records - redirect to login
           throw redirect({
             to: "/login",
           });
         }
+      } catch (error) {
+        throw redirect({
+          to: "/login",
+        });
       }
     } catch (error) {
       console.error("Error checking provider membership:", error);
@@ -60,16 +60,9 @@ export const Route = createFileRoute("/provider/")({
 
 // API functions
 const fetchProvider = async (userId: string): Promise<any> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`,
-    {
-      credentials: "include",
-    }
+  const providers = await apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load provider");
-  }
-  const providers = await response.json();
   if (providers.length === 0) {
     throw new Error("You are not registered as a provider");
   }
@@ -77,16 +70,9 @@ const fetchProvider = async (userId: string): Promise<any> => {
 };
 
 const fetchEvents = async (providerId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load events");
-  }
-  return response.json();
 };
 
 function ProviderComponent() {

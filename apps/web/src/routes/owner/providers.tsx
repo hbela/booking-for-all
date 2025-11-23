@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/owner/providers")({
   component: ProvidersComponent,
@@ -38,27 +39,29 @@ export const Route = createFileRoute("/owner/providers")({
     // If user is ADMIN, redirect to admin dashboard
     if (role === "ADMIN") {
       throw redirect({
-        to: "/admin/",
+        to: "/admin",
       });
     }
 
     // OWNER must have organization membership
     if (role === "OWNER") {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        
-        if (response.ok) {
-          const organizations = await response.json();
+        try {
+          const organizations = await apiFetch<any[]>(
+            `${
+              import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
+            }/api/organizations/my-organizations`
+          );
           if (!organizations || organizations.length === 0) {
             throw redirect({
               to: "/login",
             });
           }
+        } catch (error) {
+          // Ignore API errors in beforeLoad, just redirect to login
+          throw redirect({
+            to: "/login",
+          });
         }
       } catch (error) {
         console.error("Error checking organization membership:", error);
@@ -71,44 +74,27 @@ export const Route = createFileRoute("/owner/providers")({
 
 // API functions
 const fetchMyOrganizations = async (): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
-    {
-      credentials: "include",
-    }
+  const data = await apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  const data = await response.json();
   // User has OWNER role, filter only enabled organizations
   return data.filter((org: any) => org.enabled);
 };
 
 const fetchDepartments = async (organizationId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/departments?organizationId=${organizationId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${
+      import.meta.env.VITE_SERVER_URL
+    }/api/departments?organizationId=${organizationId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load departments");
-  }
-  return response.json();
 };
 
 const fetchProviders = async (organizationId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers?organizationId=${organizationId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${
+      import.meta.env.VITE_SERVER_URL
+    }/api/providers?organizationId=${organizationId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load providers");
-  }
-  return response.json();
 };
 
 const createProvider = async (data: {
@@ -117,45 +103,23 @@ const createProvider = async (data: {
   organizationId: string;
   departmentId: string;
 }): Promise<{ tempPassword: string }> => {
-  const response = await fetch(
+  return apiFetch<{ tempPassword: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/owner/providers/create-user`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify(data),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create provider");
-  }
-  return response.json();
 };
 
 const deleteProvider = async (providerId: string): Promise<void> => {
-  const response = await fetch(
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/owner/providers/${providerId}`,
     {
       method: "DELETE",
-      credentials: "include",
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to delete provider");
-  }
 };
-
-interface CreateProviderData {
-  name: string;
-  email: string;
-  departmentId: string;
-}
 
 function ProvidersComponent() {
   const { session } = Route.useRouteContext();
@@ -206,16 +170,25 @@ function ProvidersComponent() {
   const createProviderMutation = useMutation({
     mutationFn: createProvider,
     onSuccess: (data) => {
-      toast.success(`Provider created! Temporary password: ${data.tempPassword}`, {
-        duration: 10000,
-        description:
-          "The provider will need to change this password on first login.",
-      });
+      toast.success(
+        `Provider created! Temporary password: ${data.tempPassword}`,
+        {
+          duration: 10000,
+          description:
+            "The provider will need to change this password on first login.",
+        }
+      );
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["providers", { organizationId: selectedOrgId }],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create provider");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Unexpected error occurred");
+      }
     },
   });
 
@@ -223,15 +196,21 @@ function ProvidersComponent() {
     mutationFn: deleteProvider,
     onSuccess: () => {
       toast.success("Provider deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["providers", { organizationId: selectedOrgId }],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete provider");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete provider");
+      }
     },
   });
 
   // TanStack Form for create provider
-  const form = useForm<CreateProviderData>({
+  const form = useForm({
     defaultValues: {
       name: "",
       email: "",
@@ -259,7 +238,8 @@ function ProvidersComponent() {
     }
   }, [departments, form]);
 
-  const loading = isLoadingOrganizations || isLoadingDepartments || isLoadingProviders;
+  const loading =
+    isLoadingOrganizations || isLoadingDepartments || isLoadingProviders;
 
   // Show errors
   useEffect(() => {
@@ -384,7 +364,9 @@ function ProvidersComponent() {
                               id="provider-name"
                               placeholder="e.g., Dr. John Smith"
                               value={field.state.value}
-                              onChange={(e) => field.handleChange(e.target.value)}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
                               onBlur={field.handleBlur}
                             />
                             {field.state.meta.errors.length > 0 && (
@@ -418,7 +400,9 @@ function ProvidersComponent() {
                               type="email"
                               placeholder="john.smith@example.com"
                               value={field.state.value}
-                              onChange={(e) => field.handleChange(e.target.value)}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
                               onBlur={field.handleBlur}
                             />
                             {field.state.meta.errors.length > 0 && (
@@ -448,11 +432,12 @@ function ProvidersComponent() {
                       >
                         {(field) => {
                           // Only show error if user has interacted with the field or form has been submitted
-                          const shouldShowError = 
-                            (departmentFieldInteracted.current || form.state.isSubmitted) &&
+                          const shouldShowError =
+                            (departmentFieldInteracted.current ||
+                              form.state.isSubmitted) &&
                             field.state.meta.errors.length > 0 &&
                             !field.state.value;
-                          
+
                           return (
                             <div className="space-y-2">
                               <Label htmlFor="provider-dept">Department</Label>
@@ -468,7 +453,7 @@ function ProvidersComponent() {
                                   }
                                 }}
                               >
-                                <SelectTrigger 
+                                <SelectTrigger
                                   id="provider-dept"
                                   onFocus={() => {
                                     departmentFieldInteracted.current = true;
@@ -505,7 +490,10 @@ function ProvidersComponent() {
                         </p>
                       </div>
                       <form.Subscribe
-                        selector={(state) => [state.canSubmit, state.isSubmitting]}
+                        selector={(state) => [
+                          state.canSubmit,
+                          state.isSubmitting,
+                        ]}
                       >
                         {([canSubmit, isSubmitting]) => (
                           <Button
@@ -572,7 +560,7 @@ function ProvidersComponent() {
                         </p>
                       ) : (
                         <div className="space-y-3">
-                          {dept.providers.map((provider) => (
+                          {(dept.providers as any[]).map((provider: any) => (
                             <div
                               key={provider.id}
                               className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
@@ -591,7 +579,9 @@ function ProvidersComponent() {
                                 onClick={() =>
                                   handleDeleteProvider(provider.id)
                                 }
-                                disabled={loading || deleteProviderMutation.isPending}
+                                disabled={
+                                  loading || deleteProviderMutation.isPending
+                                }
                               >
                                 Remove
                               </Button>

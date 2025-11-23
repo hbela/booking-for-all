@@ -4,7 +4,9 @@ import { requireAuthHook, requireOwnerHook } from "../../plugins/authz";
 import {
   tryEnableOrganization,
   checkAndDisableOrganization,
+  hasActiveSubscription,
 } from "../../utils/organization-utils";
+import { AppError } from "../../errors/AppError";
 import crypto from "crypto";
 import { hashPassword } from "better-auth/crypto";
 import { z } from "zod";
@@ -30,145 +32,153 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (req, reply) => {
-      try {
-        const owner = req.user;
-        const body = CreateProviderUserSchema.parse(req.body);
-        const {
+      const owner = req.user;
+      const body = CreateProviderUserSchema.parse(req.body);
+      const { name, email, organizationId, departmentId, bio, specialization } =
+        body;
+
+      // Verify owner is a member of the organization
+      const member = await prisma.member.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: owner.id,
+          },
+        },
+      });
+
+      if (!member) {
+        throw new AppError(
+          "You are not a member of this organization",
+          "NOT_ORG_MEMBER",
+          403
+        );
+      }
+
+      // Check if organization has active subscription
+      const hasSubscription = await hasActiveSubscription(organizationId);
+      if (!hasSubscription) {
+        throw new AppError(
+          "A valid subscription is required to create providers. Please subscribe to continue.",
+          "NO_SUBSCRIPTION",
+          403
+        );
+      }
+
+      // Verify department belongs to organization
+      const department = await prisma.department.findUnique({
+        where: { id: departmentId },
+        include: {
+          organization: {
+            select: {
+              slug: true,
+            },
+          },
+        },
+      });
+
+      if (!department || department.organizationId !== organizationId) {
+        throw new AppError(
+          "Department not found or does not belong to this organization",
+          "DEPARTMENT_NOT_FOUND",
+          404
+        );
+      }
+
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        throw new AppError(
+          "User with this email already exists",
+          "USER_EXISTS",
+          409
+        );
+      }
+
+      // Create user with temporary password
+      const tempPassword = "password123";
+      const hashedPassword = await hashPassword(tempPassword);
+
+      const user = await prisma.user.create({
+        data: {
+          id: crypto.randomUUID(),
           name,
           email,
-          organizationId,
+          emailVerified: true,
+          role: "PROVIDER",
+          needsPasswordChange: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create account with password
+      await prisma.account.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: user.id,
+          providerId: "credential",
+          accountId: user.email,
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create provider record
+      const provider = await prisma.provider.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: user.id,
           departmentId,
-          bio,
-          specialization,
-        } = body;
-
-        // Verify owner is a member of the organization
-        const member = await prisma.member.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId,
-              userId: owner.id,
+          bio: bio || null,
+          specialization: specialization || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        include: {
+          department: {
+            select: {
+              organizationId: true,
             },
           },
-        });
+        },
+      });
 
-        if (!member) {
-          return reply
-            .status(403)
-            .send({ error: "You are not a member of this organization" });
-        }
+      // Add provider as member of the organization
+      await prisma.member.create({
+        data: {
+          id: crypto.randomUUID(),
+          organizationId,
+          userId: user.id,
+          email: user.email,
+          createdAt: new Date(),
+        },
+      });
 
-        // Verify department belongs to organization
-        const department = await prisma.department.findUnique({
-          where: { id: departmentId },
-          include: {
-            organization: {
-              select: {
-                slug: true,
-              },
-            },
-          },
-        });
+      // Try to enable organization if all conditions are now met
+      // if (provider.department?.organizationId) {
+      //   await tryEnableOrganization(provider.department.organizationId);
+      // }
 
-        if (!department || department.organizationId !== organizationId) {
-          return reply.status(404).send({
-            error:
-              "Department not found or does not belong to this organization",
-          });
-        }
+      // Send welcome email
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const fromEmail =
+          process.env.RESEND_FROM_EMAIL || "support@tanarock.hu";
 
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({ where: { email } });
-        if (existingUser) {
-          return reply
-            .status(400)
-            .send({ error: "User with this email already exists" });
-        }
+        // Build external HTML page URL using organization slug
+        const phpServerUrl =
+          process.env.PHP_SERVER_URL || "http://localhost:8000";
+        const orgSlug = (department as any).organization?.slug || "wellness"; // fallback to wellness
+        const loginUrl = `${phpServerUrl}/${orgSlug}_external.html`;
 
-        // Create user with temporary password
-        const tempPassword = "password123";
-        const hashedPassword = await hashPassword(tempPassword);
-
-        const user = await prisma.user.create({
-          data: {
-            id: crypto.randomUUID(),
-            name,
-            email,
-            emailVerified: true,
-            role: "PROVIDER",
-            needsPasswordChange: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
-
-        // Create account with password
-        await prisma.account.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: user.id,
-            providerId: "credential",
-            accountId: user.email,
-            password: hashedPassword,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
-
-        // Create provider record
-        const provider = await prisma.provider.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: user.id,
-            departmentId,
-            bio: bio || null,
-            specialization: specialization || null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          include: {
-            department: {
-              select: {
-                organizationId: true,
-              },
-            },
-          },
-        });
-
-        // Add provider as member of the organization
-        await prisma.member.create({
-          data: {
-            id: crypto.randomUUID(),
-            organizationId,
-            userId: user.id,
-            email: user.email,
-            createdAt: new Date(),
-          },
-        });
-
-        // Try to enable organization if all conditions are now met
-        if (provider.department?.organizationId) {
-          await tryEnableOrganization(provider.department.organizationId);
-        }
-
-        // Send welcome email
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const fromEmail =
-            process.env.RESEND_FROM_EMAIL || "support@tanarock.hu";
-
-          // Build external HTML page URL using organization slug
-          const phpServerUrl =
-            process.env.PHP_SERVER_URL || "http://localhost:8000";
-          const orgSlug = (department as any).organization?.slug || "wellness"; // fallback to wellness
-          const loginUrl = `${phpServerUrl}/${orgSlug}_external.html`;
-
-          await resend.emails.send({
-            from: fromEmail,
-            to: email,
-            subject: "Welcome as a Provider - Your Account Created",
-            html: `
+        await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject: "Welcome as a Provider - Your Account Created",
+          html: `
             <h2>Welcome as a Provider!</h2>
             <p>Dear ${name},</p>
             <p>Your provider account has been created successfully by the organization owner.</p>
@@ -197,15 +207,17 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
             
             <p>Best regards,<br>Administration Team</p>
           `,
-          });
+        });
 
-          app.log.info(`📧 Welcome email sent to provider: ${email}`);
-        } catch (emailError) {
-          app.log.error(emailError, "❌ Failed to send welcome email");
-          // Continue - provider and user are still created
-        }
+        app.log.info(`📧 Welcome email sent to provider: ${email}`);
+      } catch (emailError) {
+        app.log.error(emailError, "❌ Failed to send welcome email");
+        // Continue - provider and user are still created
+      }
 
-        reply.code(201).send({
+      reply.code(201).send({
+        success: true,
+        data: {
           provider: {
             id: provider.id,
             userId: user.id,
@@ -217,39 +229,96 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
             email: user.email,
           },
           tempPassword,
-        });
-      } catch (error) {
-        app.log.error(error, "Error creating provider user");
-        reply.status(500).send({ error: "Failed to create provider" });
-      }
+        },
+      });
     }
   );
 
   // POST /api/owner/providers - Create provider record (for existing users)
-  app.post(
-    "/providers",
-    { preValidation: [requireAuthHook, requireOwnerHook] },
-    async (req, reply) => {
-      const data = (req.body as any) || {};
-      const provider = await prisma.provider.create({
-        data,
-        include: {
-          department: {
-            select: {
-              organizationId: true,
-            },
-          },
-        },
-      });
+  // app.post(
+  //   "/providers",
+  //   { preValidation: [requireAuthHook] }, // We verify owner role and membership in the handler
+  //   async (req, reply) => {
+  //     try {
+  //       const data = (req.body as any) || {};
+  //       const { userId, departmentId } = data;
 
-      // Try to enable organization if all conditions are now met
-      if (provider.department?.organizationId) {
-        await tryEnableOrganization(provider.department.organizationId);
-      }
+  //       const user = req.user;
 
-      reply.code(201).send(provider);
-    }
-  );
+  //       // Verify user has OWNER role
+  //       if (user.role !== "OWNER") {
+  //         return reply
+  //           .status(403)
+  //           .send({ error: "Forbidden - Owner access required" });
+  //       }
+
+  //       // Verify owner is a member of the organization
+  //       const department = await prisma.department.findUnique({
+  //         where: { id: departmentId },
+  //         include: {
+  //           organization: true,
+  //         },
+  //       });
+
+  //       if (!department) {
+  //         return reply.status(404).send({ error: "Department not found" });
+  //       }
+
+  //       const member = await prisma.member.findUnique({
+  //         where: {
+  //           organizationId_userId: {
+  //             organizationId: department.organizationId,
+  //             userId: user.id,
+  //           },
+  //         },
+  //       });
+
+  //       if (!member) {
+  //         return reply
+  //           .status(403)
+  //           .send({ error: "You are not a member of this organization" });
+  //       }
+
+  //       // Check if organization has active subscription
+  //       const hasSubscription = await hasActiveSubscription(
+  //         department.organizationId
+  //       );
+  //       if (!hasSubscription) {
+  //         return reply.status(403).send({
+  //           error:
+  //             "A valid subscription is required to create providers. Please subscribe to continue.",
+  //         });
+  //       }
+
+  //       const provider = await prisma.provider.create({
+  //         data: {
+  //           id: crypto.randomUUID(),
+  //           userId,
+  //           departmentId,
+  //           bio: data.bio || null,
+  //           specialization: data.specialization || null,
+  //         },
+  //         include: {
+  //           department: {
+  //             select: {
+  //               organizationId: true,
+  //             },
+  //           },
+  //         },
+  //       });
+
+  //       // Try to enable organization if all conditions are now met
+  //       if (provider.department?.organizationId) {
+  //         await tryEnableOrganization(provider.department.organizationId);
+  //       }
+
+  //       reply.code(201).send(provider);
+  //     } catch (error) {
+  //       app.log.error(error, "Error creating provider record");
+  //       reply.status(500).send({ error: "Failed to create provider record" });
+  //     }
+  //   }
+  // );
 
   // DELETE /api/owner/providers/:id - Delete provider
   app.delete(
@@ -257,6 +326,7 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
     { preValidation: [requireAuthHook, requireOwnerHook] },
     async (req, reply) => {
       const { id } = req.params as any;
+      const user = req.user;
 
       const provider = await prisma.provider.findUnique({
         where: { id },
@@ -275,10 +345,31 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (!provider) {
-        return reply.status(404).send({ error: "Provider not found" });
+        throw new AppError("Provider not found", "PROVIDER_NOT_FOUND", 404);
       }
 
       const organizationId = provider.department?.organizationId;
+
+      // Verify owner is a member of the organization
+      if (organizationId) {
+        const member = await prisma.member.findUnique({
+          where: {
+            organizationId_userId: {
+              organizationId,
+              userId: user.id,
+            },
+          },
+        });
+
+        if (!member) {
+          throw new AppError(
+            "You are not a member of this organization",
+            "NOT_ORG_MEMBER",
+            403
+          );
+        }
+      }
+
       const userId = provider.userId;
 
       // Delete provider record
@@ -311,61 +402,73 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
     "/departments",
     { preValidation: [requireAuthHook, requireOwnerHook] },
     async (req, reply) => {
-      try {
-        const { name, description, organizationId } = req.body as any;
+      const { name, description, organizationId } = req.body as any;
 
-        if (!name || !organizationId) {
-          return reply
-            .status(400)
-            .send({ error: "Name and organizationId are required" });
-        }
-
-        const user = req.user;
-
-        // Verify user is owner and member of organization
-        const member = await prisma.member.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId,
-              userId: user.id,
-            },
-          },
-        });
-
-        if (!member) {
-          return reply
-            .status(403)
-            .send({ error: "You are not a member of this organization" });
-        }
-
-        // Check if organization is enabled (owners can create departments even if disabled)
-        const organization = await prisma.organization.findUnique({
-          where: { id: organizationId },
-        });
-
-        if (!organization) {
-          return reply.status(404).send({ error: "Organization not found" });
-        }
-
-        const department = await prisma.department.create({
-          data: {
-            id: crypto.randomUUID(),
-            name,
-            description: description || null,
-            organizationId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
-
-        // Try to enable organization if all conditions are now met
-        await tryEnableOrganization(organizationId);
-
-        reply.status(201).send(department);
-      } catch (error) {
-        app.log.error(error, "Error creating department");
-        reply.status(500).send({ error: "Failed to create department" });
+      if (!name || !organizationId) {
+        throw new AppError(
+          "Name and organizationId are required",
+          "VALIDATION_ERROR",
+          400
+        );
       }
+
+      const user = req.user;
+
+      // Verify user is owner and member of organization
+      const member = await prisma.member.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: user.id,
+          },
+        },
+      });
+
+      if (!member) {
+        throw new AppError(
+          "You are not a member of this organization",
+          "NOT_ORG_MEMBER",
+          403
+        );
+      }
+
+      // Check if organization is enabled (owners can create departments even if disabled)
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+      });
+
+      if (!organization) {
+        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+      }
+
+      // Check if organization has active subscription
+      const hasSubscription = await hasActiveSubscription(organizationId);
+      if (!hasSubscription) {
+        throw new AppError(
+          "A valid subscription is required to create departments. Please subscribe to continue.",
+          "NO_SUBSCRIPTION",
+          403
+        );
+      }
+
+      const department = await prisma.department.create({
+        data: {
+          id: crypto.randomUUID(),
+          name,
+          description: description || null,
+          organizationId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Try to enable organization if all conditions are now met
+      await tryEnableOrganization(organizationId);
+
+      reply.code(201).send({
+        success: true,
+        data: department,
+      });
     }
   );
 
@@ -374,55 +477,51 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
     "/departments/:id",
     { preValidation: [requireAuthHook, requireOwnerHook] },
     async (req, reply) => {
-      try {
-        const { id } = req.params as any;
+      const { id } = req.params as any;
 
-        const user = req.user;
+      const user = req.user;
 
-        const department = await prisma.department.findUnique({
-          where: { id },
-          include: {
-            organization: true,
-          },
-        });
+      const department = await prisma.department.findUnique({
+        where: { id },
+        include: {
+          organization: true,
+        },
+      });
 
-        if (!department) {
-          return reply.status(404).send({ error: "Department not found" });
-        }
-
-        // Verify user is owner and member of organization
-        const member = await prisma.member.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId: department.organizationId,
-              userId: user.id,
-            },
-          },
-        });
-
-        if (!member) {
-          return reply
-            .status(403)
-            .send({ error: "You are not a member of this organization" });
-        }
-
-        const organizationId = department.organizationId;
-
-        await prisma.department.delete({
-          where: { id },
-        });
-
-        // Check if organization should be disabled (no departments or providers left)
-        await checkAndDisableOrganization(organizationId);
-
-        reply.send({ success: true });
-      } catch (error) {
-        app.log.error(error, "Error deleting department");
-        reply.status(500).send({ error: "Failed to delete department" });
+      if (!department) {
+        throw new AppError("Department not found", "DEPARTMENT_NOT_FOUND", 404);
       }
+
+      // Verify user is owner and member of organization
+      const member = await prisma.member.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: department.organizationId,
+            userId: user.id,
+          },
+        },
+      });
+
+      if (!member) {
+        throw new AppError(
+          "You are not a member of this organization",
+          "NOT_ORG_MEMBER",
+          403
+        );
+      }
+
+      const organizationId = department.organizationId;
+
+      await prisma.department.delete({
+        where: { id },
+      });
+
+      // Check if organization should be disabled (no departments or providers left)
+      await checkAndDisableOrganization(organizationId);
+
+      reply.send({ success: true });
     }
   );
 };
 
 export default ownerRoutes;
-

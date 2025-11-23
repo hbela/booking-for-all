@@ -31,6 +31,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/owner/departments")({
   component: DepartmentsComponent,
@@ -55,20 +56,19 @@ export const Route = createFileRoute("/owner/departments")({
     // OWNER must have organization membership
     if (role === "OWNER") {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`,
-          {
-            credentials: "include",
-          }
-        );
-        
-        if (response.ok) {
-          const organizations = await response.json();
+        try {
+          const organizations = await apiFetch<any[]>(
+            `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`
+          );
           if (!organizations || organizations.length === 0) {
             throw redirect({
               to: "/login",
             });
           }
+        } catch (error) {
+          throw redirect({
+            to: "/login",
+          });
         }
       } catch (error) {
         console.error("Error checking organization membership:", error);
@@ -81,79 +81,42 @@ export const Route = createFileRoute("/owner/departments")({
 
 // API functions
 const fetchMyOrganizations = async (): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
-    {
-      credentials: "include",
-    }
+  const data = await apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  const data = await response.json();
   // User has OWNER role, filter only enabled organizations
   return data.filter((org: any) => org.enabled);
 };
 
 const fetchDepartments = async (organizationId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/departments?organizationId=${organizationId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/departments?organizationId=${organizationId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load departments");
-  }
-  return response.json();
 };
 
 const fetchProviders = async (organizationId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers?organizationId=${organizationId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?organizationId=${organizationId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load providers");
-  }
-  return response.json();
 };
 
 const createDepartment = async (data: { name: string; organizationId: string }): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL}/api/owner/departments`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify(data),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create department");
-  }
-  return response.json();
 };
 
 const deleteDepartment = async (departmentId: string): Promise<void> => {
-  const response = await fetch(
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/owner/departments/${departmentId}`,
     {
       method: "DELETE",
-      credentials: "include",
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to delete department");
-  }
 };
 
 interface CreateDepartmentData {
@@ -218,8 +181,12 @@ function DepartmentsComponent() {
       queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
       queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create department");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create department");
+      }
     },
   });
 
@@ -230,8 +197,12 @@ function DepartmentsComponent() {
       queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
       queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete department");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete department");
+      }
     },
   });
 

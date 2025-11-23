@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/client/organizations/$orgId")({
   component: DepartmentSelection,
@@ -37,29 +38,15 @@ interface Organization {
 
 // API functions
 const fetchOrganization = async (orgId: string): Promise<Organization> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Organization>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organization");
-  }
-  return response.json();
 };
 
 const fetchDepartments = async (orgId: string): Promise<Department[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}/departments`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Department[]>(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}/departments`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load departments");
-  }
-  return response.json();
 };
 
 function DepartmentSelection() {

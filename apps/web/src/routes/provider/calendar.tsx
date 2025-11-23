@@ -45,6 +45,7 @@ import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/react";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 // Setup the localizer for BigCalendar
 const locales = {
@@ -85,16 +86,9 @@ interface CalendarEvent {
 
 // API functions
 const fetchProvider = async (userId: string): Promise<any> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`,
-    {
-      credentials: "include",
-    }
+  const providers = await apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load provider");
-  }
-  const providers = await response.json();
   if (providers.length === 0) {
     throw new Error("You are not registered as a provider");
   }
@@ -102,16 +96,9 @@ const fetchProvider = async (userId: string): Promise<any> => {
 };
 
 const fetchEvents = async (providerId: string): Promise<any[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<any[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/events?providerId=${providerId}`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load events");
-  }
-  return response.json();
 };
 
 const createEvent = async (data: {
@@ -121,23 +108,13 @@ const createEvent = async (data: {
   start: string;
   end: string;
 }): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL}/api/provider/events`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify(data),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create event");
-  }
-  return response.json();
 };
 
 const updateEvent = async (data: {
@@ -145,49 +122,25 @@ const updateEvent = async (data: {
   title: string;
   description?: string;
 }): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL}/api/provider/events/${data.eventId}`,
     {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({
         title: data.title,
         description: data.description,
       }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to update event");
-  }
-  return response.json();
 };
 
 const deleteEvent = async (eventId: string): Promise<void> => {
-  const response = await fetch(
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/provider/events/${eventId}`,
     {
       method: "DELETE",
-      credentials: "include",
     }
   );
-
-  if (!response.ok) {
-    let errorMessage = "Failed to delete event";
-    try {
-      const error = await response.json();
-      errorMessage = error.error || errorMessage;
-    } catch {
-      // If response is not JSON, use status text
-      errorMessage = response.statusText || errorMessage;
-    }
-    throw new Error(errorMessage);
-  }
-  // Success - response might be empty (204 No Content)
 };
 
 interface EventFormData {
@@ -276,8 +229,12 @@ function ProviderCalendarComponent() {
         queryKey: ["events", { providerId: provider?.id }],
       });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create event");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create event");
+      }
     },
   });
 
@@ -290,8 +247,12 @@ function ProviderCalendarComponent() {
         queryKey: ["events", { providerId: provider?.id }],
       });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update event");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update event");
+      }
     },
   });
 
@@ -304,8 +265,12 @@ function ProviderCalendarComponent() {
         queryKey: ["events", { providerId: provider?.id }],
       });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete event");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete event");
+      }
     },
   });
 

@@ -4,6 +4,7 @@ import { hashPassword } from 'better-auth/crypto';
 import prisma from '@booking-for-all/db';
 import { requireAuthHook } from '../../plugins/authz';
 import { z } from 'zod';
+import { AppError } from '../../errors/AppError';
 
 const UpdatePasswordSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
@@ -15,15 +16,13 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     '/check-password-change',
     { preValidation: [requireAuthHook] },
     async (req, reply) => {
-      try {
-        // @ts-expect-error populated by requireAuthHook
-        const user = req.user;
-        const needsPasswordChange = user.needsPasswordChange || false;
-        reply.send({ needsPasswordChange });
-      } catch (error) {
-        app.log.error(error, 'Error checking password change');
-        reply.status(500).send({ error: 'Failed to check password change status' });
-      }
+      // @ts-expect-error populated by requireAuthHook
+      const user = req.user;
+      const needsPasswordChange = user.needsPasswordChange || false;
+      reply.send({
+        success: true,
+        data: { needsPasswordChange },
+      });
     }
   );
 
@@ -51,7 +50,11 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         });
 
         if (!account) {
-          return reply.status(404).send({ error: 'Credential account not found' });
+          throw new AppError(
+            'Credential account not found',
+            'ACCOUNT_NOT_FOUND',
+            404
+          );
         }
 
         // Hash the new password
@@ -75,10 +78,20 @@ const authRoutes: FastifyPluginAsync = async (app) => {
           },
         });
 
-        reply.send({ success: true, message: 'Password updated successfully' });
+        reply.send({
+          success: true,
+          data: { message: 'Password updated successfully' },
+        });
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, 'Error updating password');
-        reply.status(500).send({ error: 'Failed to update password' });
+        throw new AppError(
+          'Failed to update password',
+          'UPDATE_PASSWORD_FAILED',
+          500
+        );
       }
     }
   );

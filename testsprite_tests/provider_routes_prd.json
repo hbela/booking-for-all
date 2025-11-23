@@ -1,0 +1,600 @@
+{
+  "meta": {
+    "project": "Provider Event Management API",
+    "date": "2025-01-21",
+    "prepared_by": "Software Development Manager",
+    "version": "2.0",
+    "note": "Refactored API structure - Actor-based mutations, Resource-based reads"
+  },
+  "product_overview": "The Provider Event Management API enables providers to manage their own events (availability slots). This API uses a hybrid architecture: mutations (POST, PUT, DELETE) are organized by actor (/api/provider/*) while read operations (GET) remain resource-based (/api/events, /api/providers). Providers can create, update, and delete their own events within business hours, subject to validation rules.",
+  "architecture_note": "This API follows a hybrid approach: Actor-based mutations (/api/provider/*) for clear authorization, Resource-based reads (/api/events, /api/providers) for clear resource access. Mutations require PROVIDER role and verify ownership.",
+  "core_goals": [
+    "Enable providers to create, update, and delete their own events (availability slots).",
+    "Ensure providers can only manage events that belong to them.",
+    "Enforce business rules (time windows, no past events, no modifications to booked events).",
+    "Provide read access to events and provider information for all authenticated users.",
+    "Maintain clear separation between actor-based mutations and resource-based reads."
+  ],
+  "key_features": [
+    "Event Creation API to create availability slots with validation (time windows, no past dates).",
+    "Event Update API to modify event details (title, description) for unbooked events only.",
+    "Event Deletion API to remove unbooked events.",
+    "Event List API (resource-based) to retrieve events with optional filtering.",
+    "Event Detail API (resource-based) to get specific event information.",
+    "Provider List API (resource-based) to retrieve provider information.",
+    "Secure endpoints protected by Better Auth session authentication and provider role authorization.",
+    "Ownership verification ensuring providers can only manage their own events."
+  ],
+  "user_flow_summary": [
+    "Provider logs in and authenticates using Better Auth session cookies.",
+    "Provider retrieves their provider record from /api/providers?userId=<userId>.",
+    "Provider creates availability slots via POST /api/provider/events with validation.",
+    "Provider views their events via GET /api/events?providerId=<providerId>.",
+    "Provider updates event details (title, description) via PUT /api/provider/events/:id for unbooked events.",
+    "Provider deletes unbooked events via DELETE /api/provider/events/:id.",
+    "System validates time windows, prevents past events, and blocks modifications to booked events."
+  ],
+  "validation_criteria": [
+    "All API endpoints enforce authentication and return appropriate 401/403 responses for unauthorized access.",
+    "Provider mutation endpoints verify that the provider owns the event being modified.",
+    "Event creation validates time windows (default: 8:00-20:00 in configured timezone).",
+    "Event creation prevents creating events in the past.",
+    "Event update/delete prevents modifications to booked events.",
+    "Provider can only create events for their own providerId (verified via requireProviderHook and ownership check).",
+    "Read endpoints (GET /api/events, GET /api/providers) work for all authenticated users."
+  ],
+  "test_requirements": {
+    "authentication": {
+      "type": "session-based",
+      "method": "Better Auth",
+      "note": "Use session cookies, NOT bearer tokens. Authenticate via POST /api/auth/sign-in/email first."
+    },
+    "test_scenarios": [
+      "Provider authentication and session management",
+      "Create event with valid data (within business hours, future date)",
+      "Create event validation (missing required fields, past dates, outside business hours)",
+      "Update event with valid data (unbooked event, owned by provider)",
+      "Update event validation (booked event, not owned by provider, missing title)",
+      "Delete event with valid data (unbooked event, owned by provider)",
+      "Delete event validation (booked event, not owned by provider)",
+      "Read events (GET /api/events) with various filters",
+      "Read provider information (GET /api/providers)",
+      "Authorization checks (provider can only manage own events)"
+    ]
+  },
+  "api_endpoints": {
+    "actor_based_mutations": {
+      "note": "These endpoints are actor-based (/api/provider/*) - clearly indicate who can perform the action",
+      "endpoints": [
+        {
+          "path": "/api/provider/events",
+          "method": "POST",
+          "description": "Creates a new event (availability slot) for the authenticated provider. Validates time windows, prevents past dates, verifies provider ownership, and calculates duration automatically.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook", "requireProviderHook"]
+          },
+          "authorization": {
+            "role": "PROVIDER",
+            "ownership_check": "providerId must belong to authenticated user"
+          },
+          "request_body": {
+            "required": true,
+            "content_type": "application/json",
+            "schema": {
+              "providerId": {
+                "type": "string",
+                "required": true,
+                "description": "ID of the provider creating the event. Must match the authenticated user's provider ID."
+              },
+              "title": {
+                "type": "string",
+                "required": true,
+                "description": "Event title/name"
+              },
+              "description": {
+                "type": "string",
+                "required": false,
+                "description": "Optional event description"
+              },
+              "start": {
+                "type": "string",
+                "format": "ISO 8601 datetime",
+                "required": true,
+                "description": "Event start time (must be in the future and within business hours)"
+              },
+              "end": {
+                "type": "string",
+                "format": "ISO 8601 datetime",
+                "required": true,
+                "description": "Event end time (must be within business hours and after start time)"
+              }
+            }
+          },
+          "validation_rules": [
+            "providerId, title, start, and end are required",
+            "start date must be in the future",
+            "start time must be between AVAILABILITY_START_HOUR (default: 8:00) and AVAILABILITY_END_HOUR (default: 20:00) in configured timezone",
+            "end time must not exceed AVAILABILITY_END_HOUR",
+            "providerId must belong to authenticated user (verified via requireProviderHook and ownership check)"
+          ],
+          "success_response": {
+            "status_code": 201,
+            "description": "Event created successfully",
+            "body": {
+              "id": "string",
+              "providerId": "string",
+              "title": "string",
+              "description": "string | null",
+              "start": "ISO 8601 datetime",
+              "end": "ISO 8601 datetime",
+              "duration": "number (minutes)",
+              "price": "null",
+              "provider": {
+                "user": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                }
+              }
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 400,
+              "scenarios": [
+                "Missing required fields (providerId, title, start, or end)",
+                "Start date is in the past",
+                "Event time is outside business hours (before 8:00 or after 20:00)",
+                "End time exceeds business hours"
+              ],
+              "body": {
+                "error": "string (descriptive error message)"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "providerId does not belong to authenticated user"
+              ],
+              "body": {
+                "error": "Forbidden - Only the provider can create their events"
+              }
+            },
+            {
+              "status_code": 401,
+              "scenarios": [
+                "Not authenticated"
+              ],
+              "body": {
+                "error": "Unauthorized"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/provider/events/:id",
+          "method": "PUT",
+          "description": "Updates an event's title and/or description. Only allows updates to unbooked events that belong to the authenticated provider.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "PROVIDER (implicit - verified via ownership check)",
+            "ownership_check": "Event must belong to authenticated provider"
+          },
+          "request_body": {
+            "required": true,
+            "content_type": "application/json",
+            "schema": {
+              "title": {
+                "type": "string",
+                "required": true,
+                "description": "Updated event title"
+              },
+              "description": {
+                "type": "string",
+                "required": false,
+                "description": "Updated event description"
+              }
+            }
+          },
+          "validation_rules": [
+            "title is required",
+            "Event must exist",
+            "Event must belong to authenticated provider",
+            "Event must not be booked (isBooked = false)"
+          ],
+          "success_response": {
+            "status_code": 200,
+            "description": "Event updated successfully",
+            "body": {
+              "id": "string",
+              "providerId": "string",
+              "title": "string",
+              "description": "string | null",
+              "start": "ISO 8601 datetime",
+              "end": "ISO 8601 datetime",
+              "duration": "number",
+              "provider": {
+                "user": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                }
+              },
+              "booking": {
+                "member": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                }
+              } | null
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 400,
+              "scenarios": [
+                "Missing title",
+                "Event is booked (cannot update booked events)"
+              ],
+              "body": {
+                "error": "string (descriptive error message)"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Event does not belong to authenticated provider"
+              ],
+              "body": {
+                "error": "Forbidden - Only the provider can update their events"
+              }
+            },
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Event not found"
+              ],
+              "body": {
+                "error": "Event not found"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/provider/events/:id",
+          "method": "DELETE",
+          "description": "Deletes an event. Only allows deletion of unbooked events that belong to the authenticated provider.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "PROVIDER (implicit - verified via ownership check)",
+            "ownership_check": "Event must belong to authenticated provider"
+          },
+          "request_body": {
+            "required": false
+          },
+          "validation_rules": [
+            "Event must exist",
+            "Event must belong to authenticated provider",
+            "Event must not be booked (isBooked = false)"
+          ],
+          "success_response": {
+            "status_code": 204,
+            "description": "Event deleted successfully (no response body)"
+          },
+          "error_responses": [
+            {
+              "status_code": 400,
+              "scenarios": [
+                "Event is booked (cannot delete booked events)"
+              ],
+              "body": {
+                "error": "Cannot delete a booked event"
+              }
+            },
+            {
+              "status_code": 403,
+              "scenarios": [
+                "Event does not belong to authenticated provider"
+              ],
+              "body": {
+                "error": "Forbidden - Only the provider can delete their events"
+              }
+            },
+            {
+              "status_code": 404,
+              "scenarios": [
+                "Event not found"
+              ],
+              "body": {
+                "error": "Event not found"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "resource_based_reads": {
+      "note": "These endpoints are resource-based (/api/events, /api/providers) - clearly indicate what resource is being accessed",
+      "endpoints": [
+        {
+          "path": "/api/events",
+          "method": "GET",
+          "description": "Retrieves a list of events with optional filtering. Available to all authenticated users. Used by providers to view their events and by clients to browse available events.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "Any authenticated user"
+          },
+          "query_parameters": {
+            "providerId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter events by provider ID"
+            },
+            "departmentId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter events by department ID"
+            },
+            "organizationId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter events by organization ID"
+            },
+            "available": {
+              "type": "string",
+              "values": ["true"],
+              "required": false,
+              "description": "Filter to only unbooked, future events"
+            }
+          },
+          "success_response": {
+            "status_code": 200,
+            "body": [
+              {
+                "id": "string",
+                "providerId": "string",
+                "title": "string",
+                "description": "string | null",
+                "start": "ISO 8601 datetime",
+                "end": "ISO 8601 datetime",
+                "duration": "number",
+                "isBooked": "boolean",
+                "provider": {
+                  "user": {
+                    "id": "string",
+                    "name": "string",
+                    "email": "string"
+                  },
+                  "department": {
+                    "id": "string",
+                    "name": "string"
+                  }
+                },
+                "booking": {
+                  "member": {
+                    "id": "string",
+                    "name": "string",
+                    "email": "string"
+                  }
+                } | null
+              }
+            ]
+          }
+        },
+        {
+          "path": "/api/events/:id",
+          "method": "GET",
+          "description": "Retrieves a specific event by ID. Available to all authenticated users.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "Any authenticated user"
+          },
+          "success_response": {
+            "status_code": 200,
+            "body": {
+              "id": "string",
+              "providerId": "string",
+              "title": "string",
+              "description": "string | null",
+              "start": "ISO 8601 datetime",
+              "end": "ISO 8601 datetime",
+              "duration": "number",
+              "isBooked": "boolean",
+              "provider": {
+                "user": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                },
+                "department": {
+                  "id": "string",
+                  "name": "string",
+                  "organization": {
+                    "id": "string",
+                    "name": "string",
+                    "slug": "string"
+                  }
+                }
+              },
+              "booking": {
+                "member": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                }
+              } | null
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 404,
+              "body": {
+                "error": "Event not found"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/api/providers",
+          "method": "GET",
+          "description": "Retrieves a list of providers with optional filtering. Available to all authenticated users. Used by providers to find their own provider record.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "Any authenticated user"
+          },
+          "query_parameters": {
+            "userId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter providers by user ID (used by providers to find their own record)"
+            },
+            "organizationId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter providers by organization ID"
+            },
+            "departmentId": {
+              "type": "string",
+              "required": false,
+              "description": "Filter providers by department ID"
+            }
+          },
+          "success_response": {
+            "status_code": 200,
+            "body": [
+              {
+                "id": "string",
+                "userId": "string",
+                "departmentId": "string",
+                "bio": "string | null",
+                "specialization": "string | null",
+                "department": {
+                  "id": "string",
+                  "name": "string",
+                  "organization": {
+                    "id": "string",
+                    "name": "string",
+                    "slug": "string"
+                  }
+                },
+                "user": {
+                  "id": "string",
+                  "name": "string",
+                  "email": "string"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "path": "/api/providers/:id",
+          "method": "GET",
+          "description": "Retrieves a specific provider by ID. Available to all authenticated users.",
+          "authentication": {
+            "required": true,
+            "type": "session",
+            "hooks": ["requireAuthHook"]
+          },
+          "authorization": {
+            "role": "Any authenticated user"
+          },
+          "success_response": {
+            "status_code": 200,
+            "body": {
+              "id": "string",
+              "userId": "string",
+              "departmentId": "string",
+              "bio": "string | null",
+              "specialization": "string | null",
+              "department": {
+                "id": "string",
+                "name": "string",
+                "organization": {
+                  "id": "string",
+                  "name": "string",
+                  "slug": "string"
+                }
+              },
+              "user": {
+                "id": "string",
+                "name": "string",
+                "email": "string"
+              }
+            }
+          },
+          "error_responses": [
+            {
+              "status_code": 404,
+              "body": {
+                "error": "Provider not found"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "authentication": {
+    "endpoint": "/api/auth/sign-in/email",
+    "method": "POST",
+    "description": "This application uses Better Auth with session-based authentication (cookies), NOT bearer tokens. Authentication is done via POST request to /api/auth/sign-in/email with email and password. The response includes session cookies in Set-Cookie headers. Use requests.Session() to automatically manage cookies. Include session cookies in all subsequent requests. DO NOT use Authorization: Bearer headers.",
+    "credentials": {
+      "email": "elysprovider1@gmail.com",
+      "password": "bel2000BELLE$",
+      "name": "Jones Doe",
+      "role": "PROVIDER",
+      "note": "This user has PROVIDER role and can test all provider mutation endpoints. GET endpoints work with any authenticated user."
+    },
+    "example": "session = requests.Session(); session.post('http://localhost:3000/api/auth/sign-in/email', json={'email': 'elysprovider1@gmail.com', 'password': 'bel2000BELLE$'}); response = session.get('http://localhost:3000/api/providers?userId=<userId>')"
+  },
+  "environment_variables": {
+    "AVAILABILITY_START_HOUR": {
+      "default": 8,
+      "description": "Earliest hour for event availability (24-hour format)"
+    },
+    "AVAILABILITY_END_HOUR": {
+      "default": 20,
+      "description": "Latest hour for event availability (24-hour format)"
+    },
+    "AVAILABILITY_TIME_ZONE": {
+      "default": "Europe/Budapest",
+      "description": "Time zone for availability window validation"
+    }
+  },
+  "test_instructions": {
+    "note": "TestSprite should generate tests that:",
+    "requirements": [
+      "Use session-based authentication (Better Auth cookies), NOT bearer tokens",
+      "Test provider mutations at /api/provider/* endpoints (actor-based)",
+      "Test resource reads at /api/events and /api/providers endpoints (resource-based)",
+      "Verify ownership checks - providers can only manage their own events",
+      "Test validation rules (time windows, past dates, booked events)",
+      "Test authorization - unauthorized users cannot access provider mutation endpoints",
+      "Use the provided provider credentials for mutation tests",
+      "Test GET endpoints work with any authenticated user"
+    ]
+  }
+}
+

@@ -1,10 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { AppError } from '../../errors/AppError';
 
 const testEmailRoutes: FastifyPluginAsync = async (app) => {
   app.post('/api/test-email', async (req, reply) => {
     const { to, subject, message } = (req.body as any) || {};
     if (!to || !subject || !message) {
-      return reply.status(400).send({ error: 'Missing required fields: to, subject, message' });
+      throw new AppError(
+        'Missing required fields: to, subject, message',
+        'VALIDATION_ERROR',
+        400
+      );
     }
 
     const emailData = {
@@ -21,9 +26,20 @@ const testEmailRoutes: FastifyPluginAsync = async (app) => {
     });
     const result = await response.json();
     if (result.id) {
-      return reply.send({ success: true, emailId: result.id, message: 'Test email sent successfully', resendDashboard: `https://resend.com/emails/${result.id}` });
+      return reply.send({
+        success: true,
+        data: {
+          emailId: result.id,
+          message: 'Test email sent successfully',
+          resendDashboard: `https://resend.com/emails/${result.id}`,
+        },
+      });
     }
-    return reply.status(400).send({ success: false, error: result.message || 'Failed to send email', details: result });
+    throw new AppError(
+      result.message || 'Failed to send email',
+      'SEND_EMAIL_FAILED',
+      400
+    );
   });
 };
 

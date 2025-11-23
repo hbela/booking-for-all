@@ -52,6 +52,28 @@ if (sentryDsn) {
             instrumentNavigation: true,
           }),
         ],
+    // Filter out expected API errors that are already logged on the server
+    beforeSend(event, hint) {
+      // Check if this is an error from a failed API request
+      const error = hint.originalException;
+      if (error instanceof Error) {
+        // Filter out errors that are expected API failures (these are already logged on server)
+        // These errors are handled by React Query's onError handler and don't need to be in Sentry
+        const expectedApiErrors = [
+          "Failed to create provider",
+          "Failed to delete provider",
+          "Failed to load",
+          "Failed to fetch",
+        ];
+        
+        if (expectedApiErrors.some(msg => error.message.includes(msg))) {
+          // This is an expected API error that's already logged on the server
+          // Don't send it to Sentry web project
+          return null;
+        }
+      }
+      return event;
+    },
   });
 }
 

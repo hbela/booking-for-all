@@ -4,6 +4,7 @@ import prisma from "@booking-for-all/db";
 import crypto from "crypto";
 import { hashPassword } from "better-auth/crypto";
 import { requireAuthHook, requireAdminHook } from "../../plugins/authz";
+import { AppError } from "../../errors/AppError";
 
 // Zod Schemas
 const CreateOrganizationSchema = z.object({
@@ -37,22 +38,20 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     "/organizations",
     { preValidation: [requireAuthHook, requireAdminHook] },
     async (_req, reply) => {
-      try {
-        const orgs = await prisma.organization.findMany({
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            enabled: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: "desc" },
-        });
-        reply.send(orgs);
-      } catch (error) {
-        app.log.error(error, "Error fetching organizations");
-        reply.status(500).send({ error: "Failed to fetch organizations" });
-      }
+      const orgs = await prisma.organization.findMany({
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          enabled: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      reply.send({
+        success: true,
+        data: orgs,
+      });
     }
   );
 
@@ -65,18 +64,19 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req, reply) => {
-      try {
-        // ✅ req.body is typed as { name: string; slug?: string; ownerName: string; ownerEmail: string }
-        const { name, slug, ownerName, ownerEmail } = req.body;
+      // ✅ req.body is typed as { name: string; slug?: string; ownerName: string; ownerEmail: string }
+      const { name, slug, ownerName, ownerEmail } = req.body;
 
         // Check if owner email already exists
         const existingUser = await prisma.user.findUnique({
           where: { email: ownerEmail },
         });
         if (existingUser) {
-          return reply
-            .status(400)
-            .send({ error: "A user with this email already exists" });
+          throw new AppError(
+            "A user with this email already exists",
+            "USER_EXISTS",
+            400
+          );
         }
 
         const normalizedSlug = (slug || name)
@@ -90,9 +90,11 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           where: { slug: normalizedSlug },
         });
         if (existingOrg) {
-          return reply
-            .status(400)
-            .send({ error: "Organization slug already exists" });
+          throw new AppError(
+            "Organization slug already exists",
+            "ORG_SLUG_EXISTS",
+            400
+          );
         }
 
         // Create organization
@@ -208,7 +210,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           // Continue - organization and user are still created
         }
 
-        reply.send({
+      reply.code(201).send({
+        success: true,
+        data: {
           organization,
           owner: {
             id: ownerUser.id,
@@ -217,58 +221,53 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           },
           message:
             "Organization created successfully. Owner account created and welcome email sent.",
-        });
-      } catch (error) {
-        app.log.error(error, "Error creating organization");
-        reply.status(500).send({ error: "Failed to create organization" });
-      }
+        },
+      });
     }
   );
   app.get(
     "/api-keys",
     { preValidation: [requireAuthHook, requireAdminHook] },
     async (_req, reply) => {
-      try {
-        const keys = await prisma.apikey.findMany({
-          include: {
-            // best-effort include for creator user; ignore if relation differs
-            // @ts-ignore
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        } as any);
-
-        const shaped = (keys as any[]).map((k) => ({
-          id: k.id,
-          name: k.name ?? "API Key",
-          prefix:
-            k.prefix ??
-            (typeof k.key === "string" ? String(k.key).slice(0, 4) : ""),
-          metadata:
-            typeof k.metadata === "string"
-              ? k.metadata
-              : JSON.stringify(k.metadata ?? {}),
-          userId: k.userId ?? k.user?.id ?? "",
+      const keys = await prisma.apikey.findMany({
+        include: {
+          // best-effort include for creator user; ignore if relation differs
+          // @ts-ignore
           user: {
-            id: k.user?.id ?? "",
-            name: k.user?.name ?? "Unknown",
-            email: k.user?.email ?? "",
+            select: { id: true, name: true, email: true },
           },
-          createdAt: k.createdAt,
-          expiresAt: k.expiresAt ?? null,
-          lastRequest: k.lastRequest ?? null,
-          enabled: k.enabled ?? true,
-          remaining: k.remaining ?? null,
-          requestCount: k.requestCount ?? 0,
-        }));
+        },
+        orderBy: { createdAt: "desc" },
+      } as any);
 
-        reply.send(shaped);
-      } catch (error) {
-        app.log.error(error, "Error fetching API keys");
-        reply.status(500).send({ error: "Failed to fetch API keys" });
-      }
+      const shaped = (keys as any[]).map((k) => ({
+        id: k.id,
+        name: k.name ?? "API Key",
+        prefix:
+          k.prefix ??
+          (typeof k.key === "string" ? String(k.key).slice(0, 4) : ""),
+        metadata:
+          typeof k.metadata === "string"
+            ? k.metadata
+            : JSON.stringify(k.metadata ?? {}),
+        userId: k.userId ?? k.user?.id ?? "",
+        user: {
+          id: k.user?.id ?? "",
+          name: k.user?.name ?? "Unknown",
+          email: k.user?.email ?? "",
+        },
+        createdAt: k.createdAt,
+        expiresAt: k.expiresAt ?? null,
+        lastRequest: k.lastRequest ?? null,
+        enabled: k.enabled ?? true,
+        remaining: k.remaining ?? null,
+        requestCount: k.requestCount ?? 0,
+      }));
+
+      reply.send({
+        success: true,
+        data: shaped,
+      });
     }
   );
 
@@ -307,10 +306,17 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           },
         });
 
-        reply.send({ id: created.id, key });
+        reply.code(201).send({
+          success: true,
+          data: { id: created.id, key },
+        });
       } catch (error) {
         app.log.error(error, "Error generating API key");
-        reply.status(500).send({ error: "Failed to generate API key" });
+        throw new AppError(
+          "Failed to generate API key",
+          "GENERATE_API_KEY_FAILED",
+          500
+        );
       }
     }
   );
@@ -344,12 +350,17 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         if (resultByKey.count && resultByKey.count > 0) {
           return reply.send({ success: true });
         }
-        return reply
-          .status(404)
-          .send({ success: false, error: "API key not found" });
+        throw new AppError("API key not found", "API_KEY_NOT_FOUND", 404);
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, "Error revoking API key");
-        reply.status(500).send({ error: "Failed to revoke API key" });
+        throw new AppError(
+          "Failed to revoke API key",
+          "REVOKE_API_KEY_FAILED",
+          500
+        );
       }
     }
   );
@@ -369,9 +380,11 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-          return reply
-            .status(400)
-            .send({ error: "User with this email already exists" });
+          throw new AppError(
+            "User with this email already exists",
+            "USER_EXISTS",
+            400
+          );
         }
 
         const tempPassword = Math.random().toString(36).slice(-10) + "Aa1!";
@@ -402,10 +415,16 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           },
         });
 
-        return reply.status(201).send({ user, tempPassword });
+        return reply.code(201).send({
+          success: true,
+          data: { user, tempPassword },
+        });
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, "Error creating admin user");
-        return reply.status(500).send({ error: "Failed to create user" });
+        throw new AppError("Failed to create user", "CREATE_USER_FAILED", 500);
       }
     }
   );

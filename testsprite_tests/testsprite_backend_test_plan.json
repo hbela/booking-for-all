@@ -1,42 +1,27 @@
 [
   {
     "id": "TC001",
-    "title": "get all organizations should require admin authentication",
-    "description": "Verify that the GET /api/admin/organizations endpoint requires valid admin authentication and returns 401 or 403 for unauthorized or forbidden access. IMPORTANT: This API uses Better Auth with session-based authentication (cookies), NOT bearer tokens. For authenticated tests, use requests.Session() to POST to /api/auth/sign-in/email with email and password, then use the session for subsequent requests."
+    "title": "create provider with user account",
+    "description": "Test the POST /api/owner/providers/create-user endpoint to verify that a new provider with a user account can be created successfully. Validate required fields, unique email constraint, organization membership, and department ownership. Confirm the response includes provider details and a temporary password."
   },
   {
     "id": "TC002",
-    "title": "create organization should validate unique name slug and owner email",
-    "description": "Test the POST /api/admin/organizations/create endpoint to ensure it validates uniqueness of organization name, slug, and owner email, returning 400 on conflicts. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
+    "title": "create provider record for existing user",
+    "description": "Test the POST /api/owner/providers endpoint to create a provider record for an existing user. Verify that the owner is a member of the organization, and the provider record is created with correct department association. Confirm the organization enable logic is triggered if applicable."
   },
   {
     "id": "TC003",
-    "title": "create organization should generate temp password and send email",
-    "description": "Verify that creating an organization generates a temporary password for the owner and sends a welcome email with credentials. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
+    "title": "delete provider record",
+    "description": "Test the DELETE /api/owner/providers/:id endpoint to delete a provider record. Verify that the provider exists, the owner is a member of the provider's organization, and the provider is removed along with organization membership cleanup. Confirm organization disable logic is checked after deletion."
   },
   {
     "id": "TC004",
-    "title": "create user should enforce unique email and role mapping",
-    "description": "Test the POST /api/admin/users endpoint to ensure it enforces unique email addresses and correctly maps the USER role to CLIENT internally. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
+    "title": "create department within organization",
+    "description": "Test the POST /api/owner/departments endpoint to create a new department within the owner's organization. Validate required fields, organization membership, and organization existence. Confirm the department is created successfully and organization enable logic is triggered if applicable."
   },
   {
     "id": "TC005",
-    "title": "create user should generate temp password and require password change",
-    "description": "Verify that creating a user generates a temporary password and sets the needsPasswordChange flag to true. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
-  },
-  {
-    "id": "TC006",
-    "title": "get all api keys should require admin authentication",
-    "description": "Verify that the GET /api/admin/api-keys endpoint requires valid admin authentication and returns 401 or 403 for unauthorized or forbidden access. IMPORTANT: This API uses Better Auth with session-based authentication (cookies), NOT bearer tokens. For authenticated tests, use requests.Session() to POST to /api/auth/sign-in/email with email and password, then use the session for subsequent requests."
-  },
-  {
-    "id": "TC007",
-    "title": "generate api key should create key with optional expiration",
-    "description": "Test the POST /api/admin/api-keys/generate endpoint to ensure it creates a new API key for the specified organization with optional expiration days. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
-  },
-  {
-    "id": "TC008",
-    "title": "delete api key should soft delete and disable key",
-    "description": "Verify that the DELETE /api/admin/api-keys/{id} endpoint soft deletes the API key by setting enabled to false and returns success. IMPORTANT: Authenticate first using Better Auth session (requests.Session() to POST /api/auth/sign-in/email with hajzerbela@gmail.com and bel2000BELLE$), then use the session for API calls."
+    "title": "delete department from organization",
+    "description": "Test the DELETE /api/owner/departments/:id endpoint to delete a department. Verify that the department exists, the owner is a member of the department's organization, and the department is deleted successfully. Confirm organization disable logic is checked after deletion."
   }
 ]

@@ -256,10 +256,17 @@ function buildDynamicAllowedOrigins($organizationConfigs, $isProduction)
             'http://[::1]:5173',
         ];
 
-        // Add all organization domains with :5500 port for development
+        // Add all organization domains with :5500 port for development (HTTP)
         foreach ($organizationConfigs as $slug => $config) {
             if (!empty($config['domain'])) {
                 $origins[] = 'http://' . $config['domain'] . ':5500';
+            }
+        }
+        
+        // Add HTTPS versions of organization domains for development (when using Caddy with HTTPS)
+        foreach ($organizationConfigs as $slug => $config) {
+            if (!empty($config['domain'])) {
+                $origins[] = 'https://' . $config['domain'];
             }
         }
     }
@@ -306,6 +313,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             in_array($requestOrigin, $allowedOriginsArray)
         ) {
             header("Access-Control-Allow-Origin: " . $requestOrigin);
+            http_response_code(200);
+            exit;
         } else {
             // In development, allow localhost variations and any configured organization domains for OPTIONS
             if (!$isProduction) {
@@ -317,20 +326,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
                 // For OPTIONS, we check env vars directly since organizationConfigs not loaded yet
                 $matchesOrgDomain = false;
                 $envVarsForCors = array_merge($_SERVER, $_ENV);
+                php_proxy_log("OPTIONS preflight - Checking origin: " . $requestOrigin);
                 foreach ($envVarsForCors as $key => $value) {
-                    if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key) && is_string($value)) {
+                    if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key, $matches) && is_string($value)) {
                         $domain = normalizeDomain($value);
-                        if (!empty($domain) && strpos($requestOrigin, $domain) !== false) {
-                            $matchesOrgDomain = true;
-                            break;
+                        php_proxy_log("OPTIONS - Found domain config: {$key} = {$domain}");
+                        if (!empty($domain)) {
+                            // Check if origin contains the domain (works for both http:// and https://)
+                            if (strpos($requestOrigin, $domain) !== false) {
+                                $matchesOrgDomain = true;
+                                php_proxy_log("OPTIONS - Origin matches domain: {$requestOrigin} contains {$domain}");
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Also check if origin hostname matches any domain (extract hostname from origin)
+                if (!$matchesOrgDomain && !empty($requestOrigin)) {
+                    $originHost = parse_url($requestOrigin, PHP_URL_HOST);
+                    if ($originHost) {
+                        php_proxy_log("OPTIONS - Extracted origin hostname: " . $originHost);
+                        foreach ($envVarsForCors as $key => $value) {
+                            if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key) && is_string($value)) {
+                                $domain = normalizeDomain($value);
+                                if (!empty($domain) && domainsMatch($originHost, $domain)) {
+                                    $matchesOrgDomain = true;
+                                    php_proxy_log("OPTIONS - Origin hostname matches domain: {$originHost} matches {$domain}");
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
 
                 if ($isLocalhost || $matchesOrgDomain) {
                     header("Access-Control-Allow-Origin: " . $requestOrigin);
+                    php_proxy_log("OPTIONS - Origin allowed: " . $requestOrigin);
+                    http_response_code(200);
+                    exit;
                 } else {
                     // Deny unknown origins
+                    php_proxy_log("OPTIONS - Origin NOT allowed: " . $requestOrigin . " (isLocalhost: " . ($isLocalhost ? 'true' : 'false') . ", matchesOrgDomain: " . ($matchesOrgDomain ? 'true' : 'false') . ")");
                     http_response_code(403);
                     exit;
                 }
@@ -381,23 +418,48 @@ if (!empty($requestOrigin)) {
                 strpos($requestOrigin, '127.0.0.1') !== false;
 
             // Check if origin matches any configured organization domain
+            // Check env vars directly (same approach as OPTIONS handler)
             $matchesOrgDomain = false;
-            foreach ($organizationConfigs as $slug => $config) {
-                if (!empty($config['domain'])) {
-                    $domain = $config['domain'];
-                    // Check if origin contains the domain (with or without port)
-                    if (strpos($requestOrigin, $domain) !== false) {
-                        $matchesOrgDomain = true;
-                        break;
+            php_proxy_log("Checking origin against organization domains: " . $requestOrigin);
+            $envVarsForCors = array_merge($_SERVER, $_ENV);
+            foreach ($envVarsForCors as $key => $value) {
+                if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key, $matches) && is_string($value)) {
+                    $domain = normalizeDomain($value);
+                    php_proxy_log("Comparing origin with domain config: {$requestOrigin} vs {$domain}");
+                    if (!empty($domain)) {
+                        // Check if origin contains the domain (works for both http:// and https://)
+                        if (strpos($requestOrigin, $domain) !== false) {
+                            $matchesOrgDomain = true;
+                            php_proxy_log("Origin matches domain (strpos): {$requestOrigin} contains {$domain}");
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Also check if origin hostname matches any domain (extract hostname from origin)
+            if (!$matchesOrgDomain && !empty($requestOrigin)) {
+                $originHost = parse_url($requestOrigin, PHP_URL_HOST);
+                if ($originHost) {
+                    php_proxy_log("Extracted origin hostname: " . $originHost);
+                    foreach ($envVarsForCors as $key => $value) {
+                        if (preg_match('/^([A-Z0-9_]+)_DOMAIN$/', $key) && is_string($value)) {
+                            $domain = normalizeDomain($value);
+                            if (!empty($domain) && domainsMatch($originHost, $domain)) {
+                                $matchesOrgDomain = true;
+                                php_proxy_log("Origin hostname matches domain: {$originHost} matches {$domain}");
+                                break;
+                            }
+                        }
                     }
                 }
             }
 
             if ($isLocalhost || $matchesOrgDomain) {
                 header("Access-Control-Allow-Origin: " . $requestOrigin);
-                error_log('[PHP Proxy] Origin allowed (localhost/organization domain variation)');
+                php_proxy_log("Origin allowed (localhost/organization domain variation): " . $requestOrigin);
             } else {
-                error_log('[PHP Proxy] Origin NOT allowed: ' . $requestOrigin);
+                php_proxy_log("Origin NOT allowed: " . $requestOrigin . " (isLocalhost: " . ($isLocalhost ? 'true' : 'false') . ", matchesOrgDomain: " . ($matchesOrgDomain ? 'true' : 'false') . ")");
                 http_response_code(403);
                 echo json_encode([
                     "success" => false,

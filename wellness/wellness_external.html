@@ -205,10 +205,21 @@
       const storedPhpOverride = sessionStorage.getItem("phpServerOverride");
 
       // Detect if we're in production (https://) or development (http://localhost or custom dev domains)
-      const isProduction = window.location.protocol === "https:";
+      // For local development, wellness.hu points to 127.0.0.1, so we should prioritize localhost:8000
+      const isLocalDev = window.location.hostname === "wellness.hu" || 
+                         window.location.hostname === "localhost" || 
+                         window.location.hostname === "127.0.0.1" ||
+                         window.location.hostname.startsWith("127.0.0.1") ||
+                         window.location.hostname.startsWith("localhost");
+      const isProduction = window.location.protocol === "https:" && !isLocalDev;
 
-      // PHP server URLs to try (in order) - try production first if on production domain
-      const PHP_SERVER_CANDIDATES = isProduction
+      // PHP server URLs to try (in order) - prioritize localhost for local dev domains
+      const PHP_SERVER_CANDIDATES = isLocalDev
+        ? [
+            "http://localhost:8000", // Always try localhost first for local dev
+            "https://php.appointer.hu", // Fallback
+          ]
+        : isProduction
         ? [
             "https://php.appointer.hu",
             "http://localhost:8000", // Fallback for testing

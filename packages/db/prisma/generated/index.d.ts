@@ -6988,8 +6988,20 @@ export namespace Prisma {
 
   export type AggregateOrganization = {
     _count: OrganizationCountAggregateOutputType | null
+    _avg: OrganizationAvgAggregateOutputType | null
+    _sum: OrganizationSumAggregateOutputType | null
     _min: OrganizationMinAggregateOutputType | null
     _max: OrganizationMaxAggregateOutputType | null
+  }
+
+  export type OrganizationAvgAggregateOutputType = {
+    availabilityStartHour: number | null
+    availabilityEndHour: number | null
+  }
+
+  export type OrganizationSumAggregateOutputType = {
+    availabilityStartHour: number | null
+    availabilityEndHour: number | null
   }
 
   export type OrganizationMinAggregateOutputType = {
@@ -6999,6 +7011,9 @@ export namespace Prisma {
     slug: string | null
     logo: string | null
     enabled: boolean | null
+    timeZone: string | null
+    availabilityStartHour: number | null
+    availabilityEndHour: number | null
     createdAt: Date | null
     metadata: string | null
   }
@@ -7010,6 +7025,9 @@ export namespace Prisma {
     slug: string | null
     logo: string | null
     enabled: boolean | null
+    timeZone: string | null
+    availabilityStartHour: number | null
+    availabilityEndHour: number | null
     createdAt: Date | null
     metadata: string | null
   }
@@ -7021,11 +7039,24 @@ export namespace Prisma {
     slug: number
     logo: number
     enabled: number
+    timeZone: number
+    availabilityStartHour: number
+    availabilityEndHour: number
     createdAt: number
     metadata: number
     _all: number
   }
 
+
+  export type OrganizationAvgAggregateInputType = {
+    availabilityStartHour?: true
+    availabilityEndHour?: true
+  }
+
+  export type OrganizationSumAggregateInputType = {
+    availabilityStartHour?: true
+    availabilityEndHour?: true
+  }
 
   export type OrganizationMinAggregateInputType = {
     id?: true
@@ -7034,6 +7065,9 @@ export namespace Prisma {
     slug?: true
     logo?: true
     enabled?: true
+    timeZone?: true
+    availabilityStartHour?: true
+    availabilityEndHour?: true
     createdAt?: true
     metadata?: true
   }
@@ -7045,6 +7079,9 @@ export namespace Prisma {
     slug?: true
     logo?: true
     enabled?: true
+    timeZone?: true
+    availabilityStartHour?: true
+    availabilityEndHour?: true
     createdAt?: true
     metadata?: true
   }
@@ -7056,6 +7093,9 @@ export namespace Prisma {
     slug?: true
     logo?: true
     enabled?: true
+    timeZone?: true
+    availabilityStartHour?: true
+    availabilityEndHour?: true
     createdAt?: true
     metadata?: true
     _all?: true
@@ -7099,6 +7139,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: OrganizationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: OrganizationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: OrganizationMinAggregateInputType
@@ -7129,6 +7181,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: OrganizationCountAggregateInputType | true
+    _avg?: OrganizationAvgAggregateInputType
+    _sum?: OrganizationSumAggregateInputType
     _min?: OrganizationMinAggregateInputType
     _max?: OrganizationMaxAggregateInputType
   }
@@ -7140,9 +7194,14 @@ export namespace Prisma {
     slug: string
     logo: string | null
     enabled: boolean
+    timeZone: string
+    availabilityStartHour: number
+    availabilityEndHour: number
     createdAt: Date
     metadata: string | null
     _count: OrganizationCountAggregateOutputType | null
+    _avg: OrganizationAvgAggregateOutputType | null
+    _sum: OrganizationSumAggregateOutputType | null
     _min: OrganizationMinAggregateOutputType | null
     _max: OrganizationMaxAggregateOutputType | null
   }
@@ -7168,6 +7227,9 @@ export namespace Prisma {
     slug?: boolean
     logo?: boolean
     enabled?: boolean
+    timeZone?: boolean
+    availabilityStartHour?: boolean
+    availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
     members?: boolean | Organization$membersArgs<ExtArgs>
@@ -7183,6 +7245,9 @@ export namespace Prisma {
     slug?: boolean
     logo?: boolean
     enabled?: boolean
+    timeZone?: boolean
+    availabilityStartHour?: boolean
+    availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
   }, ExtArgs["result"]["organization"]>
@@ -7194,6 +7259,9 @@ export namespace Prisma {
     slug?: boolean
     logo?: boolean
     enabled?: boolean
+    timeZone?: boolean
+    availabilityStartHour?: boolean
+    availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
   }, ExtArgs["result"]["organization"]>
@@ -7205,11 +7273,14 @@ export namespace Prisma {
     slug?: boolean
     logo?: boolean
     enabled?: boolean
+    timeZone?: boolean
+    availabilityStartHour?: boolean
+    availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
   }
 
-  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "logo" | "enabled" | "createdAt" | "metadata", ExtArgs["result"]["organization"]>
+  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata", ExtArgs["result"]["organization"]>
   export type OrganizationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     members?: boolean | Organization$membersArgs<ExtArgs>
     departments?: boolean | Organization$departmentsArgs<ExtArgs>
@@ -7233,6 +7304,9 @@ export namespace Prisma {
       slug: string
       logo: string | null
       enabled: boolean
+      timeZone: string
+      availabilityStartHour: number
+      availabilityEndHour: number
       createdAt: Date
       metadata: string | null
     }, ExtArgs["result"]["organization"]>
@@ -7667,6 +7741,9 @@ export namespace Prisma {
     readonly slug: FieldRef<"Organization", 'String'>
     readonly logo: FieldRef<"Organization", 'String'>
     readonly enabled: FieldRef<"Organization", 'Boolean'>
+    readonly timeZone: FieldRef<"Organization", 'String'>
+    readonly availabilityStartHour: FieldRef<"Organization", 'Int'>
+    readonly availabilityEndHour: FieldRef<"Organization", 'Int'>
     readonly createdAt: FieldRef<"Organization", 'DateTime'>
     readonly metadata: FieldRef<"Organization", 'String'>
   }
@@ -19501,6 +19578,9 @@ export namespace Prisma {
     slug: 'slug',
     logo: 'logo',
     enabled: 'enabled',
+    timeZone: 'timeZone',
+    availabilityStartHour: 'availabilityStartHour',
+    availabilityEndHour: 'availabilityEndHour',
     createdAt: 'createdAt',
     metadata: 'metadata'
   };
@@ -20135,6 +20215,9 @@ export namespace Prisma {
     slug?: StringFilter<"Organization"> | string
     logo?: StringNullableFilter<"Organization"> | string | null
     enabled?: BoolFilter<"Organization"> | boolean
+    timeZone?: StringFilter<"Organization"> | string
+    availabilityStartHour?: IntFilter<"Organization"> | number
+    availabilityEndHour?: IntFilter<"Organization"> | number
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     metadata?: StringNullableFilter<"Organization"> | string | null
     members?: MemberListRelationFilter
@@ -20149,6 +20232,9 @@ export namespace Prisma {
     slug?: SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
+    timeZone?: SortOrder
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrderInput | SortOrder
     members?: MemberOrderByRelationAggregateInput
@@ -20166,6 +20252,9 @@ export namespace Prisma {
     description?: StringNullableFilter<"Organization"> | string | null
     logo?: StringNullableFilter<"Organization"> | string | null
     enabled?: BoolFilter<"Organization"> | boolean
+    timeZone?: StringFilter<"Organization"> | string
+    availabilityStartHour?: IntFilter<"Organization"> | number
+    availabilityEndHour?: IntFilter<"Organization"> | number
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     metadata?: StringNullableFilter<"Organization"> | string | null
     members?: MemberListRelationFilter
@@ -20180,11 +20269,16 @@ export namespace Prisma {
     slug?: SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
+    timeZone?: SortOrder
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrderInput | SortOrder
     _count?: OrganizationCountOrderByAggregateInput
+    _avg?: OrganizationAvgOrderByAggregateInput
     _max?: OrganizationMaxOrderByAggregateInput
     _min?: OrganizationMinOrderByAggregateInput
+    _sum?: OrganizationSumOrderByAggregateInput
   }
 
   export type OrganizationScalarWhereWithAggregatesInput = {
@@ -20197,6 +20291,9 @@ export namespace Prisma {
     slug?: StringWithAggregatesFilter<"Organization"> | string
     logo?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     enabled?: BoolWithAggregatesFilter<"Organization"> | boolean
+    timeZone?: StringWithAggregatesFilter<"Organization"> | string
+    availabilityStartHour?: IntWithAggregatesFilter<"Organization"> | number
+    availabilityEndHour?: IntWithAggregatesFilter<"Organization"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Organization"> | Date | string
     metadata?: StringNullableWithAggregatesFilter<"Organization"> | string | null
   }
@@ -21351,6 +21448,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
@@ -21365,6 +21465,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
@@ -21379,6 +21482,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
@@ -21393,6 +21499,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -21407,6 +21516,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
   }
@@ -21418,6 +21530,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
   }
@@ -21429,6 +21544,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
   }
@@ -22631,6 +22749,17 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type MemberListRelationFilter = {
     every?: MemberWhereInput
     some?: MemberWhereInput
@@ -22658,8 +22787,16 @@ export namespace Prisma {
     slug?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    timeZone?: SortOrder
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
+  }
+
+  export type OrganizationAvgOrderByAggregateInput = {
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
   }
 
   export type OrganizationMaxOrderByAggregateInput = {
@@ -22669,6 +22806,9 @@ export namespace Prisma {
     slug?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    timeZone?: SortOrder
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
   }
@@ -22680,8 +22820,32 @@ export namespace Prisma {
     slug?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    timeZone?: SortOrder
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
+  }
+
+  export type OrganizationSumOrderByAggregateInput = {
+    availabilityStartHour?: SortOrder
+    availabilityEndHour?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type OrganizationScalarRelationFilter = {
@@ -22975,17 +23139,6 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type ProductCountOrderByAggregateInput = {
     id?: SortOrder
     polarId?: SortOrder
@@ -23031,22 +23184,6 @@ export namespace Prisma {
 
   export type ProductSumOrderByAggregateInput = {
     priceCents?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type ProductScalarRelationFilter = {
@@ -23613,6 +23750,14 @@ export namespace Prisma {
     connect?: SubscriptionWhereUniqueInput | SubscriptionWhereUniqueInput[]
   }
 
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type MemberUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<MemberCreateWithoutOrganizationInput, MemberUncheckedCreateWithoutOrganizationInput> | MemberCreateWithoutOrganizationInput[] | MemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: MemberCreateOrConnectWithoutOrganizationInput | MemberCreateOrConnectWithoutOrganizationInput[]
@@ -23941,14 +24086,6 @@ export namespace Prisma {
     connect?: SubscriptionWhereUniqueInput | SubscriptionWhereUniqueInput[]
   }
 
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type SubscriptionUpdateManyWithoutProductNestedInput = {
     create?: XOR<SubscriptionCreateWithoutProductInput, SubscriptionUncheckedCreateWithoutProductInput> | SubscriptionCreateWithoutProductInput[] | SubscriptionUncheckedCreateWithoutProductInput[]
     connectOrCreate?: SubscriptionCreateOrConnectWithoutProductInput | SubscriptionCreateOrConnectWithoutProductInput[]
@@ -24266,6 +24403,33 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type NestedFloatNullableFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel> | null
     in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
@@ -24307,33 +24471,6 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -25120,6 +25257,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     departments?: DepartmentCreateNestedManyWithoutOrganizationInput
@@ -25133,6 +25273,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     departments?: DepartmentUncheckedCreateNestedManyWithoutOrganizationInput
@@ -25162,6 +25305,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     departments?: DepartmentUpdateManyWithoutOrganizationNestedInput
@@ -25175,6 +25321,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     departments?: DepartmentUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -25188,6 +25337,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
@@ -25201,6 +25353,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
@@ -25260,6 +25415,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
@@ -25273,6 +25431,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -25896,6 +26057,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
@@ -25909,6 +26073,9 @@ export namespace Prisma {
     slug: string
     logo?: string | null
     enabled?: boolean
+    timeZone?: string
+    availabilityStartHour?: number
+    availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
@@ -26054,6 +26221,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
@@ -26067,6 +26237,9 @@ export namespace Prisma {
     slug?: StringFieldUpdateOperationsInput | string
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeZone?: StringFieldUpdateOperationsInput | string
+    availabilityStartHour?: IntFieldUpdateOperationsInput | number
+    availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput

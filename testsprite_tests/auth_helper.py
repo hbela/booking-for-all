@@ -9,6 +9,8 @@ from typing import Optional, Dict
 BASE_URL = "http://localhost:3000"
 ADMIN_EMAIL = "hajzerbela@gmail.com"
 ADMIN_PASSWORD = "bel2000BELLE$"
+OWNER_EMAIL = "elystrade@gmail.com"
+OWNER_PASSWORD = "bel2000BELLE$"
 TIMEOUT = 30
 
 
@@ -127,4 +129,50 @@ def authenticate_and_get_session(email: str = ADMIN_EMAIL, password: str = ADMIN
     if session.authenticate():
         return session
     return None
+
+
+def get_owner_session() -> BetterAuthSession:
+    """Get an authenticated owner session."""
+    session = BetterAuthSession(OWNER_EMAIL, OWNER_PASSWORD)
+    if not session.authenticate():
+        raise Exception(f"Failed to authenticate owner user: {OWNER_EMAIL}")
+    return session
+
+
+def get_owner_organizations(session: Optional[BetterAuthSession] = None) -> list:
+    """
+    Get organizations that the owner is a member of.
+    Returns a list of organization objects.
+    """
+    if session is None:
+        session = get_owner_session()
+    
+    response = session.get(f"{BASE_URL}/api/organizations/my-organizations")
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch owner organizations: {response.status_code} - {response.text}")
+    
+    organizations = response.json()
+    if not isinstance(organizations, list):
+        raise Exception(f"Unexpected response format: {organizations}")
+    
+    return organizations
+
+
+def get_owner_organization_id(session: Optional[BetterAuthSession] = None) -> str:
+    """
+    Get the first organization ID that the owner is a member of.
+    Raises an exception if no organizations are found.
+    """
+    organizations = get_owner_organizations(session)
+    
+    if not organizations:
+        raise Exception(f"Owner {OWNER_EMAIL} is not a member of any organizations. Please create an organization first.")
+    
+    # Return the first enabled organization, or the first one if none are enabled
+    enabled_orgs = [org for org in organizations if org.get("enabled")]
+    if enabled_orgs:
+        return enabled_orgs[0]["id"]
+    
+    # If no enabled organizations, return the first one
+    return organizations[0]["id"]
 

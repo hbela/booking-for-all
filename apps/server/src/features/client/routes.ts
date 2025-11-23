@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import prisma from "@booking-for-all/db";
 import crypto from "crypto";
 import { requireAuthHook } from "../../plugins/authz";
+import { AppError } from "../../errors/AppError";
 
 const clientRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -27,7 +28,10 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         .map((m) => m.organization)
         .filter(Boolean)
         .sort((a: any, b: any) => a.name.localeCompare(b.name));
-      reply.send(organizations);
+      reply.send({
+        success: true,
+        data: organizations,
+      });
     }
   );
 
@@ -40,9 +44,13 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         where: { id, enabled: true },
         select: { id: true, name: true, description: true },
       });
-      if (!organization)
-        return reply.status(404).send({ error: "Organization not found" });
-      reply.send(organization);
+      if (!organization) {
+        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+      }
+      reply.send({
+        success: true,
+        data: organization,
+      });
     }
   );
 
@@ -61,7 +69,10 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         },
         orderBy: { name: "asc" },
       });
-      reply.send(departments);
+      reply.send({
+        success: true,
+        data: departments,
+      });
     }
   );
 
@@ -79,9 +90,13 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           organization: { select: { id: true, name: true } },
         },
       });
-      if (!department)
-        return reply.status(404).send({ error: "Department not found" });
-      reply.send(department);
+      if (!department) {
+        throw new AppError("Department not found", "DEPARTMENT_NOT_FOUND", 404);
+      }
+      reply.send({
+        success: true,
+        data: department,
+      });
     }
   );
 
@@ -108,7 +123,10 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         },
         orderBy: { user: { name: "asc" } },
       });
-      reply.send(providers);
+      reply.send({
+        success: true,
+        data: providers,
+      });
     }
   );
 
@@ -127,9 +145,13 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           user: { select: { name: true, email: true } },
         },
       });
-      if (!provider)
-        return reply.status(404).send({ error: "Provider not found" });
-      reply.send(provider);
+      if (!provider) {
+        throw new AppError("Provider not found", "PROVIDER_NOT_FOUND", 404);
+      }
+      reply.send({
+        success: true,
+        data: provider,
+      });
     }
   );
 
@@ -163,7 +185,10 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         },
         orderBy: { start: "asc" },
       });
-      reply.send(events);
+      reply.send({
+        success: true,
+        data: events,
+      });
     }
   );
 
@@ -176,7 +201,7 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         const { eventId } = (req.body as any) || {};
 
         if (!eventId) {
-          return reply.status(400).send({ error: "eventId is required" });
+          throw new AppError("eventId is required", "VALIDATION_ERROR", 400);
         }
 
         // Find the event with all related data
@@ -197,18 +222,24 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         });
 
         if (!event) {
-          return reply.status(404).send({ error: "Event not found" });
+          throw new AppError("Event not found", "EVENT_NOT_FOUND", 404);
         }
 
         if (event.isBooked) {
-          return reply.status(400).send({ error: "Event is already booked" });
+          throw new AppError(
+            "Event is already booked",
+            "EVENT_ALREADY_BOOKED",
+            400
+          );
         }
 
         // Check if event is in the past
         if (new Date(event.start) < new Date()) {
-          return reply
-            .status(400)
-            .send({ error: "Cannot book events in the past" });
+          throw new AppError(
+            "Cannot book events in the past",
+            "EVENT_IN_PAST",
+            400
+          );
         }
 
         // Create booking
@@ -363,10 +394,20 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           },
         });
 
-        reply.status(201).send(bookingWithDetails);
+        reply.code(201).send({
+          success: true,
+          data: bookingWithDetails,
+        });
       } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
         app.log.error(error, "Error creating booking");
-        return reply.status(500).send({ error: "Failed to create booking" });
+        throw new AppError(
+          "Failed to create booking",
+          "CREATE_BOOKING_FAILED",
+          500
+        );
       }
     }
   );

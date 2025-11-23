@@ -179,6 +179,9 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   slug: 'slug',
   logo: 'logo',
   enabled: 'enabled',
+  timeZone: 'timeZone',
+  availabilityStartHour: 'availabilityStartHour',
+  availabilityEndHour: 'availabilityEndHour',
   createdAt: 'createdAt',
   metadata: 'metadata'
 };

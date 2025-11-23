@@ -13,6 +13,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminComponent,
@@ -55,27 +56,16 @@ interface CreateOrgData {
 
 // API functions
 const fetchOrganizations = async (): Promise<Organization[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Organization[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  return response.json();
 };
 
 const createOrganization = async (data: CreateOrgData): Promise<any> => {
-  const response = await fetch(
+  return apiFetch<any>(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/create`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({
         name: data.name,
         slug: data.slug,
@@ -85,48 +75,28 @@ const createOrganization = async (data: CreateOrgData): Promise<any> => {
       }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create organization");
-  }
-  return response.json();
 };
 
 const deleteOrganization = async (orgId: string): Promise<void> => {
-  const response = await fetch(
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}`,
     {
       method: "DELETE",
-      credentials: "include",
     }
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to delete organization");
-  }
 };
 
 const createCheckout = async (
   orgId: string
 ): Promise<{ checkoutUrl: string }> => {
-  const response = await fetch(
+  const data = await apiFetch<{ checkoutUrl: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({ organizationId: orgId }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create checkout");
-  }
-  return response.json();
+  return data;
 };
 
 function AdminComponent() {
@@ -153,8 +123,12 @@ function AdminComponent() {
       toast.success(data.message || "Organization created successfully");
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create organization");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create organization");
+      }
     },
   });
 
@@ -181,7 +155,11 @@ function AdminComponent() {
       );
       window.location.href = data.checkoutUrl;
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error(
       toast.error(error.message || "Failed to create checkout");
     },
   });

@@ -22,6 +22,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Key, Calendar, User } from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/apiFetch";
 
 export const Route = createFileRoute("/admin/api-keys")({
   component: ApiKeysComponent,
@@ -79,42 +80,24 @@ interface GenerateKeyData {
 
 // API functions
 const fetchApiKeys = async (): Promise<ApiKey[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<ApiKey[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load API keys");
-  }
-  return response.json();
 };
 
 const fetchOrganizations = async (): Promise<Organization[]> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<Organization[]>(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`
   );
-  if (!response.ok) {
-    throw new Error("Failed to load organizations");
-  }
-  return response.json();
 };
 
 const generateApiKey = async (
   data: GenerateKeyData
 ): Promise<{ key: string }> => {
-  const response = await fetch(
+  const result = await apiFetch<{ key: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/generate`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
       body: JSON.stringify({
         organizationId: data.organizationId,
         name: data.name,
@@ -122,26 +105,16 @@ const generateApiKey = async (
       }),
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to generate API key");
-  }
-  return response.json();
+  return result;
 };
 
 const revokeApiKey = async (keyId: string): Promise<void> => {
-  const response = await fetch(
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/api-keys/${keyId}`,
     {
       method: "DELETE",
-      credentials: "include",
     }
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to revoke API key");
-  }
 };
 
 function ApiKeysComponent() {
@@ -181,8 +154,12 @@ function ApiKeysComponent() {
       toast.success("API key generated successfully");
       queryClient.invalidateQueries({ queryKey: ["admin", "api-keys"] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to generate API key");
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to generate API key");
+      }
     },
   });
 

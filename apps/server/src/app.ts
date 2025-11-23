@@ -27,6 +27,7 @@ import ownerRoutes from "./features/owner/routes";
 import providerRoutes from "./features/provider/routes";
 import authRoutes from "./features/auth/routes";
 import { instrument } from "./instrument";
+import { errorHandler } from "./plugins/errorHandler";
 import * as Sentry from "@sentry/node";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -183,12 +184,8 @@ export function buildApp() {
   app.register(subscriptionsRoutes, { prefix: "/api/subscriptions" });
   app.register(authRoutes, { prefix: "/api/auth" });
 
-  app.setErrorHandler((err, _req, reply) => {
-    app.log.error(err);
-    reply
-      .status((err as any).statusCode || 500)
-      .send({ message: err.message || "Internal Server Error" });
-  });
+  // Register global error handler (must be after all routes)
+  errorHandler(app);
 
   app.setNotFoundHandler((_req, reply) => {
     reply.status(404).send({ message: "Not Found" });
