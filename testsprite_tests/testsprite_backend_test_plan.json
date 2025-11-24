@@ -1,27 +1,265 @@
 [
   {
-    "id": "TC001",
-    "title": "create provider with user account",
-    "description": "Test the POST /api/owner/providers/create-user endpoint to verify that a new provider with a user account can be created successfully. Validate required fields, unique email constraint, organization membership, and department ownership. Confirm the response includes provider details and a temporary password."
+    "id": "PHP_TC001",
+    "title": "PHP Proxy - Config Endpoint",
+    "description": "Test the GET /index.php?config=1 endpoint to verify it returns PHP server URL and environment information. Should return JSON with phpServerUrl and environment fields. Should handle CORS properly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php?config=1"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 200"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response Content-Type is application/json"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains phpServerUrl field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains environment field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify phpServerUrl is either http://localhost:8000 (dev) or https://php.appointer.hu (production)"
+      }
+    ]
   },
   {
-    "id": "TC002",
-    "title": "create provider record for existing user",
-    "description": "Test the POST /api/owner/providers endpoint to create a provider record for an existing user. Verify that the owner is a member of the organization, and the provider record is created with correct department association. Confirm the organization enable logic is triggered if applicable."
+    "id": "PHP_TC002",
+    "title": "PHP Proxy - Organization Detection from Origin Header",
+    "description": "Test that the PHP proxy correctly detects organization from Origin header. Should match wellness.hu domain to wellness organization configuration.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php with Origin header set to https://wellness.hu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 200 or 400 (depending on API key configuration)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify organization is detected correctly from Origin header"
+      }
+    ]
   },
   {
-    "id": "TC003",
-    "title": "delete provider record",
-    "description": "Test the DELETE /api/owner/providers/:id endpoint to delete a provider record. Verify that the provider exists, the owner is a member of the provider's organization, and the provider is removed along with organization membership cleanup. Confirm organization disable logic is checked after deletion."
+    "id": "PHP_TC003",
+    "title": "PHP Proxy - Organization Verification Success",
+    "description": "Test the main organization verification endpoint. Should extract organization slug, retrieve API key, call backend API, and return organization data with redirectUrl.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php with Origin header matching configured organization domain (e.g., https://wellness.hu)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 200"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains success: true"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains organizationId field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains organizationName field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains organization field (slug)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains redirectUrl field"
+      }
+    ]
   },
   {
-    "id": "TC004",
-    "title": "create department within organization",
-    "description": "Test the POST /api/owner/departments endpoint to create a new department within the owner's organization. Validate required fields, organization membership, and organization existence. Confirm the department is created successfully and organization enable logic is triggered if applicable."
+    "id": "PHP_TC004",
+    "title": "PHP Proxy - CORS Preflight Request",
+    "description": "Test that the PHP proxy handles CORS preflight (OPTIONS) requests correctly. Should return appropriate CORS headers.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send OPTIONS request to http://localhost:8000/index.php with Origin header"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 200"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Access-Control-Allow-Origin header is present"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Access-Control-Allow-Methods header is present"
+      }
+    ]
   },
   {
-    "id": "TC005",
-    "title": "delete department from organization",
-    "description": "Test the DELETE /api/owner/departments/:id endpoint to delete a department. Verify that the department exists, the owner is a member of the department's organization, and the department is deleted successfully. Confirm organization disable logic is checked after deletion."
+    "id": "PHP_TC005",
+    "title": "PHP Proxy - Error Handling - Organization Not Found",
+    "description": "Test error handling when organization cannot be determined from domain. Should return 400 status with appropriate error message.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php with Origin header set to unknown domain (e.g., https://unknown-domain.com)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 400"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains success: false"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains error message about unable to determine organization"
+      }
+    ]
+  },
+  {
+    "id": "PHP_TC006",
+    "title": "PHP Proxy - Error Handling - Missing Organization Config",
+    "description": "Test error handling when no organization configurations are found in environment. Should return 500 status with error message.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php (assuming no org configs in env)"
+      },
+      {
+        "type": "assertion",
+        "description": "If no configs exist, verify response status code is 500"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains success: false"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains error message about missing organization configurations"
+      }
+    ]
+  },
+  {
+    "id": "PHP_TC007",
+    "title": "PHP Proxy - Slug Override for Localhost",
+    "description": "Test that slug override via ?slug= parameter works for localhost testing. Should allow specifying organization slug directly when accessing from localhost.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php?slug=wellness with Origin header set to http://localhost:5500"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify organization slug override is accepted for localhost"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify organization is detected using the slug parameter"
+      }
+    ]
+  },
+  {
+    "id": "PHP_TC008",
+    "title": "PHP Proxy - Session Management",
+    "description": "Test that PHP sessions are properly managed after successful organization verification. Should store validated organization data in session.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php with valid organization Origin header and receive session cookie"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Set-Cookie header is present in response"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session cookie contains PHPSESSID"
+      },
+      {
+        "type": "action",
+        "description": "Send subsequent request with session cookie"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session data persists across requests"
+      }
+    ]
+  },
+  {
+    "id": "PHP_TC009",
+    "title": "PHP Proxy - Domain Normalization",
+    "description": "Test that domain normalization works correctly. Should handle www. prefix differences and normalize domains properly.",
+    "category": "functional",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request with Origin header containing www. prefix (e.g., https://www.wellness.hu)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify domain is normalized correctly (www. prefix handled)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify organization is matched correctly despite www. prefix difference"
+      }
+    ]
+  },
+  {
+    "id": "PHP_TC010",
+    "title": "PHP Proxy - API Verification Failure",
+    "description": "Test error handling when backend API verification fails. Should return appropriate error status and message.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to http://localhost:8000/index.php with valid organization but invalid API key (or backend API unavailable)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status code is 500 or appropriate error code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains success: false"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains error message about verification failure"
+      }
+    ]
   }
 ]
+

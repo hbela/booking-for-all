@@ -753,7 +753,9 @@ if ($httpCode !== 200 || !$response) {
 
 // ---- Parse the response ----
 $data = json_decode($response, true);
-if (!$data || !isset($data['organizationId'])) {
+// Backend API returns nested structure: {success: true, data: {organizationId, ...}}
+$apiData = $data['data'] ?? $data; // Support both nested and flat structures for backwards compatibility
+if (!$data || !isset($apiData['organizationId'])) {
     php_proxy_log([
         'message' => 'Invalid verification response payload',
         'response' => $response,
@@ -769,21 +771,23 @@ if (!$data || !isset($data['organizationId'])) {
 }
 
 // ---- Set secure session data ----
-$_SESSION['validated_organization'] = $data['organizationId'];
+$_SESSION['validated_organization'] = $apiData['organizationId'];
 $_SESSION['organization_slug'] = $organizationSlug;
 $_SESSION['api_key_validated'] = true;
 $_SESSION['expires_at'] = time() + 3600; // 1 hour expiration
-$_SESSION['organization_name'] = $configuredOrganizationName ?: ($data['organizationName'] ?? '');
+$_SESSION['organization_name'] = $configuredOrganizationName ?: ($apiData['organizationName'] ?? '');
 $_SESSION['configured_organization_id'] = $organizationIdentifier;
 $_SESSION['request_origin_domain'] = $requestHost;
 
 // ---- Prepare JSON output with clean redirect ----
+// Use redirectUrl from API if provided, otherwise construct it
+$redirectUrl = $apiData['redirectUrl'] ?? ($FRONTEND_REDIRECT . "?org=" . urlencode($apiData['organizationId'] ?? $organizationIdentifier));
 echo json_encode([
     "success" => true,
-    "organizationId" => $data['organizationId'] ?? $organizationIdentifier,
-    "organizationName" => $configuredOrganizationName ?: ($data['organizationName'] ?? ''),
+    "organizationId" => $apiData['organizationId'] ?? $organizationIdentifier,
+    "organizationName" => $configuredOrganizationName ?: ($apiData['organizationName'] ?? ''),
     "organization" => $organizationSlug,
-    "redirectUrl" => $FRONTEND_REDIRECT . "?org=" . urlencode($data['organizationId'] ?? $organizationIdentifier) // Include org ID for signup/login
+    "redirectUrl" => $redirectUrl
 ]);
 exit;
 

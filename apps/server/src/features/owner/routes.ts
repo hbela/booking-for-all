@@ -404,6 +404,7 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
     async (req, reply) => {
       const { name, description, organizationId } = req.body as any;
 
+      // Validate required fields first
       if (!name || !organizationId) {
         throw new AppError(
           "Name and organizationId are required",
@@ -414,11 +415,23 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
 
       const user = req.user;
 
-      // Verify user is owner and member of organization
+      // Normalize organizationId to prevent whitespace issues
+      const normalizedOrgId = String(organizationId).trim();
+      if (!normalizedOrgId) {
+        throw new AppError(
+          "Organization ID cannot be empty",
+          "VALIDATION_ERROR",
+          400
+        );
+      }
+
+      // CRITICAL SECURITY CHECK: Verify user is a member of the organization
+      // This check MUST happen before any other operations to prevent unauthorized department creation
+      // Note: requireOwnerHook already checks this, but we verify again here as a defense-in-depth measure
       const member = await prisma.member.findUnique({
         where: {
           organizationId_userId: {
-            organizationId,
+            organizationId: normalizedOrgId,
             userId: user.id,
           },
         },
@@ -434,7 +447,7 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
 
       // Check if organization is enabled (owners can create departments even if disabled)
       const organization = await prisma.organization.findUnique({
-        where: { id: organizationId },
+        where: { id: normalizedOrgId },
       });
 
       if (!organization) {
@@ -442,7 +455,7 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
       }
 
       // Check if organization has active subscription
-      const hasSubscription = await hasActiveSubscription(organizationId);
+      const hasSubscription = await hasActiveSubscription(normalizedOrgId);
       if (!hasSubscription) {
         throw new AppError(
           "A valid subscription is required to create departments. Please subscribe to continue.",
@@ -456,14 +469,14 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
           id: crypto.randomUUID(),
           name,
           description: description || null,
-          organizationId,
+          organizationId: normalizedOrgId,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
       });
 
       // Try to enable organization if all conditions are now met
-      await tryEnableOrganization(organizationId);
+      await tryEnableOrganization(normalizedOrgId);
 
       reply.code(201).send({
         success: true,

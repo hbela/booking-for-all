@@ -44,10 +44,18 @@ export async function requireOwnerHook(request: FastifyRequest, reply: FastifyRe
     return reply.status(400).send({ error: 'Organization ID required' });
   }
 
+  // Normalize organizationId to prevent whitespace issues
+  const normalizedOrgId = String(organizationId).trim();
+  if (!normalizedOrgId) {
+    return reply.status(400).send({ error: 'Organization ID cannot be empty' });
+  }
+
+  // CRITICAL SECURITY CHECK: Verify user is a member of the organization
+  // This must be checked before allowing any operations
   const member = await prisma.member.findUnique({
     where: {
       organizationId_userId: {
-        organizationId,
+        organizationId: normalizedOrgId,
         userId: user.id,
       },
     },
@@ -57,8 +65,8 @@ export async function requireOwnerHook(request: FastifyRequest, reply: FastifyRe
     return reply.status(403).send({ error: 'You are not a member of this organization' });
   }
   
-  // @ts-expect-error attach for handlers
-  request.organizationId = organizationId;
+  // @ts-expect-error attach for handlers - use normalized value
+  request.organizationId = normalizedOrgId;
 }
 
 export async function requireProviderHook(request: FastifyRequest, reply: FastifyReply) {
