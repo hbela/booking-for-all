@@ -11,6 +11,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 import { SentryBreakButton } from "@/components/SentryBreakButton";
+import { useEffect } from "react";
 import "../index.css";
 
 export interface RouterAppContext {}
@@ -18,15 +19,43 @@ export interface RouterAppContext {}
 export const Route = createRootRouteWithContext<RouterAppContext>()({
 	component: RootComponent,
 	head: () => ({
-	meta: [
-		{
-			title: "booking-for-all",
-		},
-		{
-			name: "description",
-			content: "booking-for-all is a web application",
-		},
-	],
+		meta: [
+			{
+				title: "Booking for All - Appointment Management System",
+			},
+			{
+				name: "description",
+				content: "Efficient appointment booking and management platform for businesses and organizations",
+			},
+			{
+				name: "viewport",
+				content: "width=device-width, initial-scale=1.0",
+			},
+			{
+				property: "og:title",
+				content: "Booking for All - Appointment Management System",
+			},
+			{
+				property: "og:description",
+				content: "Efficient appointment booking and management platform for businesses and organizations",
+			},
+			{
+				property: "og:type",
+				content: "website",
+			},
+			{
+				name: "twitter:card",
+				content: "summary_large_image",
+			},
+			{
+				name: "twitter:title",
+				content: "Booking for All - Appointment Management System",
+			},
+			{
+				name: "twitter:description",
+				content: "Efficient appointment booking and management platform for businesses and organizations",
+			},
+		],
 		links: [
 			{
 				rel: "icon",
@@ -40,6 +69,18 @@ function RootComponent() {
 	const isFetching = useRouterState({
 		select: (s) => s.isLoading,
 	});
+
+	// Dispatch render-complete event for pre-rendering
+	useEffect(() => {
+		// Wait for router to be ready and content to be loaded
+		if (!isFetching) {
+			// Small delay to ensure all content is rendered
+			const timer = setTimeout(() => {
+				document.dispatchEvent(new Event("render-complete"));
+			}, 100);
+			return () => clearTimeout(timer);
+		}
+	}, [isFetching]);
 
 	return (
 		<>

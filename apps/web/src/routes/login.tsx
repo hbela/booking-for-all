@@ -6,6 +6,51 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
+  head: () => ({
+    meta: [
+      {
+        title: "Login - Booking for All",
+      },
+      {
+        name: "description",
+        content: "Sign in to manage your appointments and bookings",
+      },
+      {
+        property: "og:title",
+        content: "Login - Booking for All",
+      },
+      {
+        property: "og:description",
+        content: "Sign in to manage your appointments and bookings",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: "/login",
+      },
+      {
+        name: "twitter:card",
+        content: "summary",
+      },
+      {
+        name: "twitter:title",
+        content: "Login - Booking for All",
+      },
+      {
+        name: "twitter:description",
+        content: "Sign in to manage your appointments and bookings",
+      },
+    ],
+    links: [
+      {
+        rel: "canonical",
+        href: "/login",
+      },
+    ],
+  }),
 });
 
 function RouteComponent() {

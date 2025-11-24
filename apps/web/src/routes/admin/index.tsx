@@ -159,8 +159,8 @@ function AdminComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error(
-      toast.error(error.message || "Failed to create checkout");
+        toast.error(error.message || "Failed to create checkout");
+      }
     },
   });
 

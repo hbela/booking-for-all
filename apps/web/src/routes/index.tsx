@@ -3,6 +3,51 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
+  head: () => ({
+    meta: [
+      {
+        title: "Booking for All - Appointment Management System",
+      },
+      {
+        name: "description",
+        content: "Efficient appointment booking and management platform for businesses and organizations",
+      },
+      {
+        property: "og:title",
+        content: "Booking for All - Appointment Management System",
+      },
+      {
+        property: "og:description",
+        content: "Efficient appointment booking and management platform for businesses and organizations",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: "/",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "Booking for All - Appointment Management System",
+      },
+      {
+        name: "twitter:description",
+        content: "Efficient appointment booking and management platform for businesses and organizations",
+      },
+    ],
+    links: [
+      {
+        rel: "canonical",
+        href: "/",
+      },
+    ],
+  }),
 });
 
 const TITLE_TEXT = `Better`;

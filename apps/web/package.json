@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3001",
-    "build": "vite build",
-    "build:check": "node -e \"if (!process.env.VITE_SENTRY_DSN) { console.error('❌ VITE_SENTRY_DSN is not set!'); process.exit(1); }\" && vite build",
+    "build": "vite build && node scripts/prerender.js",
+    "build:check": "node -e \"if (!process.env.VITE_SENTRY_DSN) { console.error('❌ VITE_SENTRY_DSN is not set!'); process.exit(1); }\" && vite build && node scripts/prerender.js",
+    "build:no-prerender": "vite build",
+    "prerender": "node scripts/prerender.js",
+    "install-chrome": "npx puppeteer browsers install chrome",
     "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-web --url-prefix '~/'",
      "serve": "vite preview",
     "start": "vite",
@@ -55,6 +58,7 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "postcss": "^8.5.3",
+    "puppeteer": "^23.11.1",
     "tailwindcss": "^4.0.15",
     "typescript": "catalog:",
     "vite": "^6.2.2"
