@@ -1,5 +1,11 @@
-import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
+import { useQuery } from "@tanstack/react-query";
+import { DefaultHomepage } from "@/components/homepages/DefaultHomepage";
+import { AdminHomepage } from "@/components/homepages/AdminHomepage";
+import { OwnerHomepage } from "@/components/homepages/OwnerHomepage";
+import { ProviderHomepage } from "@/components/homepages/ProviderHomepage";
+import { ClientHomepage } from "@/components/homepages/ClientHomepage";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -50,17 +56,36 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const TITLE_TEXT = `Better`;
-
 function HomeComponent() {
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-        </section>
+  const { data: session, isPending } = authClient.useSession();
+
+  // Show loading state while checking session
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // If user is logged in, show role-specific homepage
+  if (session?.user) {
+    const role = session.user.role as string;
+
+    switch (role) {
+      case "ADMIN":
+        return <AdminHomepage />;
+      case "OWNER":
+        return <OwnerHomepage />;
+      case "PROVIDER":
+        return <ProviderHomepage />;
+      case "CLIENT":
+        return <ClientHomepage />;
+      default:
+        return <DefaultHomepage />;
+    }
+  }
+
+  // Show default homepage for non-logged-in users
+  return <DefaultHomepage />;
 }

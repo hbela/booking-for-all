@@ -1,12 +1,11 @@
 # Global options block
 {
-	auto_https disable_redirects
-	local_certs
+	auto_https off
 	admin off
 }
 
-# Expose Live Server/Five Server (running on 127.0.0.1:5501) at https://wellness.hu
-wellness.hu {
+# Expose Live Server/Five Server (running on 127.0.0.1:5501) at http://wellness.hu:5500
+http://wellness.hu:5500 {
 	encode gzip
 	reverse_proxy 127.0.0.1:5501
 }
