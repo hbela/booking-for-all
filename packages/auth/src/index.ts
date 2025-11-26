@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "@booking-for-all/db";
 import { organization, admin, apiKey } from "better-auth/plugins";
+import { initI18n } from "@booking-for-all/i18n";
 
 // Log environment (loaded by server's dotenv/config)
 console.log("🔐 Auth Package - DATABASE_URL:", process.env.DATABASE_URL);
@@ -65,31 +66,35 @@ export const auth = betterAuth({
             const fromEmail =
               process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
+            // Initialize i18n and detect language (default to "en")
+            const i18n = await initI18n();
+            const lang = "en"; // Default to English for welcome emails (can be enhanced later with user preference)
+
             console.log("📧 Sending welcome email to new user:", user.email);
+
+            const loginUrl = process.env.CORS_ORIGIN || "http://localhost:3001";
 
             await resend.emails.send({
               from: fromEmail,
               to: user.email,
-              subject: "Welcome to Our Platform!",
+              subject: i18n.t("emails.welcome.subject", { lng: lang }),
               html: `
-                <h2>Welcome!</h2>
-                <p>Dear ${user.name},</p>
-                <p>Thank you for signing up! Your account has been successfully created.</p>
+                <h2>${i18n.t("emails.welcome.greeting", { lng: lang })}</h2>
+                <p>${i18n.t("emails.welcome.dear", { lng: lang, name: user.name })}</p>
+                <p>${i18n.t("emails.welcome.thankYouSignUp", { lng: lang })}</p>
                 
-                <h3>Getting Started:</h3>
+                <h3>${i18n.t("emails.welcome.gettingStarted", { lng: lang })}</h3>
                 <ul>
-                  <li><strong>Browse Providers:</strong> Find healthcare providers near you</li>
-                  <li><strong>Book Appointments:</strong> Schedule appointments easily</li>
-                  <li><strong>Manage Bookings:</strong> View and manage your appointments</li>
+                  <li><strong>${i18n.t("emails.welcome.browseProviders", { lng: lang })}</strong></li>
+                  <li><strong>${i18n.t("emails.welcome.bookAppointments", { lng: lang })}</strong></li>
+                  <li><strong>${i18n.t("emails.welcome.manageBookings", { lng: lang })}</strong></li>
                 </ul>
                 
-                <p>You can now login at: ${
-                  process.env.CORS_ORIGIN || "http://localhost:3001"
-                }</p>
+                <p>${i18n.t("emails.welcome.loginAt", { lng: lang, url: loginUrl })}</p>
                 
-                <p>If you have any questions, feel free to contact us.</p>
+                <p>${i18n.t("emails.welcome.questions", { lng: lang })}</p>
                 
-                <p>Best regards,<br>The Team</p>
+                <p>${i18n.t("emails.welcome.bestRegards", { lng: lang })}<br>${i18n.t("emails.welcome.theTeam", { lng: lang })}</p>
               `,
             });
 

@@ -496,7 +496,7 @@ function AdminComponent() {
                       onClick={() => handleDeleteOrg(org.id)}
                       disabled={isLoadingAny}
                     >
-                      {t("admin.delete")}
+                      {t("admin.deleteAction")}
                     </Button>
                   </div>
                 </div>

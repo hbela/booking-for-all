@@ -467,7 +467,7 @@ function DepartmentsComponent() {
                             onClick={() => handleDeleteClick(dept.id)}
                             disabled={loading || deleteDepartmentMutation.isPending}
                           >
-                            {t("common.delete")}
+                            {t("common.deleteAction")}
                           </Button>
                         </div>
                       </div>
@@ -513,7 +513,7 @@ function DepartmentsComponent() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteDepartmentMutation.isPending}
             >
-              {deleteDepartmentMutation.isPending ? t("owner.deleting") : t("common.delete")}
+              {deleteDepartmentMutation.isPending ? t("owner.deleting") : t("common.deleteAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

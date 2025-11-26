@@ -22,7 +22,8 @@
     }
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && npm run build:locale-dts",
+    "build:locale-dts": "node scripts/generate-locale-dts.js",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

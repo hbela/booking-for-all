@@ -267,20 +267,31 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           const fromEmail =
             process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
+          // Get language preference (default to "en", can be enhanced with user preference)
+          const lang = req.language || "en";
+          
+          // Map language to locale for date formatting
+          const localeMap: Record<string, string> = {
+            en: "en-US",
+            hu: "hu-HU",
+            de: "de-DE",
+          };
+          const locale = localeMap[lang] || "en-US";
+
           // Format date and time
           const startDate = new Date(event.start);
           const endDate = new Date(event.end);
-          const dateStr = startDate.toLocaleDateString("en-US", {
+          const dateStr = startDate.toLocaleDateString(locale, {
             weekday: "long",
             year: "numeric",
             month: "long",
             day: "numeric",
           });
-          const startTime = startDate.toLocaleTimeString("en-US", {
+          const startTime = startDate.toLocaleTimeString(locale, {
             hour: "numeric",
             minute: "2-digit",
           });
-          const endTime = endDate.toLocaleTimeString("en-US", {
+          const endTime = endDate.toLocaleTimeString(locale, {
             hour: "numeric",
             minute: "2-digit",
           });
@@ -290,43 +301,47 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           await resend.emails.send({
             from: fromEmail,
             to: user.email,
-            subject: `Booking Confirmation - ${event.provider.user.name}`,
+            subject: app.t("emails.bookingConfirmation.subject", {
+              lng: lang,
+              providerName: event.provider.user.name,
+            }),
             html: `
-            <h2>Booking Confirmation</h2>
-            <p>Dear ${user.name},</p>
-            <p>Your appointment has been successfully booked.</p>
-            <h3>Appointment Details:</h3>
+            <h2>${app.t("emails.bookingConfirmation.title", { lng: lang })}</h2>
+            <p>${app.t("emails.bookingConfirmation.dear", { lng: lang, clientName: user.name })}</p>
+            <p>${app.t("emails.bookingConfirmation.appointmentBooked", { lng: lang })}</p>
+            <h3>${app.t("emails.bookingConfirmation.appointmentDetails", { lng: lang })}</h3>
             <ul>
-              <li><strong>Provider:</strong> ${event.provider.user.name}</li>
-              <li><strong>Title:</strong> ${event.title}</li>
+              <li><strong>${app.t("emails.bookingConfirmation.provider", { lng: lang })}</strong> ${event.provider.user.name}</li>
+              <li><strong>${app.t("emails.bookingConfirmation.eventTitle", { lng: lang })}</strong> ${event.title}</li>
               ${
                 event.description
-                  ? `<li><strong>Description:</strong> ${event.description}</li>`
+                  ? `<li><strong>${app.t("emails.bookingConfirmation.description", { lng: lang })}</strong> ${event.description}</li>`
                   : ""
               }
-              <li><strong>Date:</strong> ${dateStr}</li>
-              <li><strong>Time:</strong> ${startTime} - ${endTime}</li>
+              <li><strong>${app.t("emails.bookingConfirmation.date", { lng: lang })}</strong> ${dateStr}</li>
+              <li><strong>${app.t("emails.bookingConfirmation.time", { lng: lang })}</strong> ${startTime} - ${endTime}</li>
               ${
                 event.duration
-                  ? `<li><strong>Duration:</strong> ${event.duration} minutes</li>`
+                  ? `<li><strong>${app.t("emails.bookingConfirmation.duration", { lng: lang })}</strong> ${app.t("emails.bookingConfirmation.minutes", { lng: lang, duration: event.duration })}</li>`
                   : ""
               }
               ${
                 event.price
-                  ? `<li><strong>Price:</strong> $${event.price}</li>`
+                  ? `<li><strong>${app.t("emails.bookingConfirmation.price", { lng: lang })}</strong> $${event.price}</li>`
                   : ""
               }
-              <li><strong>Organization:</strong> ${
+              <li><strong>${app.t("emails.bookingConfirmation.organization", { lng: lang })}</strong> ${
                 event.provider.department.organization.name
               }</li>
-              <li><strong>Department:</strong> ${
+              <li><strong>${app.t("emails.bookingConfirmation.department", { lng: lang })}</strong> ${
                 event.provider.department.name
               }</li>
             </ul>
-            <p>If you need to cancel or reschedule, please contact us.</p>
-            <p>Best regards,<br>${
-              event.provider.department.organization.name
-            }</p>
+            <p>${app.t("emails.bookingConfirmation.cancelReschedule", { lng: lang })}</p>
+            <p>${app.t("emails.bookingConfirmation.bestRegards", { lng: lang })}<br>${app.t("emails.bookingConfirmation.fromOrganization", {
+              lng: lang,
+              organizationName: event.provider.department.organization.name,
+            })}</p>
           `,
           });
           console.log("✅ Client email sent successfully");
@@ -340,29 +355,32 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
             await resend.emails.send({
               from: fromEmail,
               to: event.provider.user.email,
-              subject: `New Booking - ${event.title}`,
+              subject: app.t("emails.bookingNotification.subject", {
+                lng: lang,
+                eventTitle: event.title,
+              }),
               html: `
-              <h2>New Booking Received</h2>
-              <p>Dear ${event.provider.user.name},</p>
-              <p>You have a new booking for your availability slot.</p>
-              <h3>Booking Details:</h3>
+              <h2>${app.t("emails.bookingNotification.title", { lng: lang })}</h2>
+              <p>${app.t("emails.bookingNotification.dear", { lng: lang, providerName: event.provider.user.name })}</p>
+              <p>${app.t("emails.bookingNotification.newBooking", { lng: lang })}</p>
+              <h3>${app.t("emails.bookingNotification.bookingDetails", { lng: lang })}</h3>
               <ul>
-                <li><strong>Client:</strong> ${user.name} (${user.email})</li>
-                <li><strong>Title:</strong> ${event.title}</li>
+                <li><strong>${app.t("emails.bookingNotification.client", { lng: lang })}</strong> ${user.name} (${user.email})</li>
+                <li><strong>${app.t("emails.bookingNotification.eventTitle", { lng: lang })}</strong> ${event.title}</li>
                 ${
                   event.description
-                    ? `<li><strong>Description:</strong> ${event.description}</li>`
+                    ? `<li><strong>${app.t("emails.bookingNotification.description", { lng: lang })}</strong> ${event.description}</li>`
                     : ""
                 }
-                <li><strong>Date:</strong> ${dateStr}</li>
-                <li><strong>Time:</strong> ${startTime} - ${endTime}</li>
+                <li><strong>${app.t("emails.bookingNotification.date", { lng: lang })}</strong> ${dateStr}</li>
+                <li><strong>${app.t("emails.bookingNotification.time", { lng: lang })}</strong> ${startTime} - ${endTime}</li>
                 ${
                   event.duration
-                    ? `<li><strong>Duration:</strong> ${event.duration} minutes</li>`
+                    ? `<li><strong>${app.t("emails.bookingNotification.duration", { lng: lang })}</strong> ${app.t("emails.bookingNotification.minutes", { lng: lang, duration: event.duration })}</li>`
                     : ""
                 }
               </ul>
-              <p>Best regards,<br>Booking System</p>
+              <p>${app.t("emails.bookingNotification.bestRegards", { lng: lang })}<br>${app.t("emails.bookingNotification.bookingSystem", { lng: lang })}</p>
             `,
             });
             console.log("✅ Provider email sent successfully");

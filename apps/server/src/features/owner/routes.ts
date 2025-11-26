@@ -174,38 +174,41 @@ const ownerRoutes: FastifyPluginAsync = async (app) => {
         const orgSlug = (department as any).organization?.slug || "wellness"; // fallback to wellness
         const loginUrl = `${phpServerUrl}/${orgSlug}_external.html`;
 
+        // Get language preference (default to "en", can be enhanced with user preference)
+        const lang = req.language || "en";
+
         await resend.emails.send({
           from: fromEmail,
           to: email,
-          subject: "Welcome as a Provider - Your Account Created",
+          subject: app.t("emails.provider.subject", { lng: lang }),
           html: `
-            <h2>Welcome as a Provider!</h2>
-            <p>Dear ${name},</p>
-            <p>Your provider account has been created successfully by the organization owner.</p>
+            <h2>${app.t("emails.provider.greeting", { lng: lang })}</h2>
+            <p>${app.t("emails.provider.dear", { lng: lang, name })}</p>
+            <p>${app.t("emails.provider.accountCreated", { lng: lang })}</p>
             
-            <h3>Your Account Details:</h3>
+            <h3>${app.t("emails.provider.accountDetails", { lng: lang })}</h3>
             <ul>
-              <li><strong>Email:</strong> ${email}</li>
-              <li><strong>Temporary Password:</strong> ${tempPassword}</li>
-              <li><strong>Role:</strong> Provider</li>
+              <li><strong>${app.t("emails.provider.email", { lng: lang })}</strong> ${email}</li>
+              <li><strong>${app.t("emails.provider.temporaryPassword", { lng: lang })}</strong> ${tempPassword}</li>
+              <li><strong>${app.t("emails.provider.role", { lng: lang })}</strong> ${app.t("emails.provider.provider", { lng: lang })}</li>
             </ul>
             
-            <p><strong>⚠️ IMPORTANT:</strong> You must change your password on first login.</p>
+            <p><strong>${app.t("emails.provider.important", { lng: lang })}</strong> ${app.t("emails.provider.changePassword", { lng: lang })}</p>
             
-            <p>Please access the booking app through your organization's website:</p>
+            <p>${app.t("emails.provider.accessBookingApp", { lng: lang })}</p>
             <p>
               <a href="${loginUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
-                Access Booking App
+                ${app.t("emails.provider.accessApp", { lng: lang })}
               </a>
             </p>
             
-            <p>Or copy and paste this link into your browser:</p>
+            <p>${app.t("emails.provider.orCopyPaste", { lng: lang })}</p>
             <p><a href="${loginUrl}">${loginUrl}</a></p>
             
-            <p>After logging in, you will be prompted to change your password for security.</p>
-            <p><strong>Note:</strong> You must access the system through your organization's website link above.</p>
+            <p>${app.t("emails.provider.afterLogin", { lng: lang })}</p>
+            <p><strong>${app.t("emails.provider.note", { lng: lang })}</strong> ${app.t("emails.provider.mustAccessThroughLink", { lng: lang })}</p>
             
-            <p>Best regards,<br>Administration Team</p>
+            <p>${app.t("emails.provider.bestRegards", { lng: lang })}<br>${app.t("emails.provider.adminTeam", { lng: lang })}</p>
           `,
         });
 

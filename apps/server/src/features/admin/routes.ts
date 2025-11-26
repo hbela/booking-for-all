@@ -168,39 +168,45 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
             "http://localhost:3001";
           const loginUrl = `${frontendUrl}/login`;
 
+          // Get language preference (default to "en", can be enhanced with user preference)
+          const lang = req.language || "en";
+
           await resend.emails.send({
             from: fromEmail,
             to: ownerEmail,
-            subject: `Welcome to ${name} - Your Organization Dashboard`,
+            subject: app.t("emails.organizationOwner.subject", { 
+              lng: lang,
+              organizationName: name 
+            }),
             html: `
-              <h2>Welcome to ${name}!</h2>
-              <p>Dear ${ownerName},</p>
-              <p>Your organization <strong>${name}</strong> has been created successfully, and you have been set up as the owner.</p>
+              <h2>${app.t("emails.organizationOwner.greeting", { lng: lang, organizationName: name })}</h2>
+              <p>${app.t("emails.organizationOwner.dear", { lng: lang, name: ownerName })}</p>
+              <p>${app.t("emails.organizationOwner.organizationCreated", { lng: lang, organizationName: name })}</p>
               
-              <h3>Your Account Details:</h3>
+              <h3>${app.t("emails.organizationOwner.accountDetails", { lng: lang })}</h3>
               <ul>
-                <li><strong>Email:</strong> ${ownerEmail}</li>
-                <li><strong>Temporary Password:</strong> ${tempPassword}</li>
-                <li><strong>Role:</strong> Owner</li>
+                <li><strong>${app.t("emails.organizationOwner.email", { lng: lang })}</strong> ${ownerEmail}</li>
+                <li><strong>${app.t("emails.organizationOwner.temporaryPassword", { lng: lang })}</strong> ${tempPassword}</li>
+                <li><strong>${app.t("emails.organizationOwner.role", { lng: lang })}</strong> ${app.t("emails.organizationOwner.owner", { lng: lang })}</li>
               </ul>
               
-              <p><strong>⚠️ IMPORTANT:</strong> You must change your password on first login.</p>
+              <p><strong>${app.t("emails.organizationOwner.important", { lng: lang })}</strong> ${app.t("emails.organizationOwner.changePassword", { lng: lang })}</p>
               
-              <h3>Access Your Organization:</h3>
-              <p>Click the button below to access your organization's portal:</p>
+              <h3>${app.t("emails.organizationOwner.accessOrganization", { lng: lang })}</h3>
+              <p>${app.t("emails.organizationOwner.clickButton", { lng: lang })}</p>
               
               <p>
                 <a href="${externalPageUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
-                  Access Your Organization Portal
+                  ${app.t("emails.organizationOwner.accessPortal", { lng: lang })}
                 </a>
               </p>
               
-              <p>Or copy and paste this link into your browser:</p>
+              <p>${app.t("emails.organizationOwner.orCopyPaste", { lng: lang })}</p>
               <p><a href="${externalPageUrl}">${externalPageUrl}</a></p>
               
-              <p>After logging in, you will be prompted to change your password for security.</p>
+              <p>${app.t("emails.organizationOwner.afterLogin", { lng: lang })}</p>
               
-              <p>Best regards,<br>Administration Team</p>
+              <p>${app.t("emails.organizationOwner.bestRegards", { lng: lang })}<br>${app.t("emails.organizationOwner.adminTeam", { lng: lang })}</p>
             `,
           });
 

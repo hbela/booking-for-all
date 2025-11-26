@@ -223,7 +223,7 @@ function ProviderComponent() {
               {session.data?.user.name}
             </div>
             <div>
-              <span className="font-semibold">{t("provider.email")}:</span>{" "}
+              <span className="font-semibold">{t("provider.emailLabel")}:</span>{" "}
               {session.data?.user.email}
             </div>
             <div>

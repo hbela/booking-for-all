@@ -561,7 +561,7 @@ function ProviderCalendarComponent() {
                     {selectedEvent.booking?.member?.name}
                   </p>
                   <p>
-                    <strong>{t("provider.email")}:</strong>{" "}
+                    <strong>{t("provider.emailLabel")}:</strong>{" "}
                     {selectedEvent.booking?.member?.email}
                   </p>
                   <div className="flex gap-2 mt-4">
@@ -681,7 +681,7 @@ function ProviderCalendarComponent() {
                         onClick={() => handleDeleteClick(selectedEvent)}
                         disabled={loading || deleteEventMutation.isPending}
                       >
-                        {t("provider.delete")}
+                        {t("provider.deleteAction")}
                       </Button>
                     )}
                     <form.Subscribe
@@ -746,7 +746,7 @@ function ProviderCalendarComponent() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteEventMutation.isPending}
             >
-              {deleteEventMutation.isPending ? t("provider.deleting") : t("provider.delete")}
+              {deleteEventMutation.isPending ? t("provider.deleting") : t("provider.deleteAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
