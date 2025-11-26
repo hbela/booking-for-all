@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, Search, Clock, CheckCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export function ClientHomepage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-950 dark:to-pink-900">
       <div className="container mx-auto px-4 py-16">
@@ -14,10 +16,10 @@ export function ClientHomepage() {
               <Calendar className="w-12 h-12 text-purple-600 dark:text-purple-400" />
             </div>
             <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-              Book Your Appointment
+              {t("client.bookYourAppointment")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Find available time slots, book appointments with service providers, and manage your bookings effortlessly
+              {t("client.findProviders")}
             </p>
           </div>
 
@@ -35,9 +37,9 @@ export function ClientHomepage() {
             <Card>
               <CardHeader>
                 <Search className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-2" />
-                <CardTitle>Find Providers</CardTitle>
+                <CardTitle>{t("client.findProvidersTitle")}</CardTitle>
                 <CardDescription>
-                  Browse organizations and departments to find the right service provider for you
+                  {t("client.findProvidersDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -45,9 +47,9 @@ export function ClientHomepage() {
             <Card>
               <CardHeader>
                 <Clock className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-2" />
-                <CardTitle>Book Appointments</CardTitle>
+                <CardTitle>{t("client.bookAppointmentsTitle")}</CardTitle>
                 <CardDescription>
-                  Select available time slots that work for you and confirm your appointment instantly
+                  {t("client.bookAppointmentsDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -55,9 +57,9 @@ export function ClientHomepage() {
             <Card>
               <CardHeader>
                 <CheckCircle className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-2" />
-                <CardTitle>Manage Bookings</CardTitle>
+                <CardTitle>{t("client.manageBookings")}</CardTitle>
                 <CardDescription>
-                  View your upcoming appointments, reschedule, or cancel as needed
+                  {t("client.manageBookingsDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -66,21 +68,21 @@ export function ClientHomepage() {
           {/* Quick Actions */}
           <Card className="bg-purple-500/5 border-purple-500/20">
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Start booking appointments or manage your existing bookings</CardDescription>
+              <CardTitle>{t("client.quickActions")}</CardTitle>
+              <CardDescription>{t("client.quickActionsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
                 <Link to="/client">
                   <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
                     <Calendar className="mr-2 h-4 w-4" />
-                    Browse Organizations
+                    {t("client.browseOrganizations")}
                   </Button>
                 </Link>
                 <Link to="/client/bookings">
                   <Button variant="outline" size="lg">
                     <CheckCircle className="mr-2 h-4 w-4" />
-                    My Bookings
+                    {t("client.myBookings")}
                   </Button>
                 </Link>
               </div>

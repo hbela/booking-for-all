@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import * as Sentry from "@sentry/react";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 // Setup the localizer for BigCalendar
 const locales = {
@@ -152,6 +153,7 @@ interface EventFormData {
 function ProviderCalendarComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const userId = session.data?.user.id;
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
@@ -206,8 +208,8 @@ function ProviderCalendarComponent() {
       .map((event: any) => ({
         id: event.id,
         title: event.isBooked
-          ? `${event.title} - Booked by ${
-              event.booking?.member?.name || "Client"
+          ? `${event.title} - ${t("provider.bookedBy")} ${
+              event.booking?.member?.name || t("provider.client")
             }`
           : event.title,
         description: event.description,
@@ -223,7 +225,7 @@ function ProviderCalendarComponent() {
   const createEventMutation = useMutation({
     mutationFn: createEvent,
     onSuccess: () => {
-      toast.success("Event created successfully");
+      toast.success(t("provider.eventCreatedSuccessfully"));
       setShowModal(false);
       queryClient.invalidateQueries({
         queryKey: ["events", { providerId: provider?.id }],
@@ -233,7 +235,7 @@ function ProviderCalendarComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create event");
+        toast.error(t("provider.failedToCreateEvent"));
       }
     },
   });
@@ -241,7 +243,7 @@ function ProviderCalendarComponent() {
   const updateEventMutation = useMutation({
     mutationFn: updateEvent,
     onSuccess: () => {
-      toast.success("Event updated successfully");
+      toast.success(t("provider.eventUpdatedSuccessfully"));
       setShowModal(false);
       queryClient.invalidateQueries({
         queryKey: ["events", { providerId: provider?.id }],
@@ -251,7 +253,7 @@ function ProviderCalendarComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to update event");
+        toast.error(t("provider.failedToUpdateEvent"));
       }
     },
   });
@@ -259,7 +261,7 @@ function ProviderCalendarComponent() {
   const deleteEventMutation = useMutation({
     mutationFn: deleteEvent,
     onSuccess: () => {
-      toast.success("Event deleted successfully");
+      toast.success(t("provider.eventDeletedSuccessfully"));
       setShowModal(false);
       queryClient.invalidateQueries({
         queryKey: ["events", { providerId: provider?.id }],
@@ -269,7 +271,7 @@ function ProviderCalendarComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to delete event");
+        toast.error(t("provider.failedToDeleteEvent"));
       }
     },
   });
@@ -308,19 +310,19 @@ function ProviderCalendarComponent() {
   useEffect(() => {
     if (providerError) {
       toast.error(
-        providerError.message || "Error loading provider information"
+        providerError.message || t("provider.errorLoadingProviderInformation")
       );
     }
     if (eventsError) {
-      toast.error("Error loading events");
+      toast.error(t("provider.errorLoadingEvents"));
     }
-  }, [providerError, eventsError]);
+  }, [providerError, eventsError, t]);
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     // Check if the selected date is in the past
     const now = new Date();
     if (start < now) {
-      toast.error("Cannot create availability in the past");
+      toast.error(t("provider.cannotCreateAvailabilityInPast"));
       return;
     }
 
@@ -387,7 +389,7 @@ function ProviderCalendarComponent() {
   if (loading && !provider) {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="text-center">Loading...</div>
+        <div className="text-center">{t("provider.loading")}</div>
       </div>
     );
   }
@@ -398,8 +400,7 @@ function ProviderCalendarComponent() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              You are not registered as a provider. Please contact your
-              organization owner.
+              {t("provider.notRegisteredAsProvider")}
             </p>
           </CardContent>
         </Card>
@@ -410,20 +411,18 @@ function ProviderCalendarComponent() {
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Calendar</h1>
+        <h1 className="text-3xl font-bold">{t("provider.myCalendar")}</h1>
         <p className="text-muted-foreground">
-          Manage your availability - {provider.department?.name}
+          {t("provider.manageYourAvailability", { department: provider.department?.name })}
           <SentrySmokeTest />
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Availability Calendar</CardTitle>
+          <CardTitle>{t("provider.availabilityCalendar")}</CardTitle>
           <CardDescription>
-            Click on the calendar to create new availability slots (8 AM - 8 PM
-            only). Green = Available, Red = Booked. Past dates are not
-            selectable.
+            {t("provider.clickCalendarToCreateSlotsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -529,9 +528,9 @@ function ProviderCalendarComponent() {
               <CardTitle>
                 {selectedEvent
                   ? selectedEvent.isBooked
-                    ? "View Booking"
-                    : "Edit Event"
-                  : "Create Availability"}
+                    ? t("provider.viewBooking")
+                    : t("provider.editEvent")
+                  : t("provider.createAvailability")}
               </CardTitle>
               {selectedSlot && !selectedEvent && (
                 <CardDescription>
@@ -545,7 +544,7 @@ function ProviderCalendarComponent() {
                   {format(selectedEvent.end, "p")}
                   {selectedEvent.isBooked && (
                     <span className="block mt-1 text-red-600">
-                      Booked by: {selectedEvent.booking?.member?.name}
+                      {t("provider.bookedBy")}: {selectedEvent.booking?.member?.name}
                     </span>
                   )}
                 </CardDescription>
@@ -555,14 +554,14 @@ function ProviderCalendarComponent() {
               {selectedEvent?.isBooked ? (
                 <div className="space-y-2">
                   <p>
-                    <strong>Title:</strong> {selectedEvent.title}
+                    <strong>{t("provider.title")}:</strong> {selectedEvent.title}
                   </p>
                   <p>
-                    <strong>Booked by:</strong>{" "}
+                    <strong>{t("provider.bookedBy")}:</strong>{" "}
                     {selectedEvent.booking?.member?.name}
                   </p>
                   <p>
-                    <strong>Email:</strong>{" "}
+                    <strong>{t("provider.email")}:</strong>{" "}
                     {selectedEvent.booking?.member?.email}
                   </p>
                   <div className="flex gap-2 mt-4">
@@ -571,7 +570,7 @@ function ProviderCalendarComponent() {
                       onClick={() => setShowModal(false)}
                       className="flex-1"
                     >
-                      Close
+                      {t("common.close")}
                     </Button>
                   </div>
                 </div>
@@ -589,7 +588,7 @@ function ProviderCalendarComponent() {
                     validators={{
                       onChange: ({ value }) => {
                         if (!value || value.length < 2) {
-                          return "Title must be at least 2 characters";
+                          return t("provider.titleRequired");
                         }
                         return undefined;
                       },
@@ -597,10 +596,10 @@ function ProviderCalendarComponent() {
                   >
                     {(field) => (
                       <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
+                        <Label htmlFor="title">{t("provider.title")}</Label>
                         <Input
                           id="title"
-                          placeholder="Available for consultation"
+                          placeholder={t("provider.titlePlaceholder")}
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
@@ -617,11 +616,11 @@ function ProviderCalendarComponent() {
                     {(field) => (
                       <div className="space-y-2">
                         <Label htmlFor="description">
-                          Description (optional)
+                          {t("provider.description")}
                         </Label>
                         <Input
                           id="description"
-                          placeholder="Add notes..."
+                          placeholder={t("provider.descriptionPlaceholder")}
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
@@ -633,7 +632,7 @@ function ProviderCalendarComponent() {
                     <form.Field name="duration">
                       {(field) => (
                         <div className="space-y-2">
-                          <Label htmlFor="duration">Duration</Label>
+                          <Label htmlFor="duration">{t("provider.duration")}</Label>
                           <Select
                             value={field.state.value.toString()}
                             onValueChange={(value) => {
@@ -653,13 +652,13 @@ function ProviderCalendarComponent() {
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select duration" />
+                              <SelectValue placeholder={t("provider.selectDuration")} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="15">15 minutes</SelectItem>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="45">45 minutes</SelectItem>
-                              <SelectItem value="60">60 minutes</SelectItem>
+                              <SelectItem value="15">{t("provider.fifteenMinutes")}</SelectItem>
+                              <SelectItem value="30">{t("provider.thirtyMinutes")}</SelectItem>
+                              <SelectItem value="45">{t("provider.fortyFiveMinutes")}</SelectItem>
+                              <SelectItem value="60">{t("provider.sixtyMinutes")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -673,7 +672,7 @@ function ProviderCalendarComponent() {
                       onClick={() => setShowModal(false)}
                       className="flex-1"
                     >
-                      Cancel
+                      {t("provider.cancel")}
                     </Button>
                     {selectedEvent && !selectedEvent.isBooked && (
                       <Button
@@ -682,7 +681,7 @@ function ProviderCalendarComponent() {
                         onClick={() => handleDeleteClick(selectedEvent)}
                         disabled={loading || deleteEventMutation.isPending}
                       >
-                        Delete
+                        {t("provider.delete")}
                       </Button>
                     )}
                     <form.Subscribe
@@ -706,10 +705,10 @@ function ProviderCalendarComponent() {
                           {isSubmitting ||
                           createEventMutation.isPending ||
                           updateEventMutation.isPending
-                            ? "Saving..."
+                            ? t("provider.saving")
                             : selectedEvent
-                            ? "Update"
-                            : "Create"}
+                            ? t("provider.update")
+                            : t("provider.create")}
                         </Button>
                       )}
                     </form.Subscribe>
@@ -725,15 +724,14 @@ function ProviderCalendarComponent() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Event</AlertDialogTitle>
+            <AlertDialogTitle>{t("provider.deleteEvent")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this event? This action cannot be
-              undone.
+              {t("provider.areYouSureDeleteEvent")}
               {eventToDelete && (
                 <div className="mt-2">
-                  <strong>Event:</strong> {eventToDelete.title}
+                  <strong>{t("provider.event")}:</strong> {eventToDelete.title}
                   <br />
-                  <strong>Time:</strong> {format(eventToDelete.start, "PPP p")}{" "}
+                  <strong>{t("provider.time")}:</strong> {format(eventToDelete.start, "PPP p")}{" "}
                   - {format(eventToDelete.end, "p")}
                 </div>
               )}
@@ -741,14 +739,14 @@ function ProviderCalendarComponent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setEventToDelete(null)}>
-              Cancel
+              {t("provider.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteEventMutation.isPending}
             >
-              {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteEventMutation.isPending ? t("provider.deleting") : t("provider.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

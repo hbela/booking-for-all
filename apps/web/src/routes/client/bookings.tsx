@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { Calendar, Clock, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/client/bookings")({
   component: ClientBookings,
@@ -84,6 +85,7 @@ const fetchClientBookings = async (): Promise<Booking[]> => {
 
 function ClientBookings() {
   const { session } = Route.useRouteContext();
+  const { t } = useTranslation();
 
   // Query for bookings
   const {
@@ -125,41 +127,41 @@ function ClientBookings() {
   if (isLoading) {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="text-center">Loading bookings...</div>
+        <div className="text-center">{t("client.loadingBookings")}</div>
       </div>
     );
   }
 
   if (error) {
-    toast.error("Failed to load bookings");
+    toast.error(t("client.failedToLoadBookings"));
   }
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Bookings</h1>
+        <h1 className="text-3xl font-bold">{t("client.myBookings")}</h1>
         <p className="text-muted-foreground">
-          View and manage your appointments
+          {t("client.viewAndManageAppointments")}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Bookings</CardTitle>
+          <CardTitle>{t("client.bookings")}</CardTitle>
           <CardDescription>
-            Manage your current and past appointments
+            {t("client.manageCurrentAndPastAppointments")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
             <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
               <p className="text-sm text-red-600 dark:text-red-400">
-                Error loading bookings.{" "}
+                {t("client.errorLoadingBookings")}{" "}
                 <button
                   onClick={() => refetch()}
                   className="underline font-medium"
                 >
-                  Try again
+                  {t("client.tryAgain")}
                 </button>
               </p>
             </div>
@@ -167,10 +169,10 @@ function ClientBookings() {
           <Tabs defaultValue="current" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="current">
-                Current Bookings ({currentBookings.length})
+                {t("client.currentBookings")} ({currentBookings.length})
               </TabsTrigger>
               <TabsTrigger value="history">
-                Booking History ({bookingHistory.length})
+                {t("client.bookingHistory")} ({bookingHistory.length})
               </TabsTrigger>
             </TabsList>
 
@@ -178,7 +180,7 @@ function ClientBookings() {
               {currentBookings.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">
-                    You don't have any upcoming bookings.
+                    {t("client.noUpcomingBookings")}
                   </p>
                 </div>
               ) : (
@@ -194,7 +196,7 @@ function ClientBookings() {
               {bookingHistory.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">
-                    You don't have any past bookings.
+                    {t("client.noPastBookings")}
                   </p>
                 </div>
               ) : (
@@ -213,6 +215,7 @@ function ClientBookings() {
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
+  const { t } = useTranslation();
   const startDate = new Date(booking.event.start);
   const endDate = new Date(booking.event.end);
   const isPast = startDate < new Date();
@@ -223,27 +226,27 @@ function BookingCard({ booking }: { booking: Booking }) {
     if (isCancelled) {
       return (
         <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
-          Cancelled
+          {t("client.cancelled")}
         </span>
       );
     }
     if (isCompleted) {
       return (
         <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-          Completed
+          {t("client.completed")}
         </span>
       );
     }
     if (isPast) {
       return (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-          Past
+          {t("client.past")}
         </span>
       );
     }
     return (
       <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-        Confirmed
+        {t("client.confirmed")}
       </span>
     );
   };
@@ -256,14 +259,14 @@ function BookingCard({ booking }: { booking: Booking }) {
           <CardDescription>{booking.event.description}</CardDescription>
         )}
         <div className="mt-2">
-          <span className="text-sm text-muted-foreground">Status: </span>
+          <span className="text-sm text-muted-foreground">{t("client.status")}: </span>
           {getStatusBadge()}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Provider:</span>
+          <span className="text-muted-foreground">{t("client.provider")}:</span>
           <span className="font-medium">
             {booking.event.provider.user.name}
           </span>
@@ -271,7 +274,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 
         <div className="flex items-center gap-2 text-sm">
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Organization:</span>
+          <span className="text-muted-foreground">{t("client.organization")}:</span>
           <span className="font-medium">
             {booking.event.provider.department.organization.name}
           </span>
@@ -279,7 +282,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 
         <div className="flex items-center gap-2 text-sm">
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Department:</span>
+          <span className="text-muted-foreground">{t("client.department")}:</span>
           <span className="font-medium">
             {booking.event.provider.department.name}
           </span>
@@ -297,14 +300,14 @@ function BookingCard({ booking }: { booking: Booking }) {
           </span>
           {booking.event.duration && (
             <span className="text-muted-foreground">
-              ({booking.event.duration} min)
+              ({booking.event.duration} {t("client.minutes")})
             </span>
           )}
         </div>
 
         {booking.event.price && (
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <span className="text-muted-foreground">Price:</span>
+            <span className="text-muted-foreground">{t("client.price")}:</span>
             <span>${booking.event.price}</span>
           </div>
         )}

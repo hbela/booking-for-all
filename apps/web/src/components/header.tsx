@@ -1,10 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
+import { LanguageSwitcher } from "./language-switcher";
 import { authClient } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function Header() {
+  const { t } = useTranslation();
   const [userRole, setUserRole] = useState<
     "ADMIN" | "OWNER" | "PROVIDER" | null
   >(null);
@@ -41,31 +44,31 @@ export default function Header() {
 
   // Determine navigation links based on user role
   const getLinks = () => {
-    const baseLinks = [{ to: "/", label: "Home" }];
+    const baseLinks = [{ to: "/", label: t("navigation.home") }];
 
     // Add Book Appointment and Bookings links for authenticated users, but NOT for owners, admins, or providers
     // Owners manage the organization and don't need to book appointments
     // Admins have administrative duties and don't book appointments
     // Providers manage their own calendar and appointments - they don't book as clients
     if (session?.user && userRole !== "OWNER" && userRole !== "ADMIN" && userRole !== "PROVIDER") {
-      baseLinks.push({ to: "/client/", label: "Book Appointment" });
-      baseLinks.push({ to: "/client/bookings", label: "Bookings" });
+      baseLinks.push({ to: "/client/", label: t("navigation.bookAppointment") });
+      baseLinks.push({ to: "/client/bookings", label: t("navigation.bookings") });
     }
 
     if (userRole === "ADMIN") {
-      return [...baseLinks, { to: "/admin/", label: "Admin" }];
+      return [...baseLinks, { to: "/admin/", label: t("navigation.admin") }];
     } else if (userRole === "OWNER") {
       return [
         ...baseLinks,
-        { to: "/owner/", label: "Dashboard" },
-        { to: "/owner/departments", label: "Departments" },
-        { to: "/owner/providers", label: "Providers" },
+        { to: "/owner/", label: t("navigation.dashboard") },
+        { to: "/owner/departments", label: t("navigation.departments") },
+        { to: "/owner/providers", label: t("navigation.providers") },
       ];
     } else if (userRole === "PROVIDER") {
       return [
         ...baseLinks,
-        { to: "/provider/", label: "Dashboard" },
-        { to: "/provider/calendar", label: "My Calendar" },
+        { to: "/provider/", label: t("navigation.dashboard") },
+        { to: "/provider/calendar", label: t("navigation.myCalendar") },
       ];
     }
 
@@ -98,12 +101,13 @@ export default function Header() {
               className={`w-2 h-2 rounded-full ${
                 apiConnected ? "bg-green-500" : "bg-red-500"
               }`}
-              title={apiConnected ? "API Connected" : "API Disconnected"}
+              title={apiConnected ? t("api.connected") : t("api.disconnected")}
             />
             <span className="text-muted-foreground">
-              {apiConnected ? "API" : "Offline"}
+              {apiConnected ? t("api.api") : t("api.offline")}
             </span>
           </div>
+          <LanguageSwitcher />
           <ModeToggle />
           <UserMenu />
         </div>

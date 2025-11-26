@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute(
   "/client/organizations/$orgId/departments/$deptId"
@@ -62,6 +63,7 @@ function ProviderSelection() {
   const { orgId, deptId } = Route.useParams();
   const navigate = useNavigate();
   const matches = useMatches();
+  const { t } = useTranslation();
 
   // Check if we're on a child route (like providers/$providerId)
   // If there are more than 3 matches (root + orgId + deptId + child), we're on a child route
@@ -110,14 +112,14 @@ function ProviderSelection() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading providers...</div>
+        <div className="text-lg">{t("client.loadingProviders")}</div>
       </div>
     );
   }
 
   if (hasError) {
     toast.error(
-      deptError ? "Failed to load department" : "Failed to load providers"
+      deptError ? t("client.failedToLoadDepartment") : t("client.failedToLoadProviders")
     );
   }
 
@@ -131,7 +133,7 @@ function ProviderSelection() {
         }
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Departments
+        {t("client.backToDepartments")}
       </Button>
 
       <div className="mb-8">
@@ -140,7 +142,7 @@ function ProviderSelection() {
         </div>
         <h1 className="text-4xl font-bold mb-2">{department?.name}</h1>
         <p className="text-sm text-muted-foreground">
-          Select a provider to view their available time slots
+          {t("client.selectProviderToViewTimeSlots")}
         </p>
       </div>
 
@@ -148,7 +150,7 @@ function ProviderSelection() {
         <Card className="col-span-full">
           <CardContent className="pt-6">
             <p className="text-center text-red-500">
-              Error loading data. Please try again.
+              {t("client.errorLoadingData")}
             </p>
           </CardContent>
         </Card>
@@ -158,7 +160,7 @@ function ProviderSelection() {
             <Card className="col-span-full">
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No providers available in this department.
+                  {t("client.noProvidersAvailable")}
                 </p>
               </CardContent>
             </Card>
@@ -183,7 +185,7 @@ function ProviderSelection() {
                         </CardDescription>
                       )}
                       <CardDescription className="text-xs text-muted-foreground">
-                        ID: {provider.id.slice(0, 8)}...
+                        {t("client.id")}: {provider.id.slice(0, 8)}...
                       </CardDescription>
                     </div>
                   </div>
@@ -196,7 +198,7 @@ function ProviderSelection() {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <Calendar className="h-4 w-4" />
-                    <span>{provider._count?.events || 0} available slots</span>
+                    <span>{t("client.availableSlots", { count: provider._count?.events || 0 })}</span>
                   </div>
                   <Button
                     className="w-full"
@@ -208,7 +210,7 @@ function ProviderSelection() {
                     }
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    View Calendar
+                    {t("client.viewCalendar")}
                   </Button>
                 </CardContent>
               </Card>

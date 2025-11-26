@@ -5,6 +5,7 @@ import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
 
 import * as Sentry from "@sentry/react";
+import "./i18n";
 
 const router = createRouter({
   routeTree,

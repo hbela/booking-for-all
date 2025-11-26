@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, Building2, Users, Shield, ArrowRight, CheckCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export function DefaultHomepage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
       <div className="container mx-auto px-4 py-16">
@@ -14,21 +16,21 @@ export function DefaultHomepage() {
               <Calendar className="w-14 h-14 text-white" />
             </div>
             <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Booking for All
+              {t("homepage.bookingForAll")}
             </h1>
             <p className="text-2xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              The comprehensive appointment management platform that connects organizations, service providers, and clients seamlessly
+              {t("homepage.tagline")}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/login">
                 <Button size="lg" className="text-lg px-8 py-6">
-                  Get Started
+                  {t("homepage.getStarted")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/login">
                 <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  Sign In
+                  {t("homepage.signIn")}
                 </Button>
               </Link>
             </div>
@@ -46,38 +48,35 @@ export function DefaultHomepage() {
           {/* What is Booking for All Section */}
           <Card className="mb-16 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
             <CardHeader className="text-center">
-              <CardTitle className="text-4xl mb-4">What is Booking for All?</CardTitle>
+              <CardTitle className="text-4xl mb-4">{t("homepage.whatIsBookingForAll")}</CardTitle>
               <CardDescription className="text-lg">
-                A powerful, all-in-one solution for appointment management
+                {t("homepage.powerfulSolution")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="prose prose-lg dark:prose-invert max-w-none">
                 <p className="text-lg leading-relaxed mb-4">
-                  <strong>Booking for All</strong> is a comprehensive appointment management system designed to streamline 
-                  the way organizations, service providers, and clients interact. Whether you're running a healthcare facility, 
-                  a consulting firm, a beauty salon, or any service-based business, our platform provides the tools you need 
-                  to manage appointments efficiently.
+                  <strong>{t("homepage.bookingForAll")}</strong> {t("homepage.description")}
                 </p>
                 <p className="text-lg leading-relaxed mb-4">
-                  Our platform supports multiple user roles, each with tailored features:
+                  {t("homepage.platformSupports")}
                 </p>
                 <ul className="space-y-3 text-lg">
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
-                    <span><strong>Organizations</strong> can create departments, manage providers, and control their entire booking ecosystem</span>
+                    <span><strong>{t("navigation.organizations")}</strong> {t("homepage.organizationsFeature")}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
-                    <span><strong>Service Providers</strong> can set their availability, manage their calendar, and connect with clients</span>
+                    <span><strong>{t("navigation.providers")}</strong> {t("homepage.providersFeature")}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
-                    <span><strong>Clients</strong> can easily find providers, book appointments, and manage their bookings</span>
+                    <span><strong>{t("client.clientDashboard")}</strong> {t("homepage.clientsFeature")}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
-                    <span><strong>Administrators</strong> have full system control to manage organizations and platform settings</span>
+                    <span><strong>{t("admin.adminDashboard")}</strong> {t("homepage.adminsFeature")}</span>
                   </li>
                 </ul>
               </div>
@@ -89,9 +88,9 @@ export function DefaultHomepage() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Shield className="w-10 h-10 text-primary mb-3" />
-                <CardTitle>Secure & Reliable</CardTitle>
+                <CardTitle>{t("homepage.secureReliable")}</CardTitle>
                 <CardDescription>
-                  Enterprise-grade security with role-based access control
+                  {t("homepage.secureDescription")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -99,9 +98,9 @@ export function DefaultHomepage() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Building2 className="w-10 h-10 text-primary mb-3" />
-                <CardTitle>Multi-Organization</CardTitle>
+                <CardTitle>{t("homepage.multiOrganization")}</CardTitle>
                 <CardDescription>
-                  Support for multiple organizations with independent management
+                  {t("homepage.multiOrganizationDescription")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -109,9 +108,9 @@ export function DefaultHomepage() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Users className="w-10 h-10 text-primary mb-3" />
-                <CardTitle>Team Management</CardTitle>
+                <CardTitle>{t("homepage.teamManagement")}</CardTitle>
                 <CardDescription>
-                  Organize providers into departments and manage teams efficiently
+                  {t("homepage.teamManagementDescription")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -119,9 +118,9 @@ export function DefaultHomepage() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Calendar className="w-10 h-10 text-primary mb-3" />
-                <CardTitle>Smart Scheduling</CardTitle>
+                <CardTitle>{t("homepage.smartScheduling")}</CardTitle>
                 <CardDescription>
-                  Intelligent calendar management with real-time availability
+                  {t("homepage.smartSchedulingDescription")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -130,15 +129,15 @@ export function DefaultHomepage() {
           {/* CTA Section */}
           <Card className="bg-gradient-to-r from-primary to-blue-600 text-white border-0">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl mb-2">Ready to Get Started?</CardTitle>
+              <CardTitle className="text-3xl mb-2">{t("homepage.readyToGetStarted")}</CardTitle>
               <CardDescription className="text-white/90 text-lg">
-                Join thousands of organizations already using Booking for All
+                {t("homepage.joinThousands")}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Link to="/login">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-                  Sign In to Your Account
+                  {t("homepage.signInToAccount")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>

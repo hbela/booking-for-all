@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import Loader from "./loader";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -12,6 +13,7 @@ export default function SignUpForm({
 }: {
   onSwitchToSignIn: () => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate({
     from: "/",
   });
@@ -46,7 +48,7 @@ export default function SignUpForm({
             if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
               if (!externalAppOrgId) {
                 // User is trying to sign up directly without organization context
-                toast.error("Connect using your organization.");
+                toast.error(t("auth.connectUsingOrganization"));
                 // Sign them out immediately
                 await authClient.signOut();
                 // Stay on login page, do not redirect
@@ -54,7 +56,7 @@ export default function SignUpForm({
               }
             }
             
-            toast.success("Sign up successful!");
+            toast.success(t("auth.signUpSuccessful"));
 
             if (externalAppOrgId) {
               console.log("🔗 Adding user to organization:", externalAppOrgId);
@@ -83,24 +85,18 @@ export default function SignUpForm({
                 if (response.ok) {
                   const result = await response.json();
                   console.log("✅ Successfully joined organization:", result);
-                  toast.success(
-                    "Welcome! You've been added to the organization."
-                  );
+                  toast.success(t("auth.welcomeAddedToOrganization"));
                 } else {
                   const errorData = await response.json();
                   console.error(
                     "❌ Failed to add user to organization:",
                     errorData
                   );
-                  toast.error(
-                    "Failed to join organization. Please contact support."
-                  );
+                  toast.error(t("auth.failedToJoinOrganization"));
                 }
               } catch (error) {
                 console.error("❌ Error adding user to organization:", error);
-                toast.error(
-                  "Failed to join organization. Please contact support."
-                );
+                toast.error(t("auth.failedToJoinOrganization"));
               }
             }
 
@@ -118,7 +114,7 @@ export default function SignUpForm({
           },
           onError: (error) => {
             const errorMessage =
-              (error as any)?.error?.message || "Sign up failed";
+              (error as any)?.error?.message || t("auth.signUpFailed");
             toast.error(errorMessage);
             console.error("Signup error:", error);
           },
@@ -133,7 +129,7 @@ export default function SignUpForm({
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">{t("auth.createAccount")}</h1>
 
       <form
         onSubmit={(e) => {
@@ -147,7 +143,7 @@ export default function SignUpForm({
           <form.Field name="name">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Name</Label>
+                <Label htmlFor={field.name}>{t("common.name")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -169,7 +165,7 @@ export default function SignUpForm({
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>{t("auth.email")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -192,7 +188,7 @@ export default function SignUpForm({
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>{t("auth.password")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -218,7 +214,7 @@ export default function SignUpForm({
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Submitting..." : "Sign Up"}
+              {state.isSubmitting ? t("common.submitting") : t("auth.signUp")}
             </Button>
           )}
         </form.Subscribe>
@@ -230,7 +226,7 @@ export default function SignUpForm({
           onClick={onSwitchToSignIn}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Already have an account? Sign In
+          {t("auth.alreadyHaveAccount")}
         </Button>
       </div>
     </div>

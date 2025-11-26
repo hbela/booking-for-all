@@ -16,7 +16,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Stub out i18next-fs-backend for frontend (it's only used in backend)
+      "i18next-fs-backend": path.resolve(__dirname, "./src/lib/i18n-stub.ts"),
     },
+    preserveSymlinks: false,
+  },
+  optimizeDeps: {
+    include: ["@booking-for-all/i18n"],
+    exclude: ["i18next-fs-backend"],
   },
   server: {
     host: "0.0.0.0",

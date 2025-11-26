@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminComponent,
@@ -103,6 +104,7 @@ function AdminComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Query for organizations
   const {
@@ -120,14 +122,14 @@ function AdminComponent() {
   const createOrgMutation = useMutation({
     mutationFn: createOrganization,
     onSuccess: (data) => {
-      toast.success(data.message || "Organization created successfully");
+      toast.success(data.message || t("admin.organizationCreatedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create organization");
+        toast.error(t("admin.failedToCreateOrganization"));
       }
     },
   });
@@ -136,11 +138,11 @@ function AdminComponent() {
   const deleteOrgMutation = useMutation({
     mutationFn: deleteOrganization,
     onSuccess: () => {
-      toast.success("Organization deleted successfully");
+      toast.success(t("admin.organizationDeletedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
     },
     onError: () => {
-      toast.error("Failed to delete organization");
+      toast.error(t("admin.failedToDeleteOrganization"));
     },
   });
 
@@ -151,7 +153,7 @@ function AdminComponent() {
       // Find org name for toast
       const org = organizations.find((o) => o.id === orgId);
       toast.success(
-        `Redirecting to checkout for ${org?.name || "organization"}...`
+        t("admin.redirectingToCheckout", { orgName: org?.name || t("admin.organization") })
       );
       window.location.href = data.checkoutUrl;
     },
@@ -159,7 +161,7 @@ function AdminComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error(error.message || "Failed to create checkout");
+        toast.error(error.message || t("admin.failedToCreateCheckout"));
       }
     },
   });
@@ -180,7 +182,7 @@ function AdminComponent() {
   });
 
   const handleDeleteOrg = async (orgId: string) => {
-    if (!confirm("Are you sure you want to delete this organization?")) {
+    if (!confirm(t("admin.areYouSureDeleteOrganization"))) {
       return;
     }
     await deleteOrgMutation.mutateAsync(orgId);
@@ -199,9 +201,9 @@ function AdminComponent() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold">{t("admin.adminDashboard")}</h1>
         <p className="text-muted-foreground">
-          Welcome, {session.data?.user.name} (System Administrator)
+          {t("admin.welcomeAdmin", { name: session.data?.user.name })}
         </p>
         <div className="mt-4">
           <Button
@@ -209,7 +211,7 @@ function AdminComponent() {
             onClick={() => navigate({ to: "/admin/api-keys" })}
             className="mr-2"
           >
-            Manage API Keys
+            {t("admin.manageApiKeys")}
           </Button>
         </div>
       </div>
@@ -218,9 +220,9 @@ function AdminComponent() {
         {/* Create Organization */}
         <Card>
           <CardHeader>
-            <CardTitle>Create Organization</CardTitle>
+            <CardTitle>{t("admin.createOrganization")}</CardTitle>
             <CardDescription>
-              Add a new organization to the system
+              {t("admin.addNewOrganization")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -237,7 +239,7 @@ function AdminComponent() {
                 validators={{
                   onChange: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return "Organization name is required";
+                      return t("admin.organizationNameRequired");
                     }
                     return undefined;
                   },
@@ -245,10 +247,10 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Organization Name</Label>
+                    <Label htmlFor={field.name}>{t("admin.organizationName")}</Label>
                     <Input
                       id={field.name}
-                      placeholder="Acme Corp"
+                      placeholder={t("admin.organizationNamePlaceholder")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -268,10 +270,10 @@ function AdminComponent() {
                 validators={{
                   onChange: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return "Slug is required";
+                      return t("admin.slugRequired");
                     }
                     if (!/^[a-z0-9-]+$/.test(value)) {
-                      return "Slug must contain only lowercase letters, numbers, and hyphens";
+                      return t("admin.slugInvalid");
                     }
                     return undefined;
                   },
@@ -279,10 +281,10 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Slug (URL-friendly)</Label>
+                    <Label htmlFor={field.name}>{t("admin.slug")}</Label>
                     <Input
                       id={field.name}
-                      placeholder="acme-corp"
+                      placeholder={t("admin.slugPlaceholder")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -302,7 +304,7 @@ function AdminComponent() {
                 validators={{
                   onChange: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return "Owner name is required";
+                      return t("admin.ownerNameRequired");
                     }
                     return undefined;
                   },
@@ -310,10 +312,10 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Owner Name</Label>
+                    <Label htmlFor={field.name}>{t("admin.ownerName")}</Label>
                     <Input
                       id={field.name}
-                      placeholder="John Smith"
+                      placeholder={t("admin.ownerNamePlaceholder")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -333,10 +335,10 @@ function AdminComponent() {
                 validators={{
                   onChange: ({ value }) => {
                     if (!value || value.trim().length === 0) {
-                      return "Owner email is required";
+                      return t("admin.ownerEmailRequired");
                     }
                     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                      return "Please enter a valid email address";
+                      return t("owner.validEmailAddress");
                     }
                     return undefined;
                   },
@@ -344,11 +346,11 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Owner Email</Label>
+                    <Label htmlFor={field.name}>{t("admin.ownerEmail")}</Label>
                     <Input
                       id={field.name}
                       type="email"
-                      placeholder="owner@example.com"
+                      placeholder={t("admin.ownerEmailPlaceholder")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -371,7 +373,7 @@ function AdminComponent() {
                       try {
                         new URL(value);
                       } catch {
-                        return "Please enter a valid URL";
+                        return t("admin.logoUrlInvalid");
                       }
                     }
                     return undefined;
@@ -380,11 +382,11 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Logo URL (optional)</Label>
+                    <Label htmlFor={field.name}>{t("admin.logoUrl")}</Label>
                     <Input
                       id={field.name}
                       type="url"
-                      placeholder="https://example.com/logo.png"
+                      placeholder={t("admin.logoUrlPlaceholder")}
                       value={field.state.value || ""}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -405,8 +407,8 @@ function AdminComponent() {
                 className="w-full"
               >
                 {createOrgMutation.isPending
-                  ? "Creating..."
-                  : "Create Organization"}
+                  ? t("admin.creating")
+                  : t("admin.createOrganizationButton")}
               </Button>
             </form>
           </CardContent>
@@ -416,27 +418,27 @@ function AdminComponent() {
       {/* Organizations List */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>All Organizations</CardTitle>
+          <CardTitle>{t("admin.allOrganizations")}</CardTitle>
           <CardDescription>
-            Manage all organizations in the system
+            {t("admin.manageAllOrganizations")}
           </CardDescription>
           <Button
             onClick={() => refetch()}
             disabled={isLoading}
             className="mt-2"
           >
-            {isLoading ? "Loading..." : "Load Organizations"}
+            {isLoading ? t("admin.loading") : t("admin.loadOrganizations")}
           </Button>
         </CardHeader>
         <CardContent>
           {error && (
             <p className="text-sm text-red-500 mb-4">
-              Error loading organizations: {error.message}
+              {t("admin.errorLoadingOrganizations", { message: error.message })}
             </p>
           )}
           {organizations.length === 0 && !isLoading ? (
             <p className="text-sm text-muted-foreground">
-              No organizations loaded. Click "Load Organizations" to fetch.
+              {t("admin.noOrganizationsLoaded")}
             </p>
           ) : (
             <div className="space-y-4">
@@ -463,17 +465,17 @@ function AdminComponent() {
                               : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                           }`}
                         >
-                          {org.enabled ? "Active" : "Pending"}
+                          {org.enabled ? t("admin.active") : t("admin.pending")}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Slug: {org.slug}
+                        {t("admin.slugLabel")}: {org.slug}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        ID: {org.id}
+                        {t("admin.idLabel")}: {org.id}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Members: {org.members?.length || 0}
+                        {t("admin.members")}: {org.members?.length || 0}
                       </p>
                     </div>
                   </div>
@@ -485,7 +487,7 @@ function AdminComponent() {
                         onClick={() => handleSubscribe(org.id)}
                         disabled={isLoadingAny}
                       >
-                        Subscribe
+                        {t("admin.subscribe")}
                       </Button>
                     )}
                     <Button
@@ -494,7 +496,7 @@ function AdminComponent() {
                       onClick={() => handleDeleteOrg(org.id)}
                       disabled={isLoadingAny}
                     >
-                      Delete
+                      {t("admin.delete")}
                     </Button>
                   </div>
                 </div>

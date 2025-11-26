@@ -8,19 +8,19 @@ on:
     # Allow manual triggering for testing
 
 env:
-  NODE_VERSION: '22'
-  PNPM_VERSION: '10.15.1'
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.1"
 
 jobs:
   sentry-release:
     name: Create Sentry Release & Upload Source Maps
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for commit linking
+          fetch-depth: 0 # Fetch full history for commit linking
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Chrome/Chromium for Puppeteer
+        run: pnpm --filter web run install-chrome
+
       - name: Generate Prisma Client
         run: pnpm --filter @booking-for-all/db exec prisma generate --no-engine
 
@@ -65,7 +68,7 @@ jobs:
           SENTRY_RELEASE: ${{ github.sha }}
         run: |
           echo "🔖 Creating Sentry release: ${{ github.sha }}"
-          
+
           # Create release for both projects using pnpm exec to use the installed @sentry/cli
           pnpm exec sentry-cli releases new "${{ github.sha }}" \
             --project booking-for-all-web \
@@ -113,4 +116,3 @@ jobs:
           echo "✅ Finalizing Sentry release..."
           pnpm exec sentry-cli releases finalize "${{ github.sha }}"
           echo "🎉 Sentry release process completed successfully!"
-

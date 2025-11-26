@@ -22,6 +22,7 @@ import { useForm } from "@tanstack/react-form";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/owner/providers")({
   component: ProvidersComponent,
@@ -124,6 +125,7 @@ const deleteProvider = async (providerId: string): Promise<void> => {
 function ProvidersComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const departmentFieldInteracted = useRef(false);
 
@@ -171,11 +173,10 @@ function ProvidersComponent() {
     mutationFn: createProvider,
     onSuccess: (data) => {
       toast.success(
-        `Provider created! Temporary password: ${data.tempPassword}`,
+        t("owner.providerCreated", { password: data.tempPassword }),
         {
           duration: 10000,
-          description:
-            "The provider will need to change this password on first login.",
+          description: t("owner.providerWillChangePassword"),
         }
       );
       form.reset();
@@ -187,7 +188,7 @@ function ProvidersComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Unexpected error occurred");
+        toast.error(t("owner.unexpectedError"));
       }
     },
   });
@@ -195,7 +196,7 @@ function ProvidersComponent() {
   const deleteProviderMutation = useMutation({
     mutationFn: deleteProvider,
     onSuccess: () => {
-      toast.success("Provider deleted successfully");
+      toast.success(t("owner.providerDeletedSuccessfully"));
       queryClient.invalidateQueries({
         queryKey: ["providers", { organizationId: selectedOrgId }],
       });
@@ -204,7 +205,7 @@ function ProvidersComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to delete provider");
+        toast.error(t("owner.failedToDeleteProvider"));
       }
     },
   });
@@ -218,7 +219,7 @@ function ProvidersComponent() {
     },
     onSubmit: async ({ value }) => {
       if (!selectedOrgId) {
-        toast.error("Please select an organization");
+        toast.error(t("owner.pleaseSelectOrganization"));
         return;
       }
       await createProviderMutation.mutateAsync({
@@ -244,18 +245,18 @@ function ProvidersComponent() {
   // Show errors
   useEffect(() => {
     if (organizationsError) {
-      toast.error("Error loading organizations");
+      toast.error(t("owner.errorLoadingOrganizations"));
     }
     if (departmentsError) {
-      toast.error("Error loading departments");
+      toast.error(t("owner.errorLoadingDepartments"));
     }
     if (providersError) {
-      toast.error("Error loading providers");
+      toast.error(t("owner.errorLoadingProviders"));
     }
-  }, [organizationsError, departmentsError, providersError]);
+  }, [organizationsError, departmentsError, providersError, t]);
 
   const handleDeleteProvider = (providerId: string) => {
-    if (!confirm("Are you sure you want to delete this provider?")) {
+    if (!confirm(t("owner.areYouSureDeleteProvider"))) {
       return;
     }
     deleteProviderMutation.mutate(providerId);
@@ -277,9 +278,9 @@ function ProvidersComponent() {
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Providers</h1>
+        <h1 className="text-3xl font-bold">{t("owner.providers")}</h1>
         <p className="text-muted-foreground">
-          Manage service providers for your organization
+          {t("owner.manageServiceProviders")}
         </p>
       </div>
 
@@ -288,8 +289,7 @@ function ProvidersComponent() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              You don't have any active organizations yet. Please activate your
-              organization by completing the subscription.
+              {t("owner.dontHaveActiveOrganizations")}
             </p>
           </CardContent>
         </Card>
@@ -298,12 +298,12 @@ function ProvidersComponent() {
           {organizations.length > 1 && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Select Organization</CardTitle>
+                <CardTitle>{t("owner.selectOrganization")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select organization" />
+                    <SelectValue placeholder={t("owner.selectOrganizationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {organizations.map((org) => (
@@ -321,8 +321,7 @@ function ProvidersComponent() {
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No departments available. Please create a department first in
-                  the Departments section.
+                  {t("owner.noDepartmentsAvailable")}
                 </p>
               </CardContent>
             </Card>
@@ -332,9 +331,9 @@ function ProvidersComponent() {
                 {/* Create Provider */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Create Provider</CardTitle>
+                    <CardTitle>{t("owner.createProvider")}</CardTitle>
                     <CardDescription>
-                      Add a new provider to {selectedOrg?.name}
+                      {t("owner.addNewProvider", { orgName: selectedOrg?.name })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -351,7 +350,7 @@ function ProvidersComponent() {
                         validators={{
                           onChange: ({ value }) => {
                             if (!value || value.length < 2) {
-                              return "Provider name must be at least 2 characters";
+                              return t("owner.providerNameMinChars");
                             }
                             return undefined;
                           },
@@ -359,10 +358,10 @@ function ProvidersComponent() {
                       >
                         {(field) => (
                           <div className="space-y-2">
-                            <Label htmlFor="provider-name">Provider Name</Label>
+                            <Label htmlFor="provider-name">{t("owner.providerName")}</Label>
                             <Input
                               id="provider-name"
-                              placeholder="e.g., Dr. John Smith"
+                              placeholder={t("owner.providerNamePlaceholder")}
                               value={field.state.value}
                               onChange={(e) =>
                                 field.handleChange(e.target.value)
@@ -382,11 +381,11 @@ function ProvidersComponent() {
                         validators={{
                           onChange: ({ value }) => {
                             if (!value) {
-                              return "Email is required";
+                              return t("owner.emailRequired");
                             }
                             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                             if (!emailRegex.test(value)) {
-                              return "Please enter a valid email address";
+                              return t("owner.validEmailAddress");
                             }
                             return undefined;
                           },
@@ -394,7 +393,7 @@ function ProvidersComponent() {
                       >
                         {(field) => (
                           <div className="space-y-2">
-                            <Label htmlFor="provider-email">Email</Label>
+                            <Label htmlFor="provider-email">{t("common.email")}</Label>
                             <Input
                               id="provider-email"
                               type="email"
@@ -418,13 +417,13 @@ function ProvidersComponent() {
                         validators={{
                           onBlur: ({ value }) => {
                             if (!value) {
-                              return "Department is required";
+                              return t("owner.departmentRequired");
                             }
                             return undefined;
                           },
                           onSubmit: ({ value }) => {
                             if (!value) {
-                              return "Department is required";
+                              return t("owner.departmentRequired");
                             }
                             return undefined;
                           },
@@ -440,7 +439,7 @@ function ProvidersComponent() {
 
                           return (
                             <div className="space-y-2">
-                              <Label htmlFor="provider-dept">Department</Label>
+                              <Label htmlFor="provider-dept">{t("owner.departments")}</Label>
                               <Select
                                 value={field.state.value}
                                 onValueChange={(value) => {
@@ -459,7 +458,7 @@ function ProvidersComponent() {
                                     departmentFieldInteracted.current = true;
                                   }}
                                 >
-                                  <SelectValue placeholder="Select Department" />
+                                  <SelectValue placeholder={t("owner.selectDepartment")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {departments.map((dept) => (
@@ -479,14 +478,14 @@ function ProvidersComponent() {
                         }}
                       </form.Field>
                       <div className="rounded-md bg-muted p-3 text-sm">
-                        <p className="font-medium mb-1">Temporary Password:</p>
+                        <p className="font-medium mb-1">{t("owner.temporaryPassword")}:</p>
                         <p className="text-muted-foreground">
                           <code className="bg-background px-2 py-1 rounded">
                             password123
                           </code>
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Provider must change password on first login
+                          {t("owner.providerMustChangePassword")}
                         </p>
                       </div>
                       <form.Subscribe
@@ -502,8 +501,8 @@ function ProvidersComponent() {
                             className="w-full"
                           >
                             {isSubmitting || createProviderMutation.isPending
-                              ? "Creating..."
-                              : "Create Provider"}
+                              ? t("owner.creating")
+                              : t("owner.createProvider")}
                           </Button>
                         )}
                       </form.Subscribe>
@@ -514,16 +513,16 @@ function ProvidersComponent() {
                 {/* Quick Stats */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Overview</CardTitle>
+                    <CardTitle>{t("owner.overview")}</CardTitle>
                     <CardDescription>
-                      Statistics for {selectedOrg?.name}
+                      {t("owner.statisticsFor", { orgName: selectedOrg?.name })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">
-                          Total Providers
+                          {t("owner.totalProviders")}
                         </span>
                         <span className="text-2xl font-bold">
                           {providers.length}
@@ -531,7 +530,7 @@ function ProvidersComponent() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">
-                          Departments
+                          {t("owner.departments")}
                         </span>
                         <span className="text-2xl font-bold">
                           {departments.length}
@@ -550,13 +549,13 @@ function ProvidersComponent() {
                       <CardTitle>{dept.name}</CardTitle>
                       <CardDescription>
                         {dept.providers.length}{" "}
-                        {dept.providers.length === 1 ? "provider" : "providers"}
+                        {dept.providers.length === 1 ? t("owner.provider") : t("owner.providersPlural")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {dept.providers.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                          No providers in this department yet.
+                          {t("owner.noProvidersInDepartment")}
                         </p>
                       ) : (
                         <div className="space-y-3">
@@ -583,7 +582,7 @@ function ProvidersComponent() {
                                   loading || deleteProviderMutation.isPending
                                 }
                               >
-                                Remove
+                                {t("owner.remove")}
                               </Button>
                             </div>
                           ))}

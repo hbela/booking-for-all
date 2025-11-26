@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/provider/")({
   component: ProviderComponent,
@@ -77,6 +78,7 @@ const fetchEvents = async (providerId: string): Promise<any[]> => {
 
 function ProviderComponent() {
   const { session } = Route.useRouteContext();
+  const { t } = useTranslation();
   const userId = session.data?.user.id;
 
   // Query for provider
@@ -130,17 +132,17 @@ function ProviderComponent() {
   // Show errors
   useEffect(() => {
     if (providerError) {
-      toast.error(providerError.message || "Error loading provider information");
+      toast.error(providerError.message || t("provider.errorLoadingProviderInformation"));
     }
     if (eventsError) {
-      toast.error("Error loading events");
+      toast.error(t("provider.errorLoadingEvents"));
     }
-  }, [providerError, eventsError]);
+  }, [providerError, eventsError, t]);
 
   if (loading) {
     return (
       <div className="container mx-auto max-w-6xl px-4 py-8">
-        <div className="text-center">Loading...</div>
+        <div className="text-center">{t("provider.loading")}</div>
       </div>
     );
   }
@@ -151,8 +153,7 @@ function ProviderComponent() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              You are not registered as a provider. Please contact your
-              organization administrator.
+              {t("provider.notRegisteredAsProvider")}
             </p>
           </CardContent>
         </Card>
@@ -163,9 +164,9 @@ function ProviderComponent() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Provider Dashboard</h1>
+        <h1 className="text-3xl font-bold">{t("provider.providerDashboard")}</h1>
         <p className="text-muted-foreground">
-          Welcome back, {session.data?.user.name}
+          {t("provider.welcomeBack", { name: session.data?.user.name })}
         </p>
       </div>
 
@@ -174,7 +175,7 @@ function ProviderComponent() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Future Events
+              {t("provider.totalFutureEvents")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -185,7 +186,7 @@ function ProviderComponent() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Booked Appointments
+              {t("provider.bookedAppointments")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -198,7 +199,7 @@ function ProviderComponent() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Available Slots
+              {t("provider.availableSlots")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -213,43 +214,42 @@ function ProviderComponent() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Your Information</CardTitle>
-            <CardDescription>Provider details</CardDescription>
+            <CardTitle>{t("provider.yourInformation")}</CardTitle>
+            <CardDescription>{t("provider.providerDetails")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <span className="font-semibold">Name:</span>{" "}
+              <span className="font-semibold">{t("provider.name")}:</span>{" "}
               {session.data?.user.name}
             </div>
             <div>
-              <span className="font-semibold">Email:</span>{" "}
+              <span className="font-semibold">{t("provider.email")}:</span>{" "}
               {session.data?.user.email}
             </div>
             <div>
-              <span className="font-semibold">Department:</span>{" "}
-              {provider.department?.name || "N/A"}
+              <span className="font-semibold">{t("provider.department")}:</span>{" "}
+              {provider.department?.name || t("provider.nA")}
             </div>
             <div>
-              <span className="font-semibold">Organization:</span>{" "}
-              {provider.department?.organization?.name || "N/A"}
+              <span className="font-semibold">{t("provider.organization")}:</span>{" "}
+              {provider.department?.organization?.name || t("provider.nA")}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t("provider.quickActionsTitle")}</CardTitle>
             <CardDescription>
-              Manage your calendar and availability
+              {t("provider.manageCalendarAndAvailability")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Link to="/provider/calendar">
-              <Button className="w-full">Go to Calendar</Button>
+              <Button className="w-full">{t("provider.goToCalendar")}</Button>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Click on your calendar to create availability slots. Clients can
-              book appointments during your available times.
+              {t("provider.clickCalendarToCreateSlots")}
             </p>
           </CardContent>
         </Card>

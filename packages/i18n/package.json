@@ -1,0 +1,40 @@
+{
+  "name": "@booking-for-all/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./locales/en": {
+      "types": "./dist/locales/en.d.ts",
+      "default": "./src/locales/en.ts"
+    },
+    "./locales/hu": {
+      "types": "./dist/locales/hu.d.ts",
+      "default": "./src/locales/hu.ts"
+    },
+    "./locales/de": {
+      "types": "./dist/locales/de.d.ts",
+      "default": "./src/locales/de.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "i18next": "^23.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "i18next-fs-backend": "^2.3.1"
+  }
+}

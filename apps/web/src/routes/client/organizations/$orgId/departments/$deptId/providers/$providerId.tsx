@@ -22,6 +22,7 @@ import {
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import type { View } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -120,6 +121,7 @@ function ClientCalendar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
 
@@ -152,7 +154,7 @@ function ClientCalendar() {
   const bookingMutation = useMutation({
     mutationFn: createBooking,
     onSuccess: () => {
-      toast.success("Booking confirmed! Check your email for details.");
+      toast.success(t("client.bookingConfirmed"));
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["client", "bookings"] });
       queryClient.invalidateQueries({
@@ -167,7 +169,7 @@ function ClientCalendar() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create booking");
+        toast.error(t("client.failedToCreateBooking"));
       }
     },
   });
@@ -193,7 +195,7 @@ function ClientCalendar() {
       setSelectedEvent(event);
       setShowConfirmDialog(true);
     } else {
-      toast.info("This time slot is already booked");
+      toast.info(t("client.thisTimeSlotAlreadyBooked"));
     }
   };
 
@@ -217,7 +219,7 @@ function ClientCalendar() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading calendar...</div>
+        <div className="text-lg">{t("client.loadingBookings")}</div>
       </div>
     );
   }
@@ -225,8 +227,8 @@ function ClientCalendar() {
   if (providerError || eventsError) {
     toast.error(
       providerError
-        ? "Failed to load provider"
-        : "Failed to load available events"
+        ? t("client.failedToLoadProviders")
+        : t("client.errorLoadingCalendar")
     );
   }
 
@@ -243,7 +245,7 @@ function ClientCalendar() {
         }
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Providers
+        {t("client.backToProviders")}
       </Button>
 
       {/* Provider Info */}
@@ -271,22 +273,21 @@ function ClientCalendar() {
       {/* Calendar - Responsive: Big Calendar for desktop, Mobile Calendar for mobile */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Available Time Slots</CardTitle>
+          <CardTitle className="text-2xl">{t("client.availableTimeSlots")}</CardTitle>
           <CardDescription>
-            Click on green time slots to book an appointment. Red slots are
-            already booked.
+            {t("client.clickGreenSlotsToBook")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {eventsError ? (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
               <p className="text-sm text-red-600 dark:text-red-400">
-                Error loading calendar.{" "}
+                {t("client.errorLoadingCalendar")}{" "}
                 <button
                   onClick={() => refetchEvents()}
                   className="underline font-medium"
                 >
-                  Try again
+                  {t("client.tryAgain")}
                 </button>
               </p>
             </div>
@@ -329,9 +330,9 @@ function ClientCalendar() {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Booking</AlertDialogTitle>
+            <AlertDialogTitle>{t("client.confirmBooking")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Please review and confirm your appointment details
+              {t("client.reviewAndConfirmAppointmentDetails")}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -340,7 +341,7 @@ function ClientCalendar() {
               <div className="flex items-start gap-3">
                 <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Provider</p>
+                  <p className="text-sm text-muted-foreground">{t("client.provider")}</p>
                   <p className="font-medium">{provider?.user.name}</p>
                   {provider?.specialization && (
                     <p className="text-sm text-muted-foreground">
@@ -353,7 +354,7 @@ function ClientCalendar() {
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Date</p>
+                  <p className="text-sm text-muted-foreground">{t("client.date")}</p>
                   <p className="font-medium">
                     {format(selectedEvent.start, "PPPP")}
                   </p>
@@ -363,13 +364,13 @@ function ClientCalendar() {
               <div className="flex items-start gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Time</p>
+                  <p className="text-sm text-muted-foreground">{t("client.time")}</p>
                   <p className="font-medium">
                     {format(selectedEvent.start, "p")} -{" "}
                     {format(selectedEvent.end, "p")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Duration: {selectedEvent.duration} minutes
+                    {t("client.duration")}: {selectedEvent.duration} {t("client.minutes")}
                   </p>
                 </div>
               </div>
@@ -385,7 +386,7 @@ function ClientCalendar() {
                 )}
                 {selectedEvent.price && (
                   <p className="text-sm font-semibold mt-2">
-                    Price: ${selectedEvent.price}
+                    {t("client.price")}: ${selectedEvent.price}
                   </p>
                 )}
               </div>
@@ -397,13 +398,13 @@ function ClientCalendar() {
               onClick={cancelBooking}
               disabled={bookingMutation.isPending}
             >
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmBooking}
               disabled={bookingMutation.isPending}
             >
-              {bookingMutation.isPending ? "Booking..." : "Confirm Booking"}
+              {bookingMutation.isPending ? t("client.booking") : t("client.confirmBooking")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

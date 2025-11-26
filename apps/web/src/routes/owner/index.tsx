@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/owner/")({
   component: OwnerComponent,
@@ -38,7 +39,9 @@ export const Route = createFileRoute("/owner/")({
       try {
         try {
           const organizations = await apiFetch<any[]>(
-            `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/organizations/my-organizations`
+            `${
+              import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
+            }/api/organizations/my-organizations`
           );
           if (!organizations || organizations.length === 0) {
             // Owner has no organizations - redirect to login with error
@@ -80,7 +83,9 @@ const fetchMySubscriptions = async (): Promise<any[]> => {
   );
 };
 
-const createCheckout = async (organizationId: string): Promise<{ checkoutUrl: string }> => {
+const createCheckout = async (
+  organizationId: string
+): Promise<{ checkoutUrl: string }> => {
   const data = await apiFetch<{ checkoutUrl: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
     {
@@ -104,6 +109,7 @@ const syncSubscription = async (organizationId: string): Promise<any> => {
 function OwnerComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [showSubscriptionDetails, setShowSubscriptionDetails] = useState<
     string | null
   >(null);
@@ -129,35 +135,53 @@ function OwnerComponent() {
 
   // Mutations
   const subscribeMutation = useMutation({
-    mutationFn: ({ organizationId }: { organizationId: string; orgName: string }) =>
-      createCheckout(organizationId),
+    mutationFn: ({
+      organizationId,
+    }: {
+      organizationId: string;
+      orgName: string;
+    }) => createCheckout(organizationId),
     onSuccess: (data, variables) => {
-      toast.success(`Redirecting to checkout for ${variables.orgName}...`);
+      toast.success(
+        t("owner.redirectingToCheckout", { orgName: variables.orgName })
+      );
       window.location.href = data.checkoutUrl;
     },
     onError: (error) => {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create checkout");
+        toast.error(t("owner.failedToCreateCheckout"));
       }
     },
   });
 
   const syncSubscriptionMutation = useMutation({
-    mutationFn: ({ organizationId }: { organizationId: string; orgName: string }) =>
-      syncSubscription(organizationId),
+    mutationFn: ({
+      organizationId,
+    }: {
+      organizationId: string;
+      orgName: string;
+    }) => syncSubscription(organizationId),
     onSuccess: (data, variables) => {
-      toast.success(`Subscription synced successfully for ${variables.orgName}!`);
+      toast.success(
+        t("owner.subscriptionSyncedSuccessfully", {
+          orgName: variables.orgName,
+        })
+      );
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["organizations", "my-organizations"] });
-      queryClient.invalidateQueries({ queryKey: ["subscriptions", "my-subscriptions"] });
+      queryClient.invalidateQueries({
+        queryKey: ["organizations", "my-organizations"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["subscriptions", "my-subscriptions"],
+      });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to sync subscription");
+        toast.error(t("owner.failedToSyncSubscription"));
       }
     },
   });
@@ -170,20 +194,21 @@ function OwnerComponent() {
     const subscribed = urlParams.get("subscribed");
 
     if (subscribed === "true") {
-      toast.success(
-        "🎉 Payment successful! Your organization is being activated...",
-        {
-          duration: 5000,
-        }
-      );
+      toast.success(`🎉 ${t("owner.paymentSuccessful")}`, {
+        duration: 5000,
+      });
 
       // Clean up URL
       window.history.replaceState({}, "", window.location.pathname);
 
       // Invalidate queries to refresh data after a delay
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["organizations", "my-organizations"] });
-        queryClient.invalidateQueries({ queryKey: ["subscriptions", "my-subscriptions"] });
+        queryClient.invalidateQueries({
+          queryKey: ["organizations", "my-organizations"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["subscriptions", "my-subscriptions"],
+        });
       }, 2000);
     }
   }, [queryClient]);
@@ -191,12 +216,12 @@ function OwnerComponent() {
   // Show error if queries fail
   useEffect(() => {
     if (organizationsError) {
-      toast.error("Error loading organizations");
+      toast.error(t("owner.errorLoadingOrganizations"));
     }
     if (subscriptionsError) {
-      toast.error("Error loading subscriptions");
+      toast.error(t("owner.errorLoadingSubscriptions"));
     }
-  }, [organizationsError, subscriptionsError]);
+  }, [organizationsError, subscriptionsError, t]);
 
   // Helper functions
   const formatCurrency = (cents: number, currency: string = "USD") => {
@@ -260,9 +285,11 @@ function OwnerComponent() {
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Organization Dashboard</h1>
+        <h1 className="text-3xl font-bold">
+          {t("owner.organizationDashboard")}
+        </h1>
         <p className="text-muted-foreground">
-          Welcome, {session.data?.user.name} (Organization Owner)
+          {t("owner.welcomeOwner", { name: session.data?.user.name })}
         </p>
       </div>
 
@@ -271,7 +298,7 @@ function OwnerComponent() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              My Organizations
+              {t("owner.myOrganizations")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -283,7 +310,7 @@ function OwnerComponent() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Subscriptions
+              {t("owner.activeSubscriptions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -295,7 +322,7 @@ function OwnerComponent() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Payments
+              {t("owner.totalPayments")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -312,9 +339,9 @@ function OwnerComponent() {
       {/* Organizations */}
       <Card>
         <CardHeader>
-          <CardTitle>My Organizations & Subscriptions</CardTitle>
+          <CardTitle>{t("owner.myOrganizationsSubscriptions")}</CardTitle>
           <CardDescription>
-            Manage your organizations and billing
+            {t("owner.manageOrganizationsBilling")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -326,7 +353,7 @@ function OwnerComponent() {
           ) : ownedOrganizations.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                You don't own any organizations yet.
+                {t("owner.dontOwnOrganizations")}
               </p>
             </div>
           ) : (
@@ -356,12 +383,16 @@ function OwnerComponent() {
                               <h3 className="text-lg font-semibold">
                                 {org.name}
                               </h3>
-                              <span className={`text-sm font-medium ${
-                                org.enabled 
-                                  ? "text-green-600 dark:text-green-400" 
-                                  : "text-yellow-600 dark:text-yellow-400"
-                              }`}>
-                                {org.enabled ? "Active" : "Pending"}
+                              <span
+                                className={`text-sm font-medium ${
+                                  org.enabled
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-yellow-600 dark:text-yellow-400"
+                                }`}
+                              >
+                                {org.enabled
+                                  ? t("owner.active")
+                                  : t("owner.pending")}
                               </span>
                             </div>
 
@@ -371,7 +402,7 @@ function OwnerComponent() {
                                 <div className="flex items-center gap-4 text-sm">
                                   <div>
                                     <span className="text-muted-foreground">
-                                      Plan:
+                                      {t("owner.plan")}:
                                     </span>{" "}
                                     <span className="font-medium">
                                       {subscription.product?.name}
@@ -379,7 +410,7 @@ function OwnerComponent() {
                                   </div>
                                   <div>
                                     <span className="text-muted-foreground">
-                                      Price:
+                                      {t("owner.price")}:
                                     </span>{" "}
                                     <span className="font-medium">
                                       {formatCurrency(
@@ -393,7 +424,7 @@ function OwnerComponent() {
                                   {subscription.currentPeriodEnd && (
                                     <div>
                                       <span className="text-muted-foreground">
-                                        Next billing:
+                                        {t("owner.nextBilling")}:
                                       </span>{" "}
                                       <span className="font-medium">
                                         {formatDate(
@@ -408,8 +439,7 @@ function OwnerComponent() {
 
                             {!org.enabled && !subscription && (
                               <p className="text-xs text-muted-foreground mt-2">
-                                ⚠️ This organization requires a subscription to
-                                be activated
+                                ⚠️ {t("owner.requiresSubscription")}
                               </p>
                             )}
                           </div>
@@ -422,16 +452,22 @@ function OwnerComponent() {
                               onClick={() => handleSubscribe(org.id, org.name)}
                               disabled={loading || subscribeMutation.isPending}
                             >
-                              Subscribe Now
+                              {t("owner.subscribeNow")}
                             </Button>
                           )}
                           {!org.enabled && (
                             <Button
                               variant="outline"
-                              onClick={() => handleSyncSubscription(org.id, org.name)}
-                              disabled={syncSubscriptionMutation.isPending || loading}
+                              onClick={() =>
+                                handleSyncSubscription(org.id, org.name)
+                              }
+                              disabled={
+                                syncSubscriptionMutation.isPending || loading
+                              }
                             >
-                              {syncSubscriptionMutation.isPending ? "Syncing..." : "Sync Subscription"}
+                              {syncSubscriptionMutation.isPending
+                                ? t("owner.syncing")
+                                : t("owner.syncSubscription")}
                             </Button>
                           )}
                           {subscription && (
@@ -440,7 +476,9 @@ function OwnerComponent() {
                               size="sm"
                               onClick={() => toggleSubscriptionDetails(org.id)}
                             >
-                              {isExpanded ? "Hide Details" : "View Details"}
+                              {isExpanded
+                                ? t("owner.hideDetails")
+                                : t("owner.viewDetails")}
                             </Button>
                           )}
                         </div>
@@ -454,12 +492,12 @@ function OwnerComponent() {
                           {/* Subscription Details */}
                           <div>
                             <h4 className="font-semibold mb-3">
-                              Subscription Details
+                              {t("owner.subscriptionDetails")}
                             </h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
-                                  Status:
+                                  {t("owner.status")}:
                                 </span>
                                 <span className="font-medium capitalize">
                                   {subscription.status}
@@ -468,7 +506,7 @@ function OwnerComponent() {
                               {subscription.currentPeriodStart && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
-                                    Period Start:
+                                    {t("owner.periodStart")}:
                                   </span>
                                   <span className="font-medium">
                                     {formatDate(
@@ -480,7 +518,7 @@ function OwnerComponent() {
                               {subscription.currentPeriodEnd && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
-                                    Period End:
+                                    {t("owner.periodEnd")}:
                                   </span>
                                   <span className="font-medium">
                                     {formatDate(subscription.currentPeriodEnd)}
@@ -490,7 +528,7 @@ function OwnerComponent() {
                               {subscription.cancelledAt && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
-                                    Cancelled:
+                                    {t("owner.cancelled")}:
                                   </span>
                                   <span className="font-medium text-red-600">
                                     {formatDate(subscription.cancelledAt)}
@@ -503,7 +541,7 @@ function OwnerComponent() {
                           {/* Payment History */}
                           <div>
                             <h4 className="font-semibold mb-3">
-                              Recent Payments
+                              {t("owner.recentPayments")}
                             </h4>
                             {subscription.payments &&
                             subscription.payments.length > 0 ? (
@@ -538,7 +576,7 @@ function OwnerComponent() {
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
-                                No payment history yet
+                                {t("owner.noPaymentHistory")}
                               </p>
                             )}
                           </div>

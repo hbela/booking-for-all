@@ -3,6 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Loader from "./loader";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -21,6 +22,7 @@ export default function SignInForm({
 }: {
   onSwitchToSignUp: () => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate({
     from: "/",
   });
@@ -63,7 +65,7 @@ export default function SignInForm({
               
               if (!externalAppOrgId) {
                 // User is trying to sign in directly without organization context
-                toast.error("Connect using your organization.");
+                toast.error(t("auth.connectUsingOrganization"));
                 // Sign them out immediately
                 await authClient.signOut();
                 // Stay on login page, do not redirect
@@ -71,7 +73,7 @@ export default function SignInForm({
               }
             }
             
-            toast.success("Sign in successful");
+            toast.success(t("auth.signInSuccessful"));
 
             // Debug: Log the full context to see what we're getting
             console.log("🔍 Sign-in context:", context);
@@ -112,7 +114,7 @@ export default function SignInForm({
           },
           onError: (error) => {
             const errorMessage =
-              (error as any)?.error?.message || "Sign in failed";
+              (error as any)?.error?.message || t("auth.signInFailed");
             toast.error(errorMessage);
             console.error("Sign in error:", error);
           },
@@ -217,7 +219,7 @@ export default function SignInForm({
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">{t("auth.welcomeBack")}</h1>
 
       <form
         onSubmit={(e) => {
@@ -231,7 +233,7 @@ export default function SignInForm({
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>{t("auth.email")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -254,7 +256,7 @@ export default function SignInForm({
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>{t("auth.password")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -280,7 +282,7 @@ export default function SignInForm({
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Submitting..." : "Sign In"}
+              {state.isSubmitting ? t("common.submitting") : t("auth.signIn")}
             </Button>
           )}
         </form.Subscribe>
@@ -332,7 +334,7 @@ export default function SignInForm({
             onClick={() => setShowForgotPassword(true)}
             className="text-indigo-600 hover:text-indigo-800"
           >
-            Forgot your password?
+            {t("auth.forgotPassword")}
           </Button>
         </div>
       )}
@@ -343,7 +345,7 @@ export default function SignInForm({
           onClick={onSwitchToSignUp}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Need an account? Sign Up
+          {t("auth.needAnAccount")}
         </Button>
       </div>
 

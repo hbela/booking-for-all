@@ -32,6 +32,7 @@ import { useForm } from "@tanstack/react-form";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/owner/departments")({
   component: DepartmentsComponent,
@@ -126,6 +127,7 @@ interface CreateDepartmentData {
 function DepartmentsComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState<{
@@ -176,7 +178,7 @@ function DepartmentsComponent() {
   const createDepartmentMutation = useMutation({
     mutationFn: createDepartment,
     onSuccess: () => {
-      toast.success("Department created successfully");
+      toast.success(t("owner.departmentCreatedSuccessfully"));
       form.reset();
       queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
       queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
@@ -185,7 +187,7 @@ function DepartmentsComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to create department");
+        toast.error(t("owner.failedToCreateDepartment"));
       }
     },
   });
@@ -193,7 +195,7 @@ function DepartmentsComponent() {
   const deleteDepartmentMutation = useMutation({
     mutationFn: deleteDepartment,
     onSuccess: () => {
-      toast.success("Department deleted successfully");
+      toast.success(t("owner.departmentDeletedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["departments", { organizationId: selectedOrgId }] });
       queryClient.invalidateQueries({ queryKey: ["providers", { organizationId: selectedOrgId }] });
     },
@@ -201,7 +203,7 @@ function DepartmentsComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to delete department");
+        toast.error(t("owner.failedToDeleteDepartment"));
       }
     },
   });
@@ -213,7 +215,7 @@ function DepartmentsComponent() {
     },
     onSubmit: async ({ value }) => {
       if (!selectedOrgId) {
-        toast.error("Please select an organization");
+        toast.error(t("owner.pleaseSelectOrganization"));
         return;
       }
       await createDepartmentMutation.mutateAsync({
@@ -228,15 +230,15 @@ function DepartmentsComponent() {
   // Show errors
   useEffect(() => {
     if (organizationsError) {
-      toast.error("Error loading organizations");
+      toast.error(t("owner.errorLoadingOrganizations"));
     }
     if (departmentsError) {
-      toast.error("Error loading departments");
+      toast.error(t("owner.errorLoadingDepartments"));
     }
     if (providersError) {
-      toast.error("Error loading providers");
+      toast.error(t("owner.errorLoadingProviders"));
     }
-  }, [organizationsError, departmentsError, providersError]);
+  }, [organizationsError, departmentsError, providersError, t]);
 
   const handleDeleteClick = (departmentId: string) => {
     const department = departments.find((d) => d.id === departmentId);
@@ -263,9 +265,9 @@ function DepartmentsComponent() {
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Departments</h1>
+        <h1 className="text-3xl font-bold">{t("owner.departmentsTitle")}</h1>
         <p className="text-muted-foreground">
-          Manage departments and providers for your organization
+          {t("owner.manageDepartmentsProviders")}
         </p>
       </div>
 
@@ -274,8 +276,7 @@ function DepartmentsComponent() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              You don't have any active organizations yet. Please activate your
-              organization by completing the subscription.
+              {t("owner.dontHaveActiveOrganizations")}
             </p>
           </CardContent>
         </Card>
@@ -284,12 +285,12 @@ function DepartmentsComponent() {
           {organizations.length > 1 && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Select Organization</CardTitle>
+                <CardTitle>{t("owner.selectOrganization")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select organization" />
+                    <SelectValue placeholder={t("owner.selectOrganizationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {organizations.map((org) => (
@@ -307,9 +308,9 @@ function DepartmentsComponent() {
             {/* Create Department */}
             <Card>
               <CardHeader>
-                <CardTitle>Create Department</CardTitle>
+                <CardTitle>{t("owner.createDepartment")}</CardTitle>
                 <CardDescription>
-                  Add a new department to {selectedOrg?.name}
+                  {t("owner.addNewDepartment", { orgName: selectedOrg?.name })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -326,7 +327,7 @@ function DepartmentsComponent() {
                     validators={{
                       onChange: ({ value }) => {
                         if (!value || value.length < 2) {
-                          return "Department name must be at least 2 characters";
+                          return t("owner.departmentNameMinChars");
                         }
                         return undefined;
                       },
@@ -334,10 +335,10 @@ function DepartmentsComponent() {
                   >
                     {(field) => (
                       <div className="space-y-2">
-                        <Label htmlFor="dept-name">Department Name</Label>
+                        <Label htmlFor="dept-name">{t("owner.departmentName")}</Label>
                         <Input
                           id="dept-name"
-                          placeholder="e.g., Cardiology, Pediatrics"
+                          placeholder={t("owner.departmentNamePlaceholder")}
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
@@ -360,8 +361,8 @@ function DepartmentsComponent() {
                         className="w-full"
                       >
                         {isSubmitting || createDepartmentMutation.isPending
-                          ? "Creating..."
-                          : "Create Department"}
+                          ? t("owner.creating")
+                          : t("owner.createDepartmentButton")}
                       </Button>
                     )}
                   </form.Subscribe>
@@ -372,16 +373,16 @@ function DepartmentsComponent() {
             {/* Quick Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Overview</CardTitle>
+                <CardTitle>{t("owner.overview")}</CardTitle>
                 <CardDescription>
-                  Statistics for {selectedOrg?.name}
+                  {t("owner.statisticsFor", { orgName: selectedOrg?.name })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
-                      Total Departments
+                      {t("owner.totalDepartments")}
                     </span>
                     <span className="text-2xl font-bold">
                       {departments.length}
@@ -389,7 +390,7 @@ function DepartmentsComponent() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
-                      Total Providers
+                      {t("owner.totalProviders")}
                     </span>
                     <span className="text-2xl font-bold">
                       {providers.length}
@@ -403,9 +404,9 @@ function DepartmentsComponent() {
           {/* Departments List */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Departments</CardTitle>
+              <CardTitle>{t("owner.departmentsList")}</CardTitle>
               <CardDescription>
-                Manage departments and their providers
+                {t("owner.manageDepartmentsProvidersDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -417,8 +418,7 @@ function DepartmentsComponent() {
               ) : departments.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    No departments yet. Create your first department to get
-                    started.
+                    {t("owner.noDepartmentsYet")}
                   </p>
                 </div>
               ) : (
@@ -438,8 +438,8 @@ function DepartmentsComponent() {
                             <p className="text-sm text-muted-foreground mt-1">
                               {deptProviders.length}{" "}
                               {deptProviders.length === 1
-                                ? "provider"
-                                : "providers"}
+                                ? t("owner.provider")
+                                : t("owner.providersPlural")}
                             </p>
 
                             {/* List providers */}
@@ -467,7 +467,7 @@ function DepartmentsComponent() {
                             onClick={() => handleDeleteClick(dept.id)}
                             disabled={loading || deleteDepartmentMutation.isPending}
                           >
-                            Delete
+                            {t("common.delete")}
                           </Button>
                         </div>
                       </div>
@@ -484,22 +484,19 @@ function DepartmentsComponent() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Department</AlertDialogTitle>
+            <AlertDialogTitle>{t("owner.deleteDepartment")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this department? This action cannot be
-              undone.
+              {t("owner.areYouSureDeleteDepartment")}
               {departmentToDelete && (
                 <div className="mt-2">
-                  <strong>Department:</strong> {departmentToDelete.name}
+                  <strong>{t("owner.department")}:</strong> {departmentToDelete.name}
                   {(() => {
                     const deptProviders = providers.filter(
                       (p) => p.departmentId === departmentToDelete.id
                     );
                     return deptProviders.length > 0 ? (
                       <div className="mt-1 text-destructive">
-                        <strong>Warning:</strong> This department has {deptProviders.length}{" "}
-                        {deptProviders.length === 1 ? "provider" : "providers"}. They will
-                        need to be reassigned or removed.
+                        <strong>{t("owner.warning")}:</strong> {t("owner.departmentHasProviders", { count: deptProviders.length })}
                       </div>
                     ) : null;
                   })()}
@@ -509,14 +506,14 @@ function DepartmentsComponent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDepartmentToDelete(null)}>
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteDepartmentMutation.isPending}
             >
-              {deleteDepartmentMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteDepartmentMutation.isPending ? t("owner.deleting") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

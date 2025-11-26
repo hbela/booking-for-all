@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Shield, Users, Building2, Settings } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export function AdminHomepage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-16">
@@ -14,10 +16,10 @@ export function AdminHomepage() {
               <Shield className="w-12 h-12 text-primary" />
             </div>
             <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Admin Dashboard
+              {t("admin.adminDashboard")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Manage the entire platform, create organizations, and oversee system operations
+              {t("admin.managePlatform")}
             </p>
           </div>
 
@@ -35,9 +37,9 @@ export function AdminHomepage() {
             <Card>
               <CardHeader>
                 <Building2 className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>Organization Management</CardTitle>
+                <CardTitle>{t("admin.organizationManagement")}</CardTitle>
                 <CardDescription>
-                  Create and manage organizations, set up subscriptions, and control access
+                  {t("admin.organizationManagementDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -45,9 +47,9 @@ export function AdminHomepage() {
             <Card>
               <CardHeader>
                 <Users className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>User Administration</CardTitle>
+                <CardTitle>{t("admin.userAdministration")}</CardTitle>
                 <CardDescription>
-                  Monitor user activity, manage roles, and ensure platform security
+                  {t("admin.userAdministrationDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -55,9 +57,9 @@ export function AdminHomepage() {
             <Card>
               <CardHeader>
                 <Settings className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>System Settings</CardTitle>
+                <CardTitle>{t("admin.systemSettings")}</CardTitle>
                 <CardDescription>
-                  Configure API keys, manage system-wide settings, and view analytics
+                  {t("admin.systemSettingsDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -66,21 +68,21 @@ export function AdminHomepage() {
           {/* Quick Actions */}
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Get started with common administrative tasks</CardDescription>
+              <CardTitle>{t("admin.quickActions")}</CardTitle>
+              <CardDescription>{t("admin.quickActionsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
                 <Link to="/admin">
                   <Button size="lg">
                     <Shield className="mr-2 h-4 w-4" />
-                    Go to Admin Dashboard
+                    {t("admin.goToAdminDashboard")}
                   </Button>
                 </Link>
                 <Link to="/admin/api-keys">
                   <Button variant="outline" size="lg">
                     <Settings className="mr-2 h-4 w-4" />
-                    Manage API Keys
+                    {t("admin.manageApiKeys")}
                   </Button>
                 </Link>
               </div>

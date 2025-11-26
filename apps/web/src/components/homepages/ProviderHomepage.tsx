@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Users, CheckCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export function ProviderHomepage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950 dark:to-emerald-900">
       <div className="container mx-auto px-4 py-16">
@@ -14,10 +16,10 @@ export function ProviderHomepage() {
               <Calendar className="w-12 h-12 text-green-600 dark:text-green-400" />
             </div>
             <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
-              Service Provider Portal
+              {t("provider.providerPortal")}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Manage your schedule, set availability, and connect with clients through seamless appointment booking
+              {t("provider.manageCalendarDesc")}
             </p>
           </div>
 
@@ -35,9 +37,9 @@ export function ProviderHomepage() {
             <Card>
               <CardHeader>
                 <Calendar className="w-8 h-8 text-green-600 dark:text-green-400 mb-2" />
-                <CardTitle>Schedule Management</CardTitle>
+                <CardTitle>{t("provider.scheduleManagement")}</CardTitle>
                 <CardDescription>
-                  Set your availability, create time slots, and manage your calendar efficiently
+                  {t("provider.scheduleManagementDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -45,9 +47,9 @@ export function ProviderHomepage() {
             <Card>
               <CardHeader>
                 <Users className="w-8 h-8 text-green-600 dark:text-green-400 mb-2" />
-                <CardTitle>Client Appointments</CardTitle>
+                <CardTitle>{t("provider.clientAppointments")}</CardTitle>
                 <CardDescription>
-                  View upcoming appointments, manage bookings, and track your client interactions
+                  {t("provider.clientAppointmentsDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -55,9 +57,9 @@ export function ProviderHomepage() {
             <Card>
               <CardHeader>
                 <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400 mb-2" />
-                <CardTitle>Availability Control</CardTitle>
+                <CardTitle>{t("provider.availabilityControl")}</CardTitle>
                 <CardDescription>
-                  Control when clients can book with you and manage your working hours
+                  {t("provider.availabilityControlDesc")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -66,21 +68,21 @@ export function ProviderHomepage() {
           {/* Quick Actions */}
           <Card className="bg-green-500/5 border-green-500/20">
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Access your provider dashboard and calendar management</CardDescription>
+              <CardTitle>{t("provider.quickActions")}</CardTitle>
+              <CardDescription>{t("provider.quickActionsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
                 <Link to="/provider">
                   <Button size="lg" className="bg-green-600 hover:bg-green-700">
                     <Calendar className="mr-2 h-4 w-4" />
-                    Go to Provider Dashboard
+                    {t("provider.goToProviderDashboard")}
                   </Button>
                 </Link>
                 <Link to="/provider/calendar">
                   <Button variant="outline" size="lg">
                     <Clock className="mr-2 h-4 w-4" />
-                    Manage Calendar
+                    {t("provider.manageCalendar")}
                   </Button>
                 </Link>
               </div>

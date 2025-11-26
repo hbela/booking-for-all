@@ -6,6 +6,11 @@ declare module 'fastify' {
     session?: any;
     organizationId?: string;
     provider?: any;
+    language?: "en" | "hu" | "de";
+  }
+  
+  interface FastifyInstance {
+    t(key: string, lng?: string): string;
   }
 }
 

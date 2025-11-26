@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/client/organizations/$orgId")({
   component: DepartmentSelection,
@@ -39,13 +40,17 @@ interface Organization {
 // API functions
 const fetchOrganization = async (orgId: string): Promise<Organization> => {
   return apiFetch<Organization>(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}`
+    `${
+      import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
+    }/api/client/organizations/${orgId}`
   );
 };
 
 const fetchDepartments = async (orgId: string): Promise<Department[]> => {
   return apiFetch<Department[]>(
-    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations/${orgId}/departments`
+    `${
+      import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
+    }/api/client/organizations/${orgId}/departments`
   );
 };
 
@@ -53,6 +58,7 @@ function DepartmentSelection() {
   const { orgId } = Route.useParams();
   const navigate = useNavigate();
   const matches = useMatches();
+  const { t } = useTranslation();
 
   // Check if we're on a child route (like departments/$deptId)
   // If there are more than 2 matches (root + orgId + child), we're on a child route
@@ -101,7 +107,7 @@ function DepartmentSelection() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading departments...</div>
+        <div className="text-lg">{t("client.loadingDepartments")}</div>
       </div>
     );
   }
@@ -109,8 +115,8 @@ function DepartmentSelection() {
   if (hasError) {
     toast.error(
       orgError
-        ? "Failed to load organization"
-        : "Failed to load departments"
+        ? t("client.failedToLoadOrganization")
+        : t("client.failedToLoadDepartments")
     );
   }
 
@@ -122,7 +128,7 @@ function DepartmentSelection() {
         onClick={() => navigate({ to: "/client" })}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Organizations
+        {t("client.backToOrganizations")}
       </Button>
 
       <div className="mb-8">
@@ -131,7 +137,7 @@ function DepartmentSelection() {
           <p className="text-muted-foreground">{organization.description}</p>
         )}
         <p className="text-sm text-muted-foreground mt-2">
-          Select a department to view available providers
+          {t("client.selectDepartmentToViewProviders")}
         </p>
       </div>
 
@@ -139,7 +145,7 @@ function DepartmentSelection() {
         <Card className="col-span-full">
           <CardContent className="pt-6">
             <p className="text-center text-red-500">
-              Error loading data. Please try again.
+              {t("client.errorLoadingData")}
             </p>
           </CardContent>
         </Card>
@@ -149,7 +155,7 @@ function DepartmentSelection() {
             <Card className="col-span-full">
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No departments available in this organization.
+                  {t("client.noDepartmentsAvailable")}
                 </p>
               </CardContent>
             </Card>
@@ -170,7 +176,11 @@ function DepartmentSelection() {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <Users2 className="h-4 w-4" />
-                    <span>{dept._count?.providers || 0} providers available</span>
+                    <span>
+                      {t("client.providersAvailable", {
+                        count: dept._count?.providers || 0,
+                      })}
+                    </span>
                   </div>
                   <Button
                     className="w-full"
@@ -190,7 +200,7 @@ function DepartmentSelection() {
                       }
                     }}
                   >
-                    View Providers
+                    {t("client.viewProviders")}
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>

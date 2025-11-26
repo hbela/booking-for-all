@@ -23,6 +23,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Key, Calendar, User } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/api-keys")({
   component: ApiKeysComponent,
@@ -120,6 +121,7 @@ const revokeApiKey = async (keyId: string): Promise<void> => {
 function ApiKeysComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [showGeneratedKey, setShowGeneratedKey] = useState(false);
 
@@ -151,14 +153,14 @@ function ApiKeysComponent() {
       setGeneratedKey(data.key);
       setShowGeneratedKey(true);
       form.reset();
-      toast.success("API key generated successfully");
+      toast.success(t("admin.apiKeyGeneratedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["admin", "api-keys"] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to generate API key");
+        toast.error(t("admin.failedToGenerateApiKey"));
       }
     },
   });
@@ -167,11 +169,11 @@ function ApiKeysComponent() {
   const revokeKeyMutation = useMutation({
     mutationFn: revokeApiKey,
     onSuccess: () => {
-      toast.success("API key revoked successfully");
+      toast.success(t("admin.apiKeyRevokedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["admin", "api-keys"] });
     },
     onError: () => {
-      toast.error("Failed to revoke API key");
+      toast.error(t("admin.failedToRevokeApiKey"));
     },
   });
 
@@ -201,15 +203,15 @@ function ApiKeysComponent() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard");
+      toast.success(t("admin.copiedToClipboard"));
     } catch (err) {
-      toast.error("Failed to copy to clipboard");
+      toast.error(t("admin.failedToCopyToClipboard"));
     }
   };
 
   // Format date
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never";
+    if (!dateString) return t("admin.never");
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -227,9 +229,7 @@ function ApiKeysComponent() {
 
   const handleRevokeKey = async (keyId: string) => {
     if (
-      !confirm(
-        "Are you sure you want to revoke this API key? This action cannot be undone."
-      )
+      !confirm(t("admin.areYouSureRevokeApiKey"))
     ) {
       return;
     }
@@ -245,9 +245,9 @@ function ApiKeysComponent() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">API Key Management</h1>
+        <h1 className="text-3xl font-bold">{t("admin.apiKeyManagement")}</h1>
         <p className="text-muted-foreground">
-          Manage API keys for external app integration
+          {t("admin.manageApiKeysForIntegration")}
         </p>
       </div>
 
@@ -258,10 +258,10 @@ function ApiKeysComponent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                API Key Generated
+                {t("admin.apiKeyGenerated")}
               </CardTitle>
               <CardDescription>
-                Copy this key now - it won't be shown again!
+                {t("admin.copyKeyNow")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -274,7 +274,7 @@ function ApiKeysComponent() {
                   className="flex-1"
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Key
+                  {t("admin.copyKey")}
                 </Button>
                 <Button
                   variant="outline"
@@ -283,7 +283,7 @@ function ApiKeysComponent() {
                     setGeneratedKey(null);
                   }}
                 >
-                  Close
+                  {t("admin.close")}
                 </Button>
               </div>
             </CardContent>
@@ -295,9 +295,9 @@ function ApiKeysComponent() {
         {/* Generate New API Key */}
         <Card>
           <CardHeader>
-            <CardTitle>Generate New API Key</CardTitle>
+            <CardTitle>{t("admin.generateNewApiKey")}</CardTitle>
             <CardDescription>
-              Create a new API key for an organization
+              {t("admin.createNewApiKey")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -315,7 +315,7 @@ function ApiKeysComponent() {
                   validators={{
                     onChange: ({ value }) => {
                       if (!value || value.trim().length === 0) {
-                        return "Organization is required";
+                        return t("admin.organizationRequired");
                       }
                       return undefined;
                     },
@@ -323,19 +323,19 @@ function ApiKeysComponent() {
                 >
                   {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor={field.name}>Organization</Label>
+                      <Label htmlFor={field.name}>{t("admin.organization")}</Label>
                       <Select
                         value={field.state.value}
                         onValueChange={(value) => field.handleChange(value)}
                         disabled={generateKeyMutation.isPending}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select organization" />
+                          <SelectValue placeholder={t("admin.selectOrganization")} />
                         </SelectTrigger>
                         <SelectContent>
                           {organizations.map((org) => (
                             <SelectItem key={org.id} value={org.id}>
-                              {org.name} {!org.enabled && "(Disabled)"}
+                              {org.name} {!org.enabled && t("admin.disabled")}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -354,7 +354,7 @@ function ApiKeysComponent() {
                   validators={{
                     onChange: ({ value }) => {
                       if (!value || value.trim().length === 0) {
-                        return "Key name is required";
+                        return t("admin.keyNameRequired");
                       }
                       return undefined;
                     },
@@ -362,10 +362,10 @@ function ApiKeysComponent() {
                 >
                   {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor={field.name}>Key Name</Label>
+                      <Label htmlFor={field.name}>{t("admin.keyName")}</Label>
                       <Input
                         id={field.name}
-                        placeholder="External App Integration"
+                        placeholder={t("admin.keyNamePlaceholder")}
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
@@ -388,7 +388,7 @@ function ApiKeysComponent() {
                     if (value && value.trim().length > 0) {
                       const days = parseInt(value);
                       if (isNaN(days) || days < 1) {
-                        return "Expiration days must be a positive number";
+                        return t("admin.expirationDaysInvalid");
                       }
                     }
                     return undefined;
@@ -398,12 +398,12 @@ function ApiKeysComponent() {
                 {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={field.name}>
-                      Expires In (days, optional)
+                      {t("admin.expiresInDays")}
                     </Label>
                     <Input
                       id={field.name}
                       type="number"
-                      placeholder="30"
+                      placeholder={t("admin.expiresInDaysPlaceholder")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -424,8 +424,8 @@ function ApiKeysComponent() {
                 className="w-full"
               >
                 {generateKeyMutation.isPending
-                  ? "Generating..."
-                  : "Generate API Key"}
+                  ? t("admin.generating")
+                  : t("admin.generateApiKey")}
               </Button>
             </form>
           </CardContent>
@@ -434,26 +434,26 @@ function ApiKeysComponent() {
         {/* API Keys List */}
         <Card>
           <CardHeader>
-            <CardTitle>API Keys</CardTitle>
-            <CardDescription>Manage existing API keys</CardDescription>
+            <CardTitle>{t("admin.apiKeys")}</CardTitle>
+            <CardDescription>{t("admin.manageExistingApiKeys")}</CardDescription>
             <Button
               onClick={() => refetchKeys()}
               disabled={isLoadingKeys}
               variant="outline"
               className="mt-2"
             >
-              {isLoadingKeys ? "Loading..." : "Refresh"}
+              {isLoadingKeys ? t("admin.loading") : t("admin.refresh")}
             </Button>
           </CardHeader>
           <CardContent>
             {keysError && (
               <p className="text-sm text-red-500 mb-4">
-                Error loading API keys: {keysError.message}
+                {t("admin.errorLoadingApiKeys", { message: keysError.message })}
               </p>
             )}
             {apiKeys.length === 0 && !isLoadingKeys ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                No API keys found. Generate one to get started.
+                {t("admin.noApiKeysFound")}
               </p>
             ) : (
               <div className="space-y-4">
@@ -479,14 +479,14 @@ function ApiKeysComponent() {
                             }`}
                           >
                             {isExpired(key.expiresAt)
-                              ? "Expired"
+                              ? t("admin.expired")
                               : key.enabled
-                              ? "Active"
-                              : "Inactive"}
+                              ? t("admin.active")
+                              : t("admin.inactive")}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Organization:{" "}
+                          {t("admin.organizationLabel")}{" "}
                           {(() => {
                             try {
                               const metadata = JSON.parse(key.metadata || "{}");
@@ -495,30 +495,30 @@ function ApiKeysComponent() {
                                 organizations.find((org) => org.id === orgId)
                                   ?.name ||
                                 orgId ||
-                                "Unknown"
+                                t("admin.unknown")
                               );
                             } catch {
-                              return "Unknown";
+                              return t("admin.unknown");
                             }
                           })()}
                         </p>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                           <div className="flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            Created by {key.user.name}
+                            {t("admin.createdBy", { name: key.user.name })}
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            Created {formatDate(key.createdAt)}
+                            {t("admin.created", { date: formatDate(key.createdAt) })}
                           </div>
                           {key.lastRequest && (
                             <div className="flex items-center gap-1">
-                              Last used {formatDate(key.lastRequest)}
+                              {t("admin.lastUsed", { date: formatDate(key.lastRequest) })}
                             </div>
                           )}
                           {key.expiresAt && (
                             <div className="flex items-center gap-1">
-                              Expires {formatDate(key.expiresAt)}
+                              {t("admin.expires", { date: formatDate(key.expiresAt) })}
                             </div>
                           )}
                         </div>
@@ -532,7 +532,7 @@ function ApiKeysComponent() {
                         disabled={isLoadingAny}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
-                        Revoke
+                        {t("admin.revoke")}
                       </Button>
                     </div>
                   </div>

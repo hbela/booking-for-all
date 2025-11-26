@@ -28,6 +28,7 @@ import providerRoutes from "./features/provider/routes";
 import authRoutes from "./features/auth/routes";
 import { instrument } from "./instrument";
 import { errorHandler } from "./plugins/errorHandler";
+import i18nPlugin from "./plugins/i18n";
 import * as Sentry from "@sentry/node";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -112,6 +113,9 @@ export function buildApp() {
   // Configure Zod type provider
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // Register i18n plugin
+  app.register(i18nPlugin);
 
   app.register(cors, {
     origin: true,
