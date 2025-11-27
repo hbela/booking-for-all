@@ -24,6 +24,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@booking-for-all/db": "workspace:*"
+    "@booking-for-all/db": "workspace:*",
+    "@booking-for-all/i18n": "workspace:*"
   }
 }
