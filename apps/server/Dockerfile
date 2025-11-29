@@ -11,7 +11,7 @@ COPY . .
 
 # Install deps & build server
 RUN pnpm install --frozen-lockfile \
- && pnpm --filter @booking-for-all/db exec prisma generate --no-engine \
+ && pnpm --filter @booking-for-all/db run db:generate:prod \
  && pnpm turbo run build --filter=server
 
 ENV NODE_ENV=production \

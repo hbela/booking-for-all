@@ -8,7 +8,7 @@ build:
   command: |
     npm install -g pnpm turbo
     pnpm install
-    pnpm --filter @booking-for-all/db exec prisma generate --no-engine
+    pnpm --filter @booking-for-all/db run db:generate:prod
     pnpm turbo run build --filter=server
 start:
   command: pnpm --filter server run start
