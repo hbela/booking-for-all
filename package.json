@@ -13,6 +13,7 @@
     "deploy": "pnpm build && pnpm deploy:sentry",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
+    "dev:mobile": "turbo -F mobile dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "sentry:release": "node ./scripts/sentry-upload.mjs",
@@ -21,7 +22,11 @@
     "db:push": "turbo -F @booking-for-all/db db:push",
     "db:studio": "turbo -F @booking-for-all/db db:studio",
     "db:generate": "turbo -F @booking-for-all/db db:generate",
-    "db:migrate": "turbo -F @booking-for-all/db db:migrate"
+    "db:migrate": "turbo -F @booking-for-all/db db:migrate",
+    "db:migrate:deploy": "turbo -F @booking-for-all/db db:migrate:deploy",
+    "db:migrate:status": "turbo -F @booking-for-all/db db:migrate:status",
+    "db:sync:production": "turbo -F @booking-for-all/db db:sync:production",
+    "db:deploy": "turbo -F @booking-for-all/db db:deploy"
   },
   "dependencies": {
     "dotenv": "^17.2.2",

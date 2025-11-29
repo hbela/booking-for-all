@@ -32,6 +32,13 @@ export default defineConfig({
   preview: {
     host: "0.0.0.0",
     port: 4173,
-    allowedHosts: ["app.appointer.hu", "web.appointer.hu"],
+    allowedHosts: [
+      "app.appointer.hu",
+      "web.appointer.hu",
+      // Dev subdomains
+      "webdev.appointer.hu",
+      "wellnessdev.appointer.hu",
+      "medicaredev.appointer.hu",
+    ],
   },
 });

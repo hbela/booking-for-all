@@ -1,0 +1,33 @@
+name: web-dev
+type: nodejs
+repository: https://github.com/hbela/my-better-t-app.git
+branch: dev
+root_directory: apps/web
+# Note: If using Docker build pack in Coolify, specify Dockerfile path as: apps/web/Dockerfile.dev
+build:
+  command: |
+    npm install -g pnpm turbo
+    pnpm install
+    export VITE_SENTRY_DSN="${VITE_SENTRY_DSN}"
+    export VITE_SENTRY_RELEASE="${VITE_SENTRY_RELEASE}"
+    export VITE_ENVIRONMENT="${VITE_ENVIRONMENT:-development}"
+    echo "🔍 Build-time env vars:"
+    echo "  VITE_SENTRY_DSN=${VITE_SENTRY_DSN:0:50}..."
+    echo "  VITE_SENTRY_RELEASE=${VITE_SENTRY_RELEASE}"
+    echo "  VITE_ENVIRONMENT=${VITE_ENVIRONMENT}"
+    pnpm --filter web run build
+start:
+  command: pnpm --filter web exec vite preview --host 0.0.0.0 --port 4173
+domains:
+  - webdev.appointer.hu
+environment:
+  NODE_ENV: development
+  HOST: 0.0.0.0
+  PORT: 4173
+  VITE_SERVER_URL: https://apidev.appointer.hu
+  VITE_SENTRY_DSN: ${VITE_SENTRY_DSN}
+  VITE_SENTRY_RELEASE: ${VITE_SENTRY_RELEASE}
+  VITE_ENVIRONMENT: development
+ports:
+  - 4173
+

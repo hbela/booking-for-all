@@ -87,6 +87,8 @@ model Organization {
   availabilityEndHour   Int            @default(20) // Business hours end (0-23)
   createdAt             DateTime
   metadata              String?
+  qrCodeKey             String?        // S3 path for QR code PNG
+  apkKey                String?        // S3 path for APK
   members               Member[]
   departments           Department[]
   subscriptions         Subscription[]

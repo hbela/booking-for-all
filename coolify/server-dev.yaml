@@ -1,0 +1,28 @@
+name: server-dev
+type: nodejs
+repository: https://github.com/hbela/my-better-t-app.git
+branch: dev
+root_directory: .
+# Note: If using Docker build pack in Coolify, specify Dockerfile path as: apps/server/Dockerfile.dev
+build:
+  command: |
+    npm install -g pnpm turbo
+    pnpm install
+    pnpm --filter @booking-for-all/db exec prisma generate --no-engine
+    pnpm turbo run build --filter=server
+start:
+  command: pnpm --filter server run start
+domains:
+  - apidev.appointer.hu
+environment:
+  NODE_ENV: development
+  PORT: 3000
+  HOST: 0.0.0.0
+  DATABASE_URL: ${DATABASE_URL}
+  BETTER_AUTH_URL: https://apidev.appointer.hu
+  CORS_ORIGIN: https://webdev.appointer.hu
+  FRONTEND_URL: https://webdev.appointer.hu
+  PHP_SERVER_URL: https://phpdev.appointer.hu
+ports:
+  - 3000
+

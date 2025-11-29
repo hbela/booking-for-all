@@ -576,6 +576,22 @@
       "minutes": "{{duration}} minutes",
       "bestRegards": "Best regards,",
       "bookingSystem": "Booking System"
+    },
+    "mobileApp": {
+      "subject": "📱 New Mobile App Available - Book with Voice Assistant",
+      "greeting": "Great News!",
+      "dear": "Dear {{name}},",
+      "announcement": "We're excited to announce our new mobile app! Now you can book appointments using our voice assistant - just speak naturally and the app will help you find providers, check availability, and book your appointments.",
+      "features": "App Features:",
+      "voiceBooking": "Voice-powered booking - speak naturally to book appointments",
+      "easyAccess": "Easy access to all your bookings and providers",
+      "onTheGo": "Book appointments on the go, anytime, anywhere",
+      "downloadIOS": "Download for iOS",
+      "downloadAndroid": "Download for Android",
+      "deepLink": "Quick access:",
+      "openApp": "Open app for {{orgName}}",
+      "bestRegards": "Best regards,",
+      "theTeam": "The Booking for All Team"
     }
   }
 }

@@ -180,13 +180,21 @@
         <h3>🌿 Connect to Wellness Center</h3>
         <p>Connect to the Wellness Center booking system:</p>
 
-        <button
-          id="connect-btn"
-          class="button primary"
-          onclick="connectToOrganization()"
-        >
-          🔗 Connect to Wellness Center
-        </button>
+        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <button
+            id="connect-btn"
+            class="button primary"
+            onclick="connectToOrganization()"
+            style="flex: 1; min-width: 200px;"
+          >
+            🔗 Connect to Wellness Center
+          </button>
+          
+          <div id="qr-code-container" style="display: none; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">Scan to download mobile app</p>
+            <img id="qr-code-image" src="" alt="QR Code" style="width: 150px; height: 150px; border: 1px solid #ddd; border-radius: 4px;" />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -332,6 +340,8 @@
           // Store the organization info
           if (data.organizationId) {
             sessionStorage.setItem("selectedOrganization", data.organizationId);
+            // Load QR code for this organization
+            loadQRCode(data.organizationId);
           }
           if (data.organizationName) {
             sessionStorage.setItem("organizationName", data.organizationName);
@@ -384,6 +394,37 @@
             `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${phpServerUrl}\n${domainCheck}\n3. API credentials are configured on the PHP server\n4. CORS is properly configured for ${window.location.origin}`
           );
         }
+      }
+
+      // Load QR code for organization
+      async function loadQRCode(orgId) {
+        if (!orgId) return;
+        
+        try {
+          // Get API base URL from environment or use default
+          const apiBaseUrl = window.location.origin.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : (window.location.protocol === 'https:' 
+              ? 'https://api.appointer.hu' 
+              : 'http://localhost:3000');
+          
+          const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode`;
+          const qrImage = document.getElementById('qr-code-image');
+          const qrContainer = document.getElementById('qr-code-container');
+          
+          if (qrImage && qrContainer) {
+            qrImage.src = qrCodeUrl;
+            qrContainer.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Failed to load QR code:', error);
+          // Silently fail - QR code is optional
+        }
+      }
+
+      // Show mobile app card if on mobile device
+      if (detectMobileDevice()) {
+        document.getElementById("mobile-app-card").style.display = "block";
       }
     </script>
   </body>

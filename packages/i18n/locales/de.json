@@ -576,6 +576,22 @@
       "minutes": "{{duration}} Minuten",
       "bestRegards": "Mit freundlichen Grüßen,",
       "bookingSystem": "Buchungssystem"
+    },
+    "mobileApp": {
+      "subject": "📱 Neue Mobile App verfügbar - Mit Sprachassistent buchen",
+      "greeting": "Großartige Neuigkeiten!",
+      "dear": "Liebe/r {{name}},",
+      "announcement": "Wir freuen uns, unsere neue Mobile App anzukündigen! Jetzt können Sie Termine mit unserem Sprachassistenten buchen - sprechen Sie einfach natürlich und die App hilft Ihnen, Anbieter zu finden, Verfügbarkeiten zu prüfen und Termine zu buchen.",
+      "features": "App-Funktionen:",
+      "voiceBooking": "Sprachgesteuerte Buchung - sprechen Sie natürlich, um Termine zu buchen",
+      "easyAccess": "Einfacher Zugriff auf alle Ihre Buchungen und Anbieter",
+      "onTheGo": "Buchen Sie Termine unterwegs, jederzeit und überall",
+      "downloadIOS": "Für iOS herunterladen",
+      "downloadAndroid": "Für Android herunterladen",
+      "deepLink": "Schnellzugriff:",
+      "openApp": "App für {{orgName}} öffnen",
+      "bestRegards": "Mit freundlichen Grüßen,",
+      "theTeam": "Das Booking for All Team"
     }
   }
 }

@@ -149,6 +149,58 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           },
         });
 
+        // Auto-generate QR code for the organization
+        try {
+          const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+          const QRCode = await import("qrcode");
+          
+          const cfg = (app as any).config as any;
+          const s3 = new S3Client({
+            region: cfg.S3_REGION || process.env.S3_REGION || "us-east-1",
+            endpoint: cfg.S3_ENDPOINT || process.env.S3_ENDPOINT,
+            forcePathStyle: false,
+            credentials: {
+              accessKeyId: cfg.S3_ACCESS_KEY || process.env.S3_ACCESS_KEY || "",
+              secretAccessKey: cfg.S3_SECRET_KEY || process.env.S3_SECRET_KEY || "",
+            },
+          });
+
+          const bucket = cfg.S3_BUCKET || process.env.S3_BUCKET || "";
+          const publicAppUrl = cfg.PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || cfg.CORS_ORIGIN || process.env.CORS_ORIGIN || "";
+
+          if (bucket && publicAppUrl) {
+            const qrData = `${publicAppUrl}/org/${organization.id}/app`;
+            const pngBuffer = await QRCode.default.toBuffer(qrData, {
+              errorCorrectionLevel: "H",
+              type: "png",
+              width: 600,
+            });
+
+            const key = `orgs/${organization.id}/qr.png`;
+
+            await s3.send(
+              new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: pngBuffer,
+                ContentType: "image/png",
+              })
+            );
+
+            await prisma.organization.update({
+              where: { id: organization.id },
+              data: { qrCodeKey: key },
+            });
+
+            app.log.info(`✅ QR code generated for organization: ${organization.id}`);
+          } else {
+            app.log.warn("⚠️ S3 configuration missing, skipping QR code generation");
+          }
+        } catch (qrError) {
+          app.log.error(qrError, "❌ Failed to generate QR code for organization");
+          // Continue - organization is still created, QR code can be generated later
+        }
+
         // Send email to owner with login link
         try {
           const { Resend } = await import("resend");

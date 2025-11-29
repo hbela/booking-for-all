@@ -11,6 +11,25 @@ export async function requireAuthHook(request: FastifyRequest, reply: FastifyRep
   request.user = session.user;
   // @ts-expect-error augment at runtime
   request.session = session.session;
+  
+  // Send mobile app notification email (one-time, after app launch)
+  // Use setImmediate to avoid blocking the auth response
+  setImmediate(async () => {
+    try {
+      const { sendMobileAppNotificationEmail } = await import('../features/notifications/mobile-app-email.js');
+      // Get user language preference (default to 'en')
+      const lang = (session.user as any).language || (request as any).language || "en";
+      await sendMobileAppNotificationEmail(
+        session.user.id,
+        session.user.email,
+        session.user.name,
+        lang
+      );
+    } catch (error) {
+      // Don't fail auth if email fails - just log
+      console.error('Failed to send mobile app notification:', error);
+    }
+  });
 }
 
 export async function requireAdminHook(request: FastifyRequest, reply: FastifyReply) {

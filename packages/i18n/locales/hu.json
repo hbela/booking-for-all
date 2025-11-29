@@ -576,6 +576,22 @@
       "minutes": "{{duration}} perc",
       "bestRegards": "Üdvözlettel,",
       "bookingSystem": "Foglalási Rendszer"
+    },
+    "mobileApp": {
+      "subject": "📱 Új mobilalkalmazás elérhető - Foglalás hangasszisztenssel",
+      "greeting": "Nagyszerű hírek!",
+      "dear": "Kedves {{name}},",
+      "announcement": "Izgatottan jelentjük be új mobilalkalmazásunkat! Most már hangasszisztenssel is foglalhat időpontokat - egyszerűen beszéljen természetesen, és az alkalmazás segít szolgáltatókat találni, ellenőrizni a rendelkezésre állást és időpontokat foglalni.",
+      "features": "Alkalmazás funkciók:",
+      "voiceBooking": "Hangvezérelt foglalás - beszéljen természetesen az időpontok foglalásához",
+      "easyAccess": "Könnyű hozzáférés az összes foglalásához és szolgáltatóhoz",
+      "onTheGo": "Foglaljon időpontokat útközben, bármikor, bárhol",
+      "downloadIOS": "Letöltés iOS-re",
+      "downloadAndroid": "Letöltés Androidra",
+      "deepLink": "Gyors hozzáférés:",
+      "openApp": "Alkalmazás megnyitása {{orgName}} számára",
+      "bestRegards": "Üdvözlettel,",
+      "theTeam": "A Booking for All csapata"
     }
   }
 }

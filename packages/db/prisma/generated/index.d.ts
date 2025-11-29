@@ -7016,6 +7016,8 @@ export namespace Prisma {
     availabilityEndHour: number | null
     createdAt: Date | null
     metadata: string | null
+    qrCodeKey: string | null
+    apkKey: string | null
   }
 
   export type OrganizationMaxAggregateOutputType = {
@@ -7030,6 +7032,8 @@ export namespace Prisma {
     availabilityEndHour: number | null
     createdAt: Date | null
     metadata: string | null
+    qrCodeKey: string | null
+    apkKey: string | null
   }
 
   export type OrganizationCountAggregateOutputType = {
@@ -7044,6 +7048,8 @@ export namespace Prisma {
     availabilityEndHour: number
     createdAt: number
     metadata: number
+    qrCodeKey: number
+    apkKey: number
     _all: number
   }
 
@@ -7070,6 +7076,8 @@ export namespace Prisma {
     availabilityEndHour?: true
     createdAt?: true
     metadata?: true
+    qrCodeKey?: true
+    apkKey?: true
   }
 
   export type OrganizationMaxAggregateInputType = {
@@ -7084,6 +7092,8 @@ export namespace Prisma {
     availabilityEndHour?: true
     createdAt?: true
     metadata?: true
+    qrCodeKey?: true
+    apkKey?: true
   }
 
   export type OrganizationCountAggregateInputType = {
@@ -7098,6 +7108,8 @@ export namespace Prisma {
     availabilityEndHour?: true
     createdAt?: true
     metadata?: true
+    qrCodeKey?: true
+    apkKey?: true
     _all?: true
   }
 
@@ -7199,6 +7211,8 @@ export namespace Prisma {
     availabilityEndHour: number
     createdAt: Date
     metadata: string | null
+    qrCodeKey: string | null
+    apkKey: string | null
     _count: OrganizationCountAggregateOutputType | null
     _avg: OrganizationAvgAggregateOutputType | null
     _sum: OrganizationSumAggregateOutputType | null
@@ -7232,6 +7246,8 @@ export namespace Prisma {
     availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
+    qrCodeKey?: boolean
+    apkKey?: boolean
     members?: boolean | Organization$membersArgs<ExtArgs>
     departments?: boolean | Organization$departmentsArgs<ExtArgs>
     subscriptions?: boolean | Organization$subscriptionsArgs<ExtArgs>
@@ -7250,6 +7266,8 @@ export namespace Prisma {
     availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
+    qrCodeKey?: boolean
+    apkKey?: boolean
   }, ExtArgs["result"]["organization"]>
 
   export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -7264,6 +7282,8 @@ export namespace Prisma {
     availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
+    qrCodeKey?: boolean
+    apkKey?: boolean
   }, ExtArgs["result"]["organization"]>
 
   export type OrganizationSelectScalar = {
@@ -7278,9 +7298,11 @@ export namespace Prisma {
     availabilityEndHour?: boolean
     createdAt?: boolean
     metadata?: boolean
+    qrCodeKey?: boolean
+    apkKey?: boolean
   }
 
-  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata", ExtArgs["result"]["organization"]>
+  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata" | "qrCodeKey" | "apkKey", ExtArgs["result"]["organization"]>
   export type OrganizationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     members?: boolean | Organization$membersArgs<ExtArgs>
     departments?: boolean | Organization$departmentsArgs<ExtArgs>
@@ -7309,6 +7331,8 @@ export namespace Prisma {
       availabilityEndHour: number
       createdAt: Date
       metadata: string | null
+      qrCodeKey: string | null
+      apkKey: string | null
     }, ExtArgs["result"]["organization"]>
     composites: {}
   }
@@ -7746,6 +7770,8 @@ export namespace Prisma {
     readonly availabilityEndHour: FieldRef<"Organization", 'Int'>
     readonly createdAt: FieldRef<"Organization", 'DateTime'>
     readonly metadata: FieldRef<"Organization", 'String'>
+    readonly qrCodeKey: FieldRef<"Organization", 'String'>
+    readonly apkKey: FieldRef<"Organization", 'String'>
   }
     
 
@@ -19582,7 +19608,9 @@ export namespace Prisma {
     availabilityStartHour: 'availabilityStartHour',
     availabilityEndHour: 'availabilityEndHour',
     createdAt: 'createdAt',
-    metadata: 'metadata'
+    metadata: 'metadata',
+    qrCodeKey: 'qrCodeKey',
+    apkKey: 'apkKey'
   };
 
   export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -20220,6 +20248,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFilter<"Organization"> | number
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     metadata?: StringNullableFilter<"Organization"> | string | null
+    qrCodeKey?: StringNullableFilter<"Organization"> | string | null
+    apkKey?: StringNullableFilter<"Organization"> | string | null
     members?: MemberListRelationFilter
     departments?: DepartmentListRelationFilter
     subscriptions?: SubscriptionListRelationFilter
@@ -20237,6 +20267,8 @@ export namespace Prisma {
     availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrderInput | SortOrder
+    qrCodeKey?: SortOrderInput | SortOrder
+    apkKey?: SortOrderInput | SortOrder
     members?: MemberOrderByRelationAggregateInput
     departments?: DepartmentOrderByRelationAggregateInput
     subscriptions?: SubscriptionOrderByRelationAggregateInput
@@ -20257,6 +20289,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFilter<"Organization"> | number
     createdAt?: DateTimeFilter<"Organization"> | Date | string
     metadata?: StringNullableFilter<"Organization"> | string | null
+    qrCodeKey?: StringNullableFilter<"Organization"> | string | null
+    apkKey?: StringNullableFilter<"Organization"> | string | null
     members?: MemberListRelationFilter
     departments?: DepartmentListRelationFilter
     subscriptions?: SubscriptionListRelationFilter
@@ -20274,6 +20308,8 @@ export namespace Prisma {
     availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrderInput | SortOrder
+    qrCodeKey?: SortOrderInput | SortOrder
+    apkKey?: SortOrderInput | SortOrder
     _count?: OrganizationCountOrderByAggregateInput
     _avg?: OrganizationAvgOrderByAggregateInput
     _max?: OrganizationMaxOrderByAggregateInput
@@ -20296,6 +20332,8 @@ export namespace Prisma {
     availabilityEndHour?: IntWithAggregatesFilter<"Organization"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Organization"> | Date | string
     metadata?: StringNullableWithAggregatesFilter<"Organization"> | string | null
+    qrCodeKey?: StringNullableWithAggregatesFilter<"Organization"> | string | null
+    apkKey?: StringNullableWithAggregatesFilter<"Organization"> | string | null
   }
 
   export type MemberWhereInput = {
@@ -21453,6 +21491,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
     departments?: DepartmentCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
@@ -21470,6 +21510,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
     departments?: DepartmentUncheckedCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
@@ -21487,6 +21529,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
     departments?: DepartmentUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
@@ -21504,6 +21548,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput
     departments?: DepartmentUncheckedUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -21521,6 +21567,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
   }
 
   export type OrganizationUpdateManyMutationInput = {
@@ -21535,6 +21583,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrganizationUncheckedUpdateManyInput = {
@@ -21549,6 +21599,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type MemberCreateInput = {
@@ -22792,6 +22844,8 @@ export namespace Prisma {
     availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
+    qrCodeKey?: SortOrder
+    apkKey?: SortOrder
   }
 
   export type OrganizationAvgOrderByAggregateInput = {
@@ -22811,6 +22865,8 @@ export namespace Prisma {
     availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
+    qrCodeKey?: SortOrder
+    apkKey?: SortOrder
   }
 
   export type OrganizationMinOrderByAggregateInput = {
@@ -22825,6 +22881,8 @@ export namespace Prisma {
     availabilityEndHour?: SortOrder
     createdAt?: SortOrder
     metadata?: SortOrder
+    qrCodeKey?: SortOrder
+    apkKey?: SortOrder
   }
 
   export type OrganizationSumOrderByAggregateInput = {
@@ -25262,6 +25320,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     departments?: DepartmentCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
   }
@@ -25278,6 +25338,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     departments?: DepartmentUncheckedCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -25310,6 +25372,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     departments?: DepartmentUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
   }
@@ -25326,6 +25390,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     departments?: DepartmentUncheckedUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -25342,6 +25408,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
   }
@@ -25358,6 +25426,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
     subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -25420,6 +25490,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
   }
@@ -25436,6 +25508,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput
     subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -26062,6 +26136,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberCreateNestedManyWithoutOrganizationInput
     departments?: DepartmentCreateNestedManyWithoutOrganizationInput
   }
@@ -26078,6 +26154,8 @@ export namespace Prisma {
     availabilityEndHour?: number
     createdAt: Date | string
     metadata?: string | null
+    qrCodeKey?: string | null
+    apkKey?: string | null
     members?: MemberUncheckedCreateNestedManyWithoutOrganizationInput
     departments?: DepartmentUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -26226,6 +26304,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUpdateManyWithoutOrganizationNestedInput
     departments?: DepartmentUpdateManyWithoutOrganizationNestedInput
   }
@@ -26242,6 +26322,8 @@ export namespace Prisma {
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    qrCodeKey?: NullableStringFieldUpdateOperationsInput | string | null
+    apkKey?: NullableStringFieldUpdateOperationsInput | string | null
     members?: MemberUncheckedUpdateManyWithoutOrganizationNestedInput
     departments?: DepartmentUncheckedUpdateManyWithoutOrganizationNestedInput
   }

@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.6
+# Development Dockerfile for web
+FROM node:22-bullseye
+
+WORKDIR /app
+
+# Install workspace toolchain
+RUN npm install -g pnpm@10 turbo@2
+
+# Copy the monorepo
+COPY . .
+
+# Build-time environment (can be overridden with --build-arg)
+ARG NODE_ENV=development
+ARG VITE_ENVIRONMENT=development
+ENV NODE_ENV=${NODE_ENV}
+ENV VITE_ENVIRONMENT=${VITE_ENVIRONMENT}
+
+# Install dependencies and build the web app
+# In development, Vite will include source maps and dev optimizations
+RUN pnpm install --frozen-lockfile \
+ && pnpm --filter web run build
+
+# Runtime environment defaults (can be overridden by Coolify)
+ENV NODE_ENV=development \
+    HOST=0.0.0.0 \
+    PORT=4173
+
+EXPOSE 4173
+
+# Serve the prebuilt Vite app
+CMD ["pnpm", "--filter", "web", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+

@@ -1,0 +1,36 @@
+name: php-endpoint-dev
+type: php
+repository: https://github.com/hbela/my-better-t-app.git
+branch: dev
+root_directory: .
+php:
+  version: "8.3"
+  document_root: .
+domains:
+  - phpdev.appointer.hu
+  - wellnessdev.appointer.hu
+  - medicaredev.appointer.hu
+environment:
+  APP_ENV: development
+  PHP_MEMORY_LIMIT: 256M
+  PHP_MAX_EXECUTION_TIME: "120"
+  # Organization domain configurations for dev
+  # These should match the subdomains you're using
+  WELLNESS_DOMAIN: wellnessdev.appointer.hu
+  MEDICARE_DOMAIN: medicaredev.appointer.hu
+  # Add API keys and other org-specific configs as needed
+  # WELLNESS_API_KEY: ${WELLNESS_API_KEY}
+  # WELLNESS_NAME: Wellness Dev
+  # WELLNESS_ORG_ID: ${WELLNESS_ORG_ID}
+  # MEDICARE_API_KEY: ${MEDICARE_API_KEY}
+  # MEDICARE_NAME: Medicare Dev
+  # MEDICARE_ORG_ID: ${MEDICARE_ORG_ID}
+  # PHP server URL for the proxy
+  PHP_SERVER_URL: https://phpdev.appointer.hu
+  # API verification endpoint
+  VERIFY_URL: https://apidev.appointer.hu/api/external/verify
+  # Frontend redirect URL
+  FRONTEND_REDIRECT: https://webdev.appointer.hu/login
+  # CORS origins (comma-separated)
+  ALLOWED_CORS_ORIGINS: https://webdev.appointer.hu,https://wellnessdev.appointer.hu,https://medicaredev.appointer.hu
+

@@ -15,6 +15,54 @@ const organizationsRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  // Public search endpoint for voice agent
+  app.get('/search', async (req, reply) => {
+    try {
+      const { q } = req.query as { q?: string };
+      
+      if (!q || q.trim().length === 0) {
+        return reply.send({
+          success: true,
+          data: [],
+        });
+      }
+
+      const searchTerm = q.trim().toLowerCase();
+      
+      const organizations = await prisma.organization.findMany({
+        where: {
+          enabled: true,
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { description: { contains: searchTerm, mode: 'insensitive' } },
+            { slug: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logo: true,
+          description: true,
+        },
+        orderBy: { name: 'asc' },
+        take: 20, // Limit results
+      });
+
+      reply.send({
+        success: true,
+        data: organizations,
+      });
+    } catch (error) {
+      app.log.error(error, 'Error searching organizations');
+      throw new AppError(
+        'Failed to search organizations',
+        'SEARCH_ORGS_FAILED',
+        500
+      );
+    }
+  });
+
   app.get('/my-organizations', { preValidation: [requireAuthHook] }, async (req, reply) => {
     try {
       // @ts-expect-error

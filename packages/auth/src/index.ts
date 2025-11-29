@@ -114,6 +114,23 @@ export const auth = betterAuth({
           role: session.user.role,
           needsPasswordChange: session.user.needsPasswordChange,
         });
+        
+        // Send mobile app notification email (one-time, after app launch)
+        try {
+          const { sendMobileAppNotificationEmail } = await import("../../server/src/features/notifications/mobile-app-email.js");
+          // Get user language preference (default to 'en')
+          const lang = (session.user as any).language || "en";
+          await sendMobileAppNotificationEmail(
+            session.user.id,
+            session.user.email,
+            session.user.name,
+            lang
+          );
+        } catch (error) {
+          // Don't fail session creation if email fails
+          console.error("Failed to send mobile app notification:", error);
+        }
+        
         return session;
       },
     },

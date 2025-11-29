@@ -1,3 +1,16 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Models from auth.prisma
 enum UserRole {
   ADMIN
   OWNER
@@ -82,11 +95,13 @@ model Organization {
   slug                  String         @unique
   logo                  String?
   enabled               Boolean        @default(false)
-  timeZone              String         @default("Europe/Budapest") // IANA timezone (e.g., "Europe/London", "America/New_York")
-  availabilityStartHour Int            @default(8) // Business hours start (0-23)
-  availabilityEndHour   Int            @default(20) // Business hours end (0-23)
+  timeZone              String         @default("Europe/Budapest")
+  availabilityStartHour Int            @default(8)
+  availabilityEndHour   Int            @default(20)
   createdAt             DateTime
   metadata              String?
+  qrCodeKey             String? // S3 path for QR code PNG
+  apkKey                String? // S3 path for APK
   members               Member[]
   departments           Department[]
   subscriptions         Subscription[]
@@ -155,7 +170,7 @@ model Event {
   description String?
   start       DateTime
   end         DateTime
-  duration    Int? // in minutes
+  duration    Int?
   price       Float?
   isBooked    Boolean  @default(false)
   booking     Booking?
@@ -169,7 +184,7 @@ model Booking {
   id        String   @id @map("_id")
   eventId   String   @unique
   memberId  String
-  status    String   @default("CONFIRMED") // "CONFIRMED", "CANCELLED", "COMPLETED"
+  status    String   @default("CONFIRMED")
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   member    User     @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -185,7 +200,7 @@ model Product {
   description   String?
   priceCents    Int
   currency      String         @default("USD")
-  interval      String? // "month", "year", null for one-time
+  interval      String?
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -199,14 +214,13 @@ model Subscription {
   polarCheckoutId     String?   @unique
   polarSubscriptionId String?   @unique
   polarCustomerId     String?
-  status              String // "active", "cancelled", "expired", "pending"
+  status              String
   currentPeriodStart  DateTime?
   currentPeriodEnd    DateTime?
   cancelledAt         DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  // Relations
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -224,22 +238,20 @@ model Subscription {
 model Payment {
   id             String   @id @map("_id")
   polarPaymentId String?  @unique
-  amount         Int // Amount in cents
+  amount         Int
   currency       String   @default("USD")
-  status         String // "succeeded", "pending", "failed", "refunded"
+  status         String
   paymentMethod  String?
   receiptUrl     String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  // Relations
   subscriptionId String
   subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("payment")
 }
 
-// Better Auth API Key model (as per Better Auth documentation)
 model apikey {
   id           String    @id @default(cuid())
   name         String?
@@ -254,20 +266,7 @@ model apikey {
   createdAt    DateTime  @default(now())
   metadata     Json?
 
-  // Indexes for performance
   @@index([userId])
   @@index([enabled])
   @@index([expiresAt])
-}
-
-generator client {
-  provider        = "prisma-client-js"
-  output          = "../generated"
-  previewFeatures = ["driverAdapters"]
-}
-
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }

@@ -26,12 +26,15 @@ import departmentsRoutes from "./features/departments/routes";
 import ownerRoutes from "./features/owner/routes";
 import providerRoutes from "./features/provider/routes";
 import authRoutes from "./features/auth/routes";
+import voiceAgentRoutes from "./features/voice-agent/routes";
 import { instrument } from "./instrument";
 import { errorHandler } from "./plugins/errorHandler";
 import i18nPlugin from "./plugins/i18n";
+import orgAppPlugin from "./plugins/orgApp";
 import * as Sentry from "@sentry/node";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import multipart from "@fastify/multipart";
 
 // In ESM, __dirname is not available by default – reconstruct it from import.meta.url
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +59,19 @@ const envSchema = {
     SENTRY_RELEASE: { type: "string" },
     CORS_ORIGIN: { type: "string" },
     FRONTEND_URL: { type: "string" },
+    N8N_WEBHOOK_URL: { type: "string" },
+    VOICE_AGENT_SESSION_TTL: { type: "string" },
+    VOICE_AGENT_MAX_AUDIO_SIZE: { type: "string" },
+    MOBILE_APP_ORIGIN: { type: "string" },
+    MOBILE_APP_IOS_URL: { type: "string" },
+    MOBILE_APP_ANDROID_URL: { type: "string" },
+    MOBILE_APP_LAUNCHED: { type: "string" },
+    S3_REGION: { type: "string" },
+    S3_ENDPOINT: { type: "string" },
+    S3_ACCESS_KEY: { type: "string" },
+    S3_SECRET_KEY: { type: "string" },
+    S3_BUCKET: { type: "string" },
+    PUBLIC_APP_URL: { type: "string" },
   },
 } as const;
 
@@ -117,10 +133,21 @@ export function buildApp() {
   // Register i18n plugin
   app.register(i18nPlugin);
 
+  // Register org app plugin (QR code and APK management)
+  app.register(orgAppPlugin);
+
   app.register(cors, {
     origin: true,
     credentials: true,
   });
+  
+  // Register multipart plugin for file uploads
+  app.register(multipart, {
+    limits: {
+      fileSize: Number(process.env.VOICE_AGENT_MAX_AUDIO_SIZE) || 10 * 1024 * 1024, // 10MB default
+    },
+  });
+  
   // Register rawBody plugin globally but only process routes with rawBody: true
   app.register(rawBody, { 
     field: "rawBody", 
@@ -187,6 +214,7 @@ export function buildApp() {
   app.register(polarWebhook, { prefix: "/api/webhooks" });
   app.register(subscriptionsRoutes, { prefix: "/api/subscriptions" });
   app.register(authRoutes, { prefix: "/api/auth" });
+  app.register(voiceAgentRoutes, { prefix: "/api/voice-agent" });
 
   // Register global error handler (must be after all routes)
   errorHandler(app);
