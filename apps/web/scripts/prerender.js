@@ -75,17 +75,25 @@ async function prerender() {
       throw new Error("Bundled Chromium not found");
     }
   } catch (error) {
-    // If that fails, try common Chrome locations on Windows
+    // If that fails, try common Chrome/Chromium locations
     const possiblePaths = [
+      // Windows paths
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
       "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+      // Linux paths
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      // Environment variable
       process.env.CHROME_PATH,
+      process.env.PUPPETEER_EXECUTABLE_PATH,
     ].filter(Boolean);
 
     for (const path of possiblePaths) {
       if (existsSync(path)) {
         executablePath = path;
-        console.log(`📦 Using system Chrome: ${path}`);
+        console.log(`📦 Using system Chrome/Chromium: ${path}`);
         break;
       }
     }
