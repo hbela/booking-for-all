@@ -10,6 +10,7 @@ import { AppError } from "../../errors/AppError";
 const CreateOrganizationSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().optional(),
+  domain: z.string().min(1, "Domain is required").optional(), // NEW: Add domain field
   ownerName: z.string().min(1, "Owner name is required"),
   ownerEmail: z.string().email("Invalid owner email address"),
 });
@@ -43,6 +44,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           id: true,
           name: true,
           slug: true,
+          domain: true, // NEW: Include domain
           enabled: true,
           createdAt: true,
         },
@@ -64,8 +66,8 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req, reply) => {
-      // ✅ req.body is typed as { name: string; slug?: string; ownerName: string; ownerEmail: string }
-      const { name, slug, ownerName, ownerEmail } = req.body;
+      // ✅ req.body is typed as { name: string; slug?: string; domain?: string; ownerName: string; ownerEmail: string }
+      const { name, slug, domain, ownerName, ownerEmail } = req.body;
 
         // Check if owner email already exists
         const existingUser = await prisma.user.findUnique({
@@ -97,12 +99,28 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           );
         }
 
-        // Create organization
+        // NEW: Check if domain already exists
+        if (domain) {
+          const normalizedDomain = domain.toLowerCase().trim();
+          const existingDomain = await prisma.organization.findUnique({
+            where: { domain: normalizedDomain },
+          });
+          if (existingDomain) {
+            throw new AppError(
+              "Organization domain already exists",
+              "ORG_DOMAIN_EXISTS",
+              400
+            );
+          }
+        }
+
+        // Create organization with domain
         const organization = await prisma.organization.create({
           data: {
             id: crypto.randomUUID(),
             name,
             slug: normalizedSlug,
+            domain: domain ? domain.toLowerCase().trim() : null, // NEW: Store domain
             enabled: false,
             createdAt: new Date(),
           },

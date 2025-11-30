@@ -93,6 +93,7 @@ model Organization {
   name                  String
   description           String?
   slug                  String         @unique
+  domain                String?        @unique  // Domain field for unique identification
   logo                  String?
   enabled               Boolean        @default(false)
   timeZone              String         @default("Europe/Budapest")

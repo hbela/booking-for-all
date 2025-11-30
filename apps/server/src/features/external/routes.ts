@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { validateApiKeyHook } from '../../plugins/authz';
 import { AppError } from '../../errors/AppError';
+import prisma from '@booking-for-all/db';
 
 const externalRoutes: FastifyPluginAsync = async (app) => {
   // SECURITY FIX: Register rate limiting for external routes (per-route configuration)
@@ -23,6 +24,54 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
         retryAfter: context.after,
       };
     },
+  });
+
+  // NEW: Public endpoint to get organization by domain
+  app.get('/organization-by-domain', {
+    config: {
+      rateLimit: {
+        max: Number(process.env.RATE_LIMIT_DOMAIN_LOOKUP_MAX) || 20,
+        timeWindow: process.env.RATE_LIMIT_DOMAIN_LOOKUP_WINDOW || '1 minute',
+      }
+    }
+  }, async (req, reply) => {
+    const { domain } = req.query as { domain?: string };
+    
+    if (!domain) {
+      throw new AppError(
+        'Domain parameter is required',
+        'DOMAIN_REQUIRED',
+        400
+      );
+    }
+
+    // Normalize domain (lowercase, trim, remove port if present)
+    const normalizedDomain = domain.toLowerCase().trim();
+    const domainWithoutPort = normalizedDomain.split(':')[0];
+
+    // Find organization by domain
+    const organization = await prisma.organization.findUnique({
+      where: { domain: domainWithoutPort },
+    });
+
+    if (!organization) {
+      throw new AppError(
+        'Organization not found for this domain',
+        'ORGANIZATION_NOT_FOUND',
+        404
+      );
+    }
+
+    // Return organization info (similar to /verify endpoint)
+    reply.send({
+      success: true,
+      data: {
+        organizationId: organization.id,
+        organizationName: organization.name,
+        organizationSlug: organization.slug,
+        redirectUrl: `${process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3001'}/login?org=${organization.id}&referrer=${encodeURIComponent((req.headers.referer as string) || '')}`,
+      },
+    });
   });
 
   app.get('/validate-session', {

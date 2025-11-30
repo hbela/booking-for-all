@@ -199,92 +199,22 @@
     </div>
 
     <script>
-      // The PHP proxy detects the organization from MEDICARE_DOMAIN env variable,
-      // so no identifiers are exposed from this page.
-
-      // Allow overriding the PHP proxy via query string once per session:
-      // http://127.0.0.1:5500/medicare/medicare_external.html?phpServer=http://localhost:8000
-      const params = new URLSearchParams(window.location.search);
-      const phpOverride = params.get("phpServer");
-      if (phpOverride) {
-        sessionStorage.setItem("phpServerOverride", phpOverride);
-      }
-
-      const storedPhpOverride = sessionStorage.getItem("phpServerOverride");
-
-      // Detect if we're in production (https://) or development (http://localhost or custom dev domains)
-      const isProduction = window.location.protocol === "https:";
-      
-      // PHP server URLs to try (in order) - try production first if on production domain
-      const PHP_SERVER_CANDIDATES = isProduction
-        ? [
-            "https://php.appointer.hu",
-            "http://localhost:8000", // Fallback for testing
-          ]
-        : [
-            "http://localhost:8000",
-            "https://php.appointer.hu", // Fallback
-          ];
-
-      let PHP_SERVER_URL = storedPhpOverride;
-
-      // Fetch PHP server URL from config endpoint based on APP_ENV
-      async function getPhpServerUrl() {
-        if (PHP_SERVER_URL) {
-          return PHP_SERVER_URL;
-        }
-
-        // Check sessionStorage for cached URL
-        const cachedUrl = sessionStorage.getItem("phpServerUrl");
-        if (cachedUrl) {
-          PHP_SERVER_URL = cachedUrl;
-          return PHP_SERVER_URL;
-        }
-
-        // Try each candidate until one responds with config
-        let lastError = null;
-        for (const candidate of PHP_SERVER_CANDIDATES) {
-          try {
-            const response = await fetch(`${candidate}/index.php?config=1`, {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            });
-
-            if (response.ok) {
-              const config = await response.json();
-              PHP_SERVER_URL = config.phpServerUrl;
-              sessionStorage.setItem("phpServerUrl", PHP_SERVER_URL);
-              console.log("✅ PHP server URL determined:", PHP_SERVER_URL);
-              return PHP_SERVER_URL;
-            }
-          } catch (error) {
-            lastError = error;
-            console.warn(`⚠️ Failed to fetch config from ${candidate}:`, error.message);
-            // Try next candidate
-            continue;
-          }
-        }
-
-        // If all candidates failed, use production URL if on https, otherwise localhost
-        PHP_SERVER_URL = isProduction ? "https://php.appointer.hu" : "http://localhost:8000";
-        console.warn("⚠️ Could not fetch config, using fallback:", PHP_SERVER_URL, lastError);
-        return PHP_SERVER_URL;
-      }
-
-      // Organization slug is no longer needed - PHP detects it from the domain
-      // const ORGANIZATION_SLUG = "medicare"; // Removed - domain-based detection
 
       async function connectToOrganization() {
         try {
-          // Get PHP server URL based on APP_ENV (fetched from PHP config endpoint)
-          const phpServerUrl = await getPhpServerUrl();
-          
-          // Use the secure PHP proxy instead of direct API calls
-          // The PHP proxy automatically detects the organization from the domain
-          // (e.g., medicare.hu -> MEDICARE_DOMAIN -> medicare slug)
-          const url = `${phpServerUrl}/index.php`;
+          // Extract domain from current location
+          const domain = window.location.hostname;
+          console.log("Detected domain:", domain);
+
+          // Call backend API directly (no PHP proxy needed)
+          const apiBaseUrl = window.location.origin.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : (window.location.protocol === 'https:' 
+              ? 'https://api.appointer.hu' 
+              : 'http://localhost:3000');
+
+          const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(domain)}`;
           console.log("Connecting to:", url);
-          console.log("Request origin:", window.location.origin);
 
           const response = await fetch(url, {
             method: "GET",
@@ -294,14 +224,10 @@
           });
 
           if (!response.ok) {
-            const errorText = await response.text();
-            console.error(
-              "Proxy verification failed:",
-              response.status,
-              errorText
-            );
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            console.error("Organization lookup failed:", response.status, errorData);
             throw new Error(
-              `Proxy verification failed: ${response.status} - ${errorText}`
+              errorData.message || `Organization lookup failed: ${response.status}`
             );
           }
 
@@ -310,68 +236,50 @@
 
           if (!data.success) {
             console.error("❌ Response not successful:", data);
-            throw new Error(data.message || "Verification failed");
+            throw new Error(data.message || "Organization lookup failed");
           }
 
-          console.log("✅ Verification successful, organization data:", data);
-          console.log("🔍 data.organization value:", data.organization);
-          console.log("🔍 window.location.origin:", window.location.origin);
+          const orgData = data.data;
+          console.log("✅ Organization found:", orgData);
 
           // Store the organization info
-          if (data.organizationId) {
-            sessionStorage.setItem("selectedOrganization", data.organizationId);
+          if (orgData.organizationId) {
+            sessionStorage.setItem("selectedOrganization", orgData.organizationId);
             // Load QR code for this organization
-            loadQRCode(data.organizationId);
+            loadQRCode(orgData.organizationId);
           }
-          if (data.organizationName) {
-            sessionStorage.setItem("organizationName", data.organizationName);
+          if (orgData.organizationName) {
+            sessionStorage.setItem("organizationName", orgData.organizationName);
           }
-          if (data.organization) {
-            sessionStorage.setItem("sourceOrganization", data.organization);
-          } else {
-            console.warn(
-              "⚠️ data.organization is missing! Available keys:",
-              Object.keys(data)
-            );
+          if (orgData.organizationSlug) {
+            sessionStorage.setItem("sourceOrganization", orgData.organizationSlug);
           }
           sessionStorage.setItem("externalAppOrigin", window.location.origin);
 
           console.log("✅ Stored in sessionStorage:", {
-            selectedOrganization: sessionStorage.getItem(
-              "selectedOrganization"
-            ),
+            selectedOrganization: sessionStorage.getItem("selectedOrganization"),
             organizationName: sessionStorage.getItem("organizationName"),
             sourceOrganization: sessionStorage.getItem("sourceOrganization"),
             externalAppOrigin: sessionStorage.getItem("externalAppOrigin"),
           });
 
-          if (!data.redirectUrl) {
+          if (!orgData.redirectUrl) {
             console.error("❌ No redirectUrl in response!");
             throw new Error("No redirect URL received from server");
           }
 
           // Append organization slug and origin as URL parameters
-          // This is necessary because sessionStorage is origin-specific
-          // and doesn't persist across different origins (e.g., 127.0.0.1:5500 -> localhost:3001)
-          const redirectUrl = new URL(data.redirectUrl);
-          redirectUrl.searchParams.set("orgSlug", data.organization || "");
-          redirectUrl.searchParams.set(
-            "externalOrigin",
-            window.location.origin
-          );
+          const redirectUrl = new URL(orgData.redirectUrl);
+          redirectUrl.searchParams.set("orgSlug", orgData.organizationSlug || "");
+          redirectUrl.searchParams.set("externalOrigin", window.location.origin);
 
           console.log("🔄 Redirecting to:", redirectUrl.toString());
           // Redirect to the booking system login with organization context
           window.location.href = redirectUrl.toString();
         } catch (error) {
           console.error("Error connecting to organization:", error);
-          const phpServerUrl = PHP_SERVER_URL || (await getPhpServerUrl());
-          const isProd = window.location.protocol === "https:";
-          const domainCheck = isProd 
-            ? `2. MEDICARE_DOMAIN matches ${window.location.hostname}`
-            : `2. MEDICARE_DOMAIN matches ${window.location.hostname} (dev: ${window.location.hostname})`;
           alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. PHP proxy is reachable at ${phpServerUrl}\n${domainCheck}\n3. API credentials are configured on the PHP server\n4. CORS is properly configured for ${window.location.origin}`
+            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. Backend API is reachable\n2. Domain is registered in the database\n3. CORS is properly configured for ${window.location.origin}`
           );
         }
       }
