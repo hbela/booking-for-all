@@ -7009,6 +7009,7 @@ export namespace Prisma {
     name: string | null
     description: string | null
     slug: string | null
+    domain: string | null
     logo: string | null
     enabled: boolean | null
     timeZone: string | null
@@ -7025,6 +7026,7 @@ export namespace Prisma {
     name: string | null
     description: string | null
     slug: string | null
+    domain: string | null
     logo: string | null
     enabled: boolean | null
     timeZone: string | null
@@ -7041,6 +7043,7 @@ export namespace Prisma {
     name: number
     description: number
     slug: number
+    domain: number
     logo: number
     enabled: number
     timeZone: number
@@ -7069,6 +7072,7 @@ export namespace Prisma {
     name?: true
     description?: true
     slug?: true
+    domain?: true
     logo?: true
     enabled?: true
     timeZone?: true
@@ -7085,6 +7089,7 @@ export namespace Prisma {
     name?: true
     description?: true
     slug?: true
+    domain?: true
     logo?: true
     enabled?: true
     timeZone?: true
@@ -7101,6 +7106,7 @@ export namespace Prisma {
     name?: true
     description?: true
     slug?: true
+    domain?: true
     logo?: true
     enabled?: true
     timeZone?: true
@@ -7204,6 +7210,7 @@ export namespace Prisma {
     name: string
     description: string | null
     slug: string
+    domain: string | null
     logo: string | null
     enabled: boolean
     timeZone: string
@@ -7239,6 +7246,7 @@ export namespace Prisma {
     name?: boolean
     description?: boolean
     slug?: boolean
+    domain?: boolean
     logo?: boolean
     enabled?: boolean
     timeZone?: boolean
@@ -7259,6 +7267,7 @@ export namespace Prisma {
     name?: boolean
     description?: boolean
     slug?: boolean
+    domain?: boolean
     logo?: boolean
     enabled?: boolean
     timeZone?: boolean
@@ -7275,6 +7284,7 @@ export namespace Prisma {
     name?: boolean
     description?: boolean
     slug?: boolean
+    domain?: boolean
     logo?: boolean
     enabled?: boolean
     timeZone?: boolean
@@ -7291,6 +7301,7 @@ export namespace Prisma {
     name?: boolean
     description?: boolean
     slug?: boolean
+    domain?: boolean
     logo?: boolean
     enabled?: boolean
     timeZone?: boolean
@@ -7302,7 +7313,7 @@ export namespace Prisma {
     apkKey?: boolean
   }
 
-  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata" | "qrCodeKey" | "apkKey", ExtArgs["result"]["organization"]>
+  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "domain" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata" | "qrCodeKey" | "apkKey", ExtArgs["result"]["organization"]>
   export type OrganizationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     members?: boolean | Organization$membersArgs<ExtArgs>
     departments?: boolean | Organization$departmentsArgs<ExtArgs>
@@ -7324,6 +7335,7 @@ export namespace Prisma {
       name: string
       description: string | null
       slug: string
+      domain: string | null
       logo: string | null
       enabled: boolean
       timeZone: string
@@ -7763,6 +7775,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Organization", 'String'>
     readonly description: FieldRef<"Organization", 'String'>
     readonly slug: FieldRef<"Organization", 'String'>
+    readonly domain: FieldRef<"Organization", 'String'>
     readonly logo: FieldRef<"Organization", 'String'>
     readonly enabled: FieldRef<"Organization", 'Boolean'>
     readonly timeZone: FieldRef<"Organization", 'String'>
@@ -19602,6 +19615,7 @@ export namespace Prisma {
     name: 'name',
     description: 'description',
     slug: 'slug',
+    domain: 'domain',
     logo: 'logo',
     enabled: 'enabled',
     timeZone: 'timeZone',
@@ -20241,6 +20255,7 @@ export namespace Prisma {
     name?: StringFilter<"Organization"> | string
     description?: StringNullableFilter<"Organization"> | string | null
     slug?: StringFilter<"Organization"> | string
+    domain?: StringNullableFilter<"Organization"> | string | null
     logo?: StringNullableFilter<"Organization"> | string | null
     enabled?: BoolFilter<"Organization"> | boolean
     timeZone?: StringFilter<"Organization"> | string
@@ -20260,6 +20275,7 @@ export namespace Prisma {
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     slug?: SortOrder
+    domain?: SortOrderInput | SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
     timeZone?: SortOrder
@@ -20277,6 +20293,7 @@ export namespace Prisma {
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     slug?: string
+    domain?: string
     AND?: OrganizationWhereInput | OrganizationWhereInput[]
     OR?: OrganizationWhereInput[]
     NOT?: OrganizationWhereInput | OrganizationWhereInput[]
@@ -20294,13 +20311,14 @@ export namespace Prisma {
     members?: MemberListRelationFilter
     departments?: DepartmentListRelationFilter
     subscriptions?: SubscriptionListRelationFilter
-  }, "id" | "slug">
+  }, "id" | "slug" | "domain">
 
   export type OrganizationOrderByWithAggregationInput = {
     id?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     slug?: SortOrder
+    domain?: SortOrderInput | SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
     timeZone?: SortOrder
@@ -20325,6 +20343,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Organization"> | string
     description?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     slug?: StringWithAggregatesFilter<"Organization"> | string
+    domain?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     logo?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     enabled?: BoolWithAggregatesFilter<"Organization"> | boolean
     timeZone?: StringWithAggregatesFilter<"Organization"> | string
@@ -21484,6 +21503,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -21503,6 +21523,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -21522,6 +21543,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -21541,6 +21563,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -21560,6 +21583,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -21576,6 +21600,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -21592,6 +21617,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -22837,6 +22863,7 @@ export namespace Prisma {
     name?: SortOrder
     description?: SortOrder
     slug?: SortOrder
+    domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
     timeZone?: SortOrder
@@ -22858,6 +22885,7 @@ export namespace Prisma {
     name?: SortOrder
     description?: SortOrder
     slug?: SortOrder
+    domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
     timeZone?: SortOrder
@@ -22874,6 +22902,7 @@ export namespace Prisma {
     name?: SortOrder
     description?: SortOrder
     slug?: SortOrder
+    domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
     timeZone?: SortOrder
@@ -25313,6 +25342,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -25331,6 +25361,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -25365,6 +25396,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -25383,6 +25415,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -25401,6 +25434,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -25419,6 +25453,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -25483,6 +25518,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -25501,6 +25537,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -26129,6 +26166,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -26147,6 +26185,7 @@ export namespace Prisma {
     name: string
     description?: string | null
     slug: string
+    domain?: string | null
     logo?: string | null
     enabled?: boolean
     timeZone?: string
@@ -26297,6 +26336,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string
@@ -26315,6 +26355,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     slug?: StringFieldUpdateOperationsInput | string
+    domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
     timeZone?: StringFieldUpdateOperationsInput | string

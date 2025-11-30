@@ -177,6 +177,7 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   name: 'name',
   description: 'description',
   slug: 'slug',
+  domain: 'domain',
   logo: 'logo',
   enabled: 'enabled',
   timeZone: 'timeZone',
