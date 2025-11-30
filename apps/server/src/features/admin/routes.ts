@@ -25,6 +25,10 @@ const DeleteApiKeyParamsSchema = z.object({
   id: z.string().min(1, "id is required"),
 });
 
+const DeleteOrganizationParamsSchema = z.object({
+  id: z.string().min(1, "id is required"),
+});
+
 const CreateUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -299,6 +303,65 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       });
     }
   );
+
+  app.delete(
+    "/organizations/:id",
+    {
+      preValidation: [requireAuthHook, requireAdminHook],
+      schema: {
+        params: DeleteOrganizationParamsSchema,
+      },
+    },
+    async (req, reply) => {
+      try {
+        // ✅ req.params is typed as { id: string }
+        const { id } = req.params;
+
+        // Check if organization exists
+        const organization = await prisma.organization.findUnique({
+          where: { id },
+        });
+
+        if (!organization) {
+          throw new AppError(
+            "Organization not found",
+            "ORG_NOT_FOUND",
+            404
+          );
+        }
+
+        // Only allow deletion of organizations with pending status (enabled: false)
+        if (organization.enabled) {
+          throw new AppError(
+            "Only organizations with pending status can be deleted",
+            "ORG_CANNOT_DELETE_ACTIVE",
+            403
+          );
+        }
+
+        // Delete organization (cascade will handle related records)
+        await prisma.organization.delete({
+          where: { id },
+        });
+
+        return reply.send({
+          success: true,
+          message: "Organization deleted successfully",
+        });
+      } catch (error) {
+        if (error.isAppError) {
+          throw error;
+        }
+        app.log.error(error, "Error deleting organization");
+        throw new AppError(
+          "Failed to delete organization",
+          "DELETE_ORG_FAILED",
+          500
+        );
+      }
+    }
+  );
+
   app.get(
     "/api-keys",
     { preValidation: [requireAuthHook, requireAdminHook] },

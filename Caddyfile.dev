@@ -4,8 +4,9 @@
 	admin off
 }
 
-# Expose Live Server/Five Server (running on 127.0.0.1:5501) at http://wellness.hu:5500
-http://wellness.hu:5500 {
+# Expose Live Server/Five Server (running on 127.0.0.1:5501) at http://wellness.hu
+# Note: On Windows, binding to port 80 may require administrator privileges
+http://wellness.hu {
 	encode gzip
 	reverse_proxy 127.0.0.1:5501
 }

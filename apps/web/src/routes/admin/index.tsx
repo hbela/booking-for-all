@@ -8,10 +8,21 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
 import { useTranslation } from "react-i18next";
@@ -82,12 +93,35 @@ const createOrganization = async (data: CreateOrgData): Promise<any> => {
 };
 
 const deleteOrganization = async (orgId: string): Promise<void> => {
-  await apiFetch(
+  // DELETE requests don't need Content-Type header when there's no body
+  const res = await fetch(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}`,
     {
       method: "DELETE",
+      credentials: "include",
+      headers: {
+        // Don't set Content-Type for DELETE requests without body
+      },
     }
   );
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const message = data?.message || "Request failed";
+    const code = data?.code || "UNKNOWN_ERROR";
+    throw new ApiError(message, code, res.status);
+  }
+
+  // DELETE requests may return 204 No Content
+  if (res.status === 204) {
+    return;
+  }
+
+  const data = await res.json().catch(() => null);
+  // Handle unified response format: { success: true, data: ... }
+  if (data && typeof data === "object" && "success" in data) {
+    return;
+  }
 };
 
 const createCheckout = async (
@@ -143,9 +177,23 @@ function AdminComponent() {
     onSuccess: () => {
       toast.success(t("admin.organizationDeletedSuccessfully"));
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+      setOrgToDelete(null);
+      setShowDeleteDialog(false);
     },
-    onError: () => {
-      toast.error(t("admin.failedToDeleteOrganization"));
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        if (error.code === "ORG_CANNOT_DELETE_ACTIVE") {
+          toast.error(
+            t("admin.cannotDeleteActiveOrganization") || error.message
+          );
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.error(t("admin.failedToDeleteOrganization"));
+      }
+      setOrgToDelete(null);
+      setShowDeleteDialog(false);
     },
   });
 
@@ -187,11 +235,27 @@ function AdminComponent() {
     },
   });
 
-  const handleDeleteOrg = async (orgId: string) => {
-    if (!confirm(t("admin.areYouSureDeleteOrganization"))) {
+  // State for delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
+
+  const handleDeleteOrg = (org: Organization) => {
+    // Only allow deletion of pending organizations
+    if (org.enabled) {
+      toast.error(
+        t("admin.cannotDeleteActiveOrganization") ||
+          "Only organizations with pending status can be deleted"
+      );
       return;
     }
-    await deleteOrgMutation.mutateAsync(orgId);
+    setOrgToDelete(org);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (orgToDelete) {
+      await deleteOrgMutation.mutateAsync(orgToDelete.id);
+    }
   };
 
   const handleSubscribe = async (orgId: string) => {
@@ -569,8 +633,14 @@ function AdminComponent() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDeleteOrg(org.id)}
-                      disabled={isLoadingAny}
+                      onClick={() => handleDeleteOrg(org)}
+                      disabled={isLoadingAny || org.enabled}
+                      title={
+                        org.enabled
+                          ? t("admin.cannotDeleteActiveOrganization") ||
+                            "Only organizations with pending status can be deleted"
+                          : undefined
+                      }
                     >
                       {t("admin.deleteAction")}
                     </Button>
@@ -581,6 +651,58 @@ function AdminComponent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("admin.deleteOrganization") || "Delete Organization"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("admin.areYouSureDeleteOrganization") ||
+                "Are you sure you want to delete this organization? This action cannot be undone."}
+              {orgToDelete && (
+                <div className="mt-2">
+                  <strong>{t("admin.organization") || "Organization"}:</strong>{" "}
+                  {orgToDelete.name}
+                  <br />
+                  <strong>{t("admin.slugLabel") || "Slug"}:</strong>{" "}
+                  {orgToDelete.slug}
+                  {orgToDelete.domain && (
+                    <>
+                      <br />
+                      <strong>
+                        {t("admin.domainLabel") || "Domain"}:
+                      </strong>{" "}
+                      {orgToDelete.domain}
+                    </>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setOrgToDelete(null);
+                setShowDeleteDialog(false);
+              }}
+            >
+              {t("common.cancel") || "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteOrgMutation.isPending}
+            >
+              {deleteOrgMutation.isPending
+                ? t("admin.deleting") || "Deleting..."
+                : t("common.deleteAction") || "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

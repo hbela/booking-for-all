@@ -348,7 +348,7 @@
     "manageCalendarAndAvailability": "Kezeld a naptáradat és rendelkezésre állásodat",
     "goToCalendar": "Ugrás a naptárhoz",
     "clickCalendarToCreateSlots": "Kattints a naptáradra, hogy létrehozz elérhetőségi időpontokat. Az ügyfelek az elérhető időpontokban foglalhatnak időpontot.",
-    "manageYourAvailability": "Kezeld a rendelkezésre állásodat - {department}",
+    "manageYourAvailability": "Kezeld a rendelkezésre állásodat - {{department}}",
     "availabilityCalendar": "Rendelkezésre állás naptár",
     "clickCalendarToCreateSlotsDesc": "Kattints a naptárra új elérhetőségi időpontok létrehozásához (csak 8:00-20:00 között). Zöld = Elérhető, Piros = Lefoglalt. A múltbeli dátumok nem választhatók ki.",
     "errorLoadingCalendar": "Hiba a naptár betöltésekor",

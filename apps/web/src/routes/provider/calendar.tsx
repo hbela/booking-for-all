@@ -39,27 +39,75 @@ import {
   getDay,
   addHours,
   startOfHour,
+  type Locale,
 } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, hu, de } from "date-fns/locale";
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/react";
 import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
-// Setup the localizer for BigCalendar
-const locales = {
+// Date-fns locale mapping
+const dateFnsLocales: Record<string, Locale> = {
+  en: enUS,
+  hu: hu,
+  de: de,
   "en-US": enUS,
+  "hu-HU": hu,
+  "de-DE": de,
 };
 
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+// React Big Calendar messages for different languages
+const calendarMessages: Record<string, any> = {
+  en: {
+    allDay: "All Day",
+    previous: "Back",
+    next: "Next",
+    today: "Today",
+    month: "Month",
+    week: "Week",
+    day: "Day",
+    agenda: "Agenda",
+    date: "Date",
+    time: "Time",
+    event: "Event",
+    noEventsInRange: "There are no events in this range.",
+    showMore: (total: number) => `+${total} more`,
+  },
+  hu: {
+    allDay: "Egész nap",
+    previous: "Vissza",
+    next: "Előre",
+    today: "Ma",
+    month: "Hónap",
+    week: "Hét",
+    day: "Nap",
+    agenda: "Naptár",
+    date: "Dátum",
+    time: "Idő",
+    event: "Esemény",
+    noEventsInRange: "Nincsenek események ebben a tartományban.",
+    showMore: (total: number) => `+${total} további`,
+  },
+  de: {
+    allDay: "Ganztägig",
+    previous: "Zurück",
+    next: "Weiter",
+    today: "Heute",
+    month: "Monat",
+    week: "Woche",
+    day: "Tag",
+    agenda: "Agenda",
+    date: "Datum",
+    time: "Zeit",
+    event: "Ereignis",
+    noEventsInRange: "Es gibt keine Ereignisse in diesem Bereich.",
+    showMore: (total: number) => `+${total} weitere`,
+  },
+};
 
 export const Route = createFileRoute("/provider/calendar")({
   component: ProviderCalendarComponent,
@@ -87,13 +135,16 @@ interface CalendarEvent {
 
 // API functions
 const fetchProvider = async (userId: string): Promise<any> => {
-  const providers = await apiFetch<any[]>(
+  const response = await apiFetch<any[]>(
     `${import.meta.env.VITE_SERVER_URL}/api/providers?userId=${userId}`
   );
+  // Handle both array response and wrapped response
+  const providers = Array.isArray(response) ? response : (response?.data || []);
   if (providers.length === 0) {
     throw new Error("You are not registered as a provider");
   }
-  return providers[0];
+  const provider = providers[0];
+  return provider;
 };
 
 const fetchEvents = async (providerId: string): Promise<any[]> => {
@@ -153,10 +204,38 @@ interface EventFormData {
 function ProviderCalendarComponent() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   const userId = session.data?.user.id;
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
+
+  // Get current language and locale
+  const currentLang = i18nInstance.language || "en";
+  const langCode = currentLang.split("-")[0]; // Extract 'en' from 'en-US'
+  const dateFnsLocale = dateFnsLocales[currentLang] || dateFnsLocales[langCode] || enUS;
+  const calendarMessagesForLang = calendarMessages[langCode] || calendarMessages.en;
+
+  // Create localizer with current locale for calendar content
+  // But we'll use English locale for time gutter formatting
+  const localizer = useMemo(
+    () =>
+      dateFnsLocalizer({
+        format,
+        parse,
+        startOfWeek,
+        getDay,
+        locales: {
+          [currentLang]: dateFnsLocale,
+          [langCode]: dateFnsLocale,
+        },
+      }),
+    [currentLang, langCode, dateFnsLocale]
+  );
+
+  // Custom format function for time gutter - always use English locale
+  const timeGutterFormat = (date: Date) => {
+    return format(date, "h:mm a", { locale: enUS });
+  };
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -413,7 +492,9 @@ function ProviderCalendarComponent() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">{t("provider.myCalendar")}</h1>
         <p className="text-muted-foreground">
-          {t("provider.manageYourAvailability", { department: provider.department?.name })}
+          {t("provider.manageYourAvailability", { 
+            department: provider?.department?.name || "" 
+          })}
           <SentrySmokeTest />
         </p>
       </div>
@@ -436,6 +517,7 @@ function ProviderCalendarComponent() {
               
               /* Show all 15-minute slot dividers - no suppression needed */
               /* With step=15, we want all dividers visible */
+              
               
               /* Dark mode: Fix navigation buttons visibility */
               .dark .rbc-toolbar button {
@@ -515,6 +597,11 @@ function ProviderCalendarComponent() {
               defaultView="week"
               min={new Date(0, 0, 0, 8, 0, 0)}
               max={new Date(0, 0, 0, 20, 0, 0)}
+              messages={calendarMessagesForLang}
+              culture={currentLang}
+              formats={{
+                timeGutterFormat: timeGutterFormat,
+              }}
             />
           </div>
         </CardContent>
@@ -534,14 +621,14 @@ function ProviderCalendarComponent() {
               </CardTitle>
               {selectedSlot && !selectedEvent && (
                 <CardDescription>
-                  {format(selectedSlot.start, "PPP p")} -{" "}
-                  {format(selectedSlot.end, "p")}
+                  {format(selectedSlot.start, "PPP p", { locale: dateFnsLocale })} -{" "}
+                  {format(selectedSlot.end, "p", { locale: dateFnsLocale })}
                 </CardDescription>
               )}
               {selectedEvent && (
                 <CardDescription>
-                  {format(selectedEvent.start, "PPP p")} -{" "}
-                  {format(selectedEvent.end, "p")}
+                  {format(selectedEvent.start, "PPP p", { locale: dateFnsLocale })} -{" "}
+                  {format(selectedEvent.end, "p", { locale: dateFnsLocale })}
                   {selectedEvent.isBooked && (
                     <span className="block mt-1 text-red-600">
                       {t("provider.bookedBy")}: {selectedEvent.booking?.member?.name}
@@ -731,8 +818,8 @@ function ProviderCalendarComponent() {
                 <div className="mt-2">
                   <strong>{t("provider.event")}:</strong> {eventToDelete.title}
                   <br />
-                  <strong>{t("provider.time")}:</strong> {format(eventToDelete.start, "PPP p")}{" "}
-                  - {format(eventToDelete.end, "p")}
+                  <strong>{t("provider.time")}:</strong> {format(eventToDelete.start, "PPP p", { locale: dateFnsLocale })}{" "}
+                  - {format(eventToDelete.end, "p", { locale: dateFnsLocale })}
                 </div>
               )}
             </AlertDialogDescription>

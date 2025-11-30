@@ -348,7 +348,7 @@
     "manageCalendarAndAvailability": "Manage your calendar and availability",
     "goToCalendar": "Go to Calendar",
     "clickCalendarToCreateSlots": "Click on your calendar to create availability slots. Clients can book appointments during your available times.",
-    "manageYourAvailability": "Manage your availability - {department}",
+    "manageYourAvailability": "Manage your availability - {{department}}",
     "availabilityCalendar": "Availability Calendar",
     "clickCalendarToCreateSlotsDesc": "Click on the calendar to create new availability slots (8 AM - 8 PM only). Green = Available, Red = Booked. Past dates are not selectable.",
     "errorLoadingCalendar": "Error loading calendar",

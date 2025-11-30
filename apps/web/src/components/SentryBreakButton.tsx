@@ -1,10 +1,14 @@
-import * as Sentry from "@sentry/react";
+// DISABLED: "Break The World" button is disabled
+// import * as Sentry from "@sentry/react";
 
 /**
  * Small dev-only button to intentionally trigger a Sentry error from the web app.
  * This lets you verify frontend error monitoring without editing code each time.
  */
 export function SentryBreakButton() {
+  // DISABLED: "Break The World" button is disabled
+  // To re-enable, uncomment the code below
+  /*
   // Only show in development to avoid exposing this in production UI.
   if (!import.meta.env.DEV) return null;
 
@@ -36,6 +40,9 @@ export function SentryBreakButton() {
       Break the world
     </button>
   );
+  */
+
+  return null;
 }
 
 

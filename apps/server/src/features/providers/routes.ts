@@ -29,7 +29,10 @@ const providersRoutes: FastifyPluginAsync = async (app) => {
       where,
       include: {
         department: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
             organization: {
               select: {
                 id: true,

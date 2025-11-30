@@ -348,7 +348,7 @@
     "manageCalendarAndAvailability": "Verwalte deinen Kalender und deine Verfügbarkeit",
     "goToCalendar": "Zum Kalender gehen",
     "clickCalendarToCreateSlots": "Klicke auf deinen Kalender, um Verfügbarkeitszeitfenster zu erstellen. Kunden können Termine während deiner verfügbaren Zeiten buchen.",
-    "manageYourAvailability": "Verwalte deine Verfügbarkeit - {department}",
+    "manageYourAvailability": "Verwalte deine Verfügbarkeit - {{department}}",
     "availabilityCalendar": "Verfügbarkeitskalender",
     "clickCalendarToCreateSlotsDesc": "Klicke auf den Kalender, um neue Verfügbarkeitszeitfenster zu erstellen (nur 8-20 Uhr). Grün = Verfügbar, Rot = Gebucht. Vergangene Daten sind nicht auswählbar.",
     "errorLoadingCalendar": "Fehler beim Laden des Kalenders",

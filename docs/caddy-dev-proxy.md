@@ -19,23 +19,25 @@ Use this setup when Live Server/Five Server refuses connections for the custom h
      admin off
    }
 
-   http://wellness.hu:5500 {
+   http://wellness.hu {
      encode gzip
      reverse_proxy 127.0.0.1:5501
    }
    ```
 
-   This makes Caddy listen on `wellness.hu:5500` while forwarding every request to Live Server on `127.0.0.1:5501`.
+   This makes Caddy listen on `wellness.hu` (port 80) while forwarding every request to Live Server on `127.0.0.1:5501`.
+
+   > **Note:** On Windows, binding to port 80 may require administrator privileges. If you get a permission error, run your terminal as Administrator, or use port 5500 instead (change to `http://wellness.hu:5500` in the Caddyfile).
 
 2. Start Live Server/Five Server so it serves `wellness_external.html` on `http://127.0.0.1:5501/wellness/wellness_external.html`.
 
-3. In a terminal at the project root run:
+3. In a terminal at the project root run (may require Administrator privileges on Windows):
 
    ```
    caddy run --config Caddyfile.dev
    ```
 
-4. Visit `http://wellness.hu:5500/wellness/wellness_external.html`. The browser connects to Caddy (which does listen on `wellness.hu`) and Caddy proxies traffic to Live Server.
+4. Visit `http://wellness.hu/wellness/wellness_external.html`. The browser connects to Caddy (which listens on `wellness.hu` port 80) and Caddy proxies traffic to Live Server.
 
 ## Troubleshooting
 

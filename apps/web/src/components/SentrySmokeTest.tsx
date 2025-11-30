@@ -1,10 +1,14 @@
-import { useEffect } from "react";
-import * as Sentry from "@sentry/react";
+// DISABLED: Sentry smoke test is disabled
+// import { useEffect } from "react";
+// import * as Sentry from "@sentry/react";
 
 // Use sessionStorage to ensure it only fires once per browser session
-const SENTRY_SMOKE_TEST_KEY = "sentry_smoke_test_sent";
+// const SENTRY_SMOKE_TEST_KEY = "sentry_smoke_test_sent";
 
 export function SentrySmokeTest() {
+  // DISABLED: Sentry smoke test is disabled
+  // To re-enable, uncomment the useEffect below
+  /*
   useEffect(() => {
     // Only send once per browser session (survives page reloads)
     // To test again, clear sessionStorage: sessionStorage.removeItem('sentry_smoke_test_sent')
@@ -48,6 +52,7 @@ export function SentrySmokeTest() {
       console.error("❌ Error sending to Sentry:", err);
     }
   }, []);
+  */
 
   return null;
 }
