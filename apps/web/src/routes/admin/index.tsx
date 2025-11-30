@@ -42,6 +42,7 @@ interface Organization {
   id: string;
   name: string;
   slug: string;
+  domain?: string | null;
   logo?: string;
   enabled: boolean;
   members?: any[];
@@ -50,6 +51,7 @@ interface Organization {
 interface CreateOrgData {
   name: string;
   slug: string;
+  domain: string; // Required and unique
   logo?: string;
   ownerName: string;
   ownerEmail: string;
@@ -70,6 +72,7 @@ const createOrganization = async (data: CreateOrgData): Promise<any> => {
       body: JSON.stringify({
         name: data.name,
         slug: data.slug,
+        domain: data.domain,
         logo: data.logo || undefined,
         ownerName: data.ownerName,
         ownerEmail: data.ownerEmail,
@@ -153,7 +156,9 @@ function AdminComponent() {
       // Find org name for toast
       const org = organizations.find((o) => o.id === orgId);
       toast.success(
-        t("admin.redirectingToCheckout", { orgName: org?.name || t("admin.organization") })
+        t("admin.redirectingToCheckout", {
+          orgName: org?.name || t("admin.organization"),
+        })
       );
       window.location.href = data.checkoutUrl;
     },
@@ -171,6 +176,7 @@ function AdminComponent() {
     defaultValues: {
       name: "",
       slug: "",
+      domain: "",
       logo: "",
       ownerName: "",
       ownerEmail: "",
@@ -221,9 +227,7 @@ function AdminComponent() {
         <Card>
           <CardHeader>
             <CardTitle>{t("admin.createOrganization")}</CardTitle>
-            <CardDescription>
-              {t("admin.addNewOrganization")}
-            </CardDescription>
+            <CardDescription>{t("admin.addNewOrganization")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -247,7 +251,9 @@ function AdminComponent() {
               >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>{t("admin.organizationName")}</Label>
+                    <Label htmlFor={field.name}>
+                      {t("admin.organizationName")}
+                    </Label>
                     <Input
                       id={field.name}
                       placeholder={t("admin.organizationNamePlaceholder")}
@@ -290,6 +296,73 @@ function AdminComponent() {
                       onChange={(e) => field.handleChange(e.target.value)}
                       disabled={createOrgMutation.isPending}
                     />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="domain"
+                validators={{
+                  onChange: ({ value }) => {
+                    // Domain is required
+                    if (!value || value.trim().length === 0) {
+                      return t("admin.domainRequired") || "Domain is required";
+                    }
+                    // Basic domain validation (allows comma-separated for dev)
+                    const domains = value
+                      .split(",")
+                      .map((d) => d.trim())
+                      .filter((d) => d.length > 0);
+                    if (domains.length === 0) {
+                      return t("admin.domainRequired") || "Domain is required";
+                    }
+                    for (const domain of domains) {
+                      // Allow domains with alphanumeric, dots, hyphens
+                      // Examples: wellness.hu, wellness.appointer.hu, localhost
+                      if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(domain)) {
+                        return (
+                          t("admin.domainInvalid") ||
+                          "Invalid domain format. Use alphanumeric characters, dots, and hyphens only."
+                        );
+                      }
+                      // Must be at least 2 characters
+                      if (domain.length < 2) {
+                        return (
+                          t("admin.domainInvalid") ||
+                          "Domain must be at least 2 characters"
+                        );
+                      }
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>
+                      {t("admin.domain")}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id={field.name}
+                      placeholder={
+                        t("admin.domainPlaceholder") ||
+                        "wellness.appointer.hu or wellness.appointer.hu,wellness.hu"
+                      }
+                      value={field.state.value || ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled={createOrgMutation.isPending}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("admin.domainHelp") ||
+                        "For production: single domain. For development: comma-separated domains (e.g., wellness.appointer.hu,wellness.hu)"}
+                    </p>
                     {field.state.meta.errors.length > 0 && (
                       <p className="text-sm text-red-500">
                         {field.state.meta.errors[0]}
@@ -419,9 +492,7 @@ function AdminComponent() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>{t("admin.allOrganizations")}</CardTitle>
-          <CardDescription>
-            {t("admin.manageAllOrganizations")}
-          </CardDescription>
+          <CardDescription>{t("admin.manageAllOrganizations")}</CardDescription>
           <Button
             onClick={() => refetch()}
             disabled={isLoading}
@@ -471,6 +542,11 @@ function AdminComponent() {
                       <p className="text-sm text-muted-foreground">
                         {t("admin.slugLabel")}: {org.slug}
                       </p>
+                      {org.domain && (
+                        <p className="text-sm text-muted-foreground">
+                          {t("admin.domainLabel") || "Domain"}: {org.domain}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {t("admin.idLabel")}: {org.id}
                       </p>

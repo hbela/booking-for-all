@@ -10,7 +10,7 @@ import { AppError } from "../../errors/AppError";
 const CreateOrganizationSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().optional(),
-  domain: z.string().min(1, "Domain is required").optional(), // NEW: Add domain field
+  domain: z.string().min(1, "Domain is required"), // Required and unique
   ownerName: z.string().min(1, "Owner name is required"),
   ownerEmail: z.string().email("Invalid owner email address"),
 });
@@ -66,7 +66,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req, reply) => {
-      // ✅ req.body is typed as { name: string; slug?: string; domain?: string; ownerName: string; ownerEmail: string }
+      // ✅ req.body is typed as { name: string; slug?: string; domain: string; ownerName: string; ownerEmail: string }
       const { name, slug, domain, ownerName, ownerEmail } = req.body;
 
         // Check if owner email already exists
@@ -99,19 +99,17 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           );
         }
 
-        // NEW: Check if domain already exists
-        if (domain) {
-          const normalizedDomain = domain.toLowerCase().trim();
-          const existingDomain = await prisma.organization.findUnique({
-            where: { domain: normalizedDomain },
-          });
-          if (existingDomain) {
-            throw new AppError(
-              "Organization domain already exists",
-              "ORG_DOMAIN_EXISTS",
-              400
-            );
-          }
+        // Check if domain already exists (domain is required and must be unique)
+        const normalizedDomain = domain.toLowerCase().trim();
+        const existingDomain = await prisma.organization.findUnique({
+          where: { domain: normalizedDomain },
+        });
+        if (existingDomain) {
+          throw new AppError(
+            "Organization domain already exists",
+            "ORG_DOMAIN_EXISTS",
+            400
+          );
         }
 
         // Create organization with domain
@@ -120,7 +118,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
             id: crypto.randomUUID(),
             name,
             slug: normalizedSlug,
-            domain: domain ? domain.toLowerCase().trim() : null, // NEW: Store domain
+            domain: normalizedDomain, // Required and unique
             enabled: false,
             createdAt: new Date(),
           },
