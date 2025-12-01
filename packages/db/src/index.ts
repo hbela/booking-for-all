@@ -70,24 +70,34 @@ console.log(
 );
 
 // Check if using Accelerate (prisma+postgres://) or Data Proxy (prisma://)
-const isAccelerateUrl =
-  databaseUrl.startsWith("prisma+postgres://") ||
-  databaseUrl.startsWith("prisma://");
+const isAccelerateUrl = databaseUrl.startsWith("prisma+postgres://");
+const isDataProxyUrl = databaseUrl.startsWith("prisma://");
+
+// Normalize Accelerate URL format for Prisma Client with --no-engine
+// When using --no-engine, Prisma Client expects prisma:// format, not prisma+postgres://
+let normalizedDatabaseUrl = databaseUrl;
+if (databaseUrl.startsWith("prisma+postgres://")) {
+  // Convert prisma+postgres:// to prisma:// format for --no-engine compatibility
+  normalizedDatabaseUrl = databaseUrl.replace("prisma+postgres://", "prisma://");
+  console.log("🔄 Normalized Accelerate URL from prisma+postgres:// to prisma:// format");
+}
 
 // Create base Prisma Client
 const basePrismaClient = new PrismaClient({
   log: ["error", "warn"],
-  datasources: databaseUrl
+  datasources: normalizedDatabaseUrl
     ? {
         db: {
-          url: databaseUrl,
+          url: normalizedDatabaseUrl,
         },
       }
     : undefined,
 });
 
-// Apply Accelerate extension only if using Accelerate URL
-const basePrisma = isAccelerateUrl
+// Apply Accelerate extension only if using original Accelerate URL (prisma+postgres://)
+// Note: When normalized to prisma:// for --no-engine compatibility, we don't use Accelerate extension
+// Data Proxy (prisma://) does not use the Accelerate extension
+const basePrisma = isAccelerateUrl && !normalizedDatabaseUrl.startsWith("prisma://")
   ? basePrismaClient.$extends(withAccelerate())
   : basePrismaClient;
 
