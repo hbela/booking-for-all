@@ -1,11 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
 import Calendar from "react-calendar";
 import type { Value } from "react-calendar/dist/cjs/shared/types";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, isSameDay, startOfDay, type Locale } from "date-fns";
+import { enUS, hu, de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Clock, ChevronLeft, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import "react-calendar/dist/Calendar.css";
+
+// Date-fns locale mapping
+const dateFnsLocales: Record<string, Locale> = {
+  en: enUS,
+  hu: hu,
+  de: de,
+  "en-US": enUS,
+  "hu-HU": hu,
+  "de-DE": de,
+};
 
 interface Event {
   id: string;
@@ -33,7 +45,13 @@ export function MobileCalendar({
   onEventSelect,
   loading = false,
 }: MobileCalendarProps) {
+  const { t, i18n: i18nInstance } = useTranslation();
   const [calendarValue, setCalendarValue] = useState<Date>(selectedDate);
+
+  // Get current language and locale
+  const currentLang = i18nInstance.language || "en";
+  const langCode = currentLang.split("-")[0];
+  const dateFnsLocale = dateFnsLocales[currentLang] || dateFnsLocales[langCode] || enUS;
 
   // Filter events for the selected date
   const dayEvents = useMemo(() => {
@@ -107,15 +125,17 @@ export function MobileCalendar({
         <Calendar
           onChange={handleCalendarChange}
           value={calendarValue}
+          locale={dateFnsLocale}
           className="w-full rounded-lg border bg-card text-card-foreground shadow-sm"
-          tileClassName={({ date, view }) => {
+          tileClassName={({ date, view, activeStartDate }) => {
             if (view === "month") {
               const hasFree = hasFreeEvents(date);
               const isSelected = isSameDay(date, selectedDate);
               return cn(
                 "hover:bg-accent hover:text-accent-foreground rounded-md transition-colors relative",
                 hasFree && "pb-6", // Add extra padding for indicator
-                isSelected && "bg-primary text-primary-foreground font-semibold"
+                // Always apply active class for selected date, which will override --now styling via CSS
+                isSelected && "react-calendar__tile--active"
               );
             }
             return "";
@@ -133,14 +153,14 @@ export function MobileCalendar({
           className="flex items-center gap-2"
         >
           <ChevronLeft className="h-4 w-4" />
-          Previous Day
+          {t("client.previousDay")}
         </Button>
         <div className="text-center">
           <h3 className="font-semibold text-lg">
-            {format(selectedDate, "EEEE, MMMM d, yyyy")}
+            {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: dateFnsLocale })}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {sortedEvents.length} available slot{sortedEvents.length !== 1 ? "s" : ""}
+            {t("client.availableSlots", { count: sortedEvents.length })}
           </p>
         </div>
         <Button
@@ -149,7 +169,7 @@ export function MobileCalendar({
           onClick={() => navigateDate("next")}
           className="flex items-center gap-2"
         >
-          Next Day
+          {t("client.nextDay")}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -158,15 +178,15 @@ export function MobileCalendar({
       <div className="space-y-2">
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">
-            Loading time slots...
+            {t("client.loadingTimeSlots")}
           </div>
         ) : sortedEvents.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
-              No available time slots for this date.
+              {t("client.noAvailableTimeSlots")}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Try selecting a different date.
+              {t("client.trySelectingDifferentDate")}
             </p>
           </div>
         ) : (
@@ -193,11 +213,11 @@ export function MobileCalendar({
                 )} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-base">
-                    {format(event.start, "h:mm a")} - {format(event.end, "h:mm a")}
+                    {format(event.start, "h:mm a", { locale: enUS })} - {format(event.end, "h:mm a", { locale: enUS })}
                   </div>
                   {event.duration && (
                     <div className="text-sm text-muted-foreground">
-                      Duration: {event.duration} minutes
+                      {t("client.duration")}: {event.duration} {t("client.minutes")}
                     </div>
                   )}
                   {event.title && (
@@ -211,12 +231,12 @@ export function MobileCalendar({
                 </div>
                 {event.isBooked && (
                   <span className="text-xs font-medium text-red-600 dark:text-red-400 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30">
-                    Booked
+                    {t("client.booked")}
                   </span>
                 )}
                 {!event.isBooked && (
                   <span className="text-xs font-medium text-green-600 dark:text-green-400 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30">
-                    Available
+                    {t("client.available")}
                   </span>
                 )}
               </div>

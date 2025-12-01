@@ -430,7 +430,7 @@
     "failedToLoadDepartments": "Failed to load departments",
     "errorLoadingData": "Error loading data. Please try again.",
     "noDepartmentsAvailable": "No departments available in this organization.",
-    "providersAvailable": "{count} providers available",
+    "providersAvailable": "{{count}} providers available",
     "viewProviders": "View Providers",
     "backToDepartments": "Back to Departments",
     "selectProviderToViewTimeSlots": "Select a provider to view their available time slots",
@@ -438,7 +438,7 @@
     "failedToLoadDepartment": "Failed to load department",
     "failedToLoadProviders": "Failed to load providers",
     "noProvidersAvailable": "No providers available in this department.",
-    "availableSlots": "{count} available slots",
+    "availableSlots": "{{count}} available slots",
     "viewCalendar": "View Calendar",
     "id": "ID",
     "backToProviders": "Back to Providers",
@@ -454,7 +454,14 @@
     "minutes": "minutes",
     "booking": "Booking...",
     "bookingConfirmed": "Booking confirmed! Check your email for details.",
-    "failedToCreateBooking": "Failed to create booking"
+    "failedToCreateBooking": "Failed to create booking",
+    "previousDay": "Previous Day",
+    "nextDay": "Next Day",
+    "loadingTimeSlots": "Loading time slots...",
+    "noAvailableTimeSlots": "No available time slots for this date.",
+    "trySelectingDifferentDate": "Try selecting a different date.",
+    "booked": "Booked",
+    "available": "Available"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

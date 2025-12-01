@@ -430,7 +430,7 @@
     "failedToLoadDepartments": "Abteilungen konnten nicht geladen werden",
     "errorLoadingData": "Fehler beim Laden der Daten. Bitte versuche es erneut.",
     "noDepartmentsAvailable": "Keine Abteilungen in dieser Organisation verfügbar.",
-    "providersAvailable": "{count} Dienstleister verfügbar",
+    "providersAvailable": "{{count}} Dienstleister verfügbar",
     "viewProviders": "Dienstleister anzeigen",
     "backToDepartments": "Zurück zu Abteilungen",
     "selectProviderToViewTimeSlots": "Wähle einen Dienstleister aus, um verfügbare Zeitfenster anzuzeigen",
@@ -438,7 +438,7 @@
     "failedToLoadDepartment": "Abteilung konnte nicht geladen werden",
     "failedToLoadProviders": "Dienstleister konnten nicht geladen werden",
     "noProvidersAvailable": "Keine Dienstleister in dieser Abteilung verfügbar.",
-    "availableSlots": "{count} verfügbare Zeitfenster",
+    "availableSlots": "{{count}} verfügbare Zeitfenster",
     "viewCalendar": "Kalender anzeigen",
     "id": "ID",
     "backToProviders": "Zurück zu Dienstleistern",
@@ -454,7 +454,14 @@
     "minutes": "Minuten",
     "booking": "Wird gebucht...",
     "bookingConfirmed": "Buchung bestätigt! Überprüfe deine E-Mails für Details.",
-    "failedToCreateBooking": "Buchung konnte nicht erstellt werden"
+    "failedToCreateBooking": "Buchung konnte nicht erstellt werden",
+    "previousDay": "Vorheriger Tag",
+    "nextDay": "Nächster Tag",
+    "loadingTimeSlots": "Zeitslots werden geladen...",
+    "noAvailableTimeSlots": "Keine verfügbaren Zeitslots für dieses Datum.",
+    "trySelectingDifferentDate": "Versuche ein anderes Datum auszuwählen.",
+    "booked": "Gebucht",
+    "available": "Verfügbar"
   },
   "errors": {
     "somethingWentWrong": "Etwas ist schief gelaufen",

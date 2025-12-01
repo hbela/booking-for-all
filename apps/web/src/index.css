@@ -319,11 +319,30 @@ body {
 
 .react-calendar__tile--active {
   @apply bg-primary text-primary-foreground font-semibold;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
   @apply bg-primary/90;
+  background-color: hsl(var(--primary) / 0.9) !important;
+}
+
+/* Override --now styling when tile is also selected/active - use !important to ensure blue wins */
+.react-calendar__tile--now.react-calendar__tile--active,
+.react-calendar__tile--active.react-calendar__tile--now {
+  @apply bg-primary text-primary-foreground font-semibold;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.react-calendar__tile--now.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--now.react-calendar__tile--active:enabled:focus,
+.react-calendar__tile--active.react-calendar__tile--now:enabled:hover,
+.react-calendar__tile--active.react-calendar__tile--now:enabled:focus {
+  @apply bg-primary/90;
+  background-color: hsl(var(--primary) / 0.9) !important;
 }
 
 .react-calendar__tile--disabled {
@@ -346,4 +365,32 @@ body {
 
 .dark .react-calendar__tile--now {
   @apply bg-accent/30;
+}
+
+/* Dark mode: Ensure active/selected tiles always use primary blue, even if they're also today */
+.dark .react-calendar__tile--active {
+  @apply bg-primary text-primary-foreground font-semibold;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .react-calendar__tile--active:enabled:hover,
+.dark .react-calendar__tile--active:enabled:focus {
+  @apply bg-primary/90;
+  background-color: hsl(var(--primary) / 0.9) !important;
+}
+
+.dark .react-calendar__tile--now.react-calendar__tile--active,
+.dark .react-calendar__tile--active.react-calendar__tile--now {
+  @apply bg-primary text-primary-foreground font-semibold;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark .react-calendar__tile--now.react-calendar__tile--active:enabled:hover,
+.dark .react-calendar__tile--now.react-calendar__tile--active:enabled:focus,
+.dark .react-calendar__tile--active.react-calendar__tile--now:enabled:hover,
+.dark .react-calendar__tile--active.react-calendar__tile--now:enabled:focus {
+  @apply bg-primary/90;
+  background-color: hsl(var(--primary) / 0.9) !important;
 }

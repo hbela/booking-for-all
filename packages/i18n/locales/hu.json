@@ -430,7 +430,7 @@
     "failedToLoadDepartments": "Nem sikerült betölteni az osztályokat",
     "errorLoadingData": "Hiba az adatok betöltésekor. Kérjük, próbáld újra.",
     "noDepartmentsAvailable": "Nincs elérhető osztály ebben a szervezetben.",
-    "providersAvailable": "{count} szolgáltató elérhető",
+    "providersAvailable": "{{count}} szolgáltató elérhető",
     "viewProviders": "Szolgáltatók megtekintése",
     "backToDepartments": "Vissza az osztályokhoz",
     "selectProviderToViewTimeSlots": "Válassz egy szolgáltatót az elérhető időpontok megtekintéséhez",
@@ -438,7 +438,7 @@
     "failedToLoadDepartment": "Nem sikerült betölteni az osztályt",
     "failedToLoadProviders": "Nem sikerült betölteni a szolgáltatókat",
     "noProvidersAvailable": "Nincs elérhető szolgáltató ebben az osztályban.",
-    "availableSlots": "{count} elérhető időpont",
+    "availableSlots": "{{count}} elérhető időpont",
     "viewCalendar": "Naptár megtekintése",
     "id": "Azonosító",
     "backToProviders": "Vissza a szolgáltatókhoz",
@@ -454,7 +454,14 @@
     "minutes": "perc",
     "booking": "Foglalás...",
     "bookingConfirmed": "Foglalás megerősítve! Ellenőrizd az e-mailjeidet a részletekért.",
-    "failedToCreateBooking": "Nem sikerült létrehozni a foglalást"
+    "failedToCreateBooking": "Nem sikerült létrehozni a foglalást",
+    "previousDay": "Előző nap",
+    "nextDay": "Következő nap",
+    "loadingTimeSlots": "Időpontok betöltése...",
+    "noAvailableTimeSlots": "Nincsenek elérhető időpontok erre a dátumra.",
+    "trySelectingDifferentDate": "Próbálj másik dátumot kiválasztani.",
+    "booked": "Foglalt",
+    "available": "Elérhető"
   },
   "errors": {
     "somethingWentWrong": "Valami hiba történt",

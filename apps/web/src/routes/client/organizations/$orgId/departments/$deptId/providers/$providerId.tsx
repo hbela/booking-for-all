@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,21 +35,68 @@ import {
   getDay,
   addHours,
   startOfHour,
+  type Locale,
 } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, hu, de } from "date-fns/locale";
 
-// Setup the localizer for BigCalendar
-const locales = {
+// Date-fns locale mapping
+const dateFnsLocales: Record<string, Locale> = {
+  en: enUS,
+  hu: hu,
+  de: de,
   "en-US": enUS,
+  "hu-HU": hu,
+  "de-DE": de,
 };
 
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+// React Big Calendar messages for different languages
+const calendarMessages: Record<string, any> = {
+  en: {
+    allDay: "All Day",
+    previous: "Back",
+    next: "Next",
+    today: "Today",
+    month: "Month",
+    week: "Week",
+    day: "Day",
+    agenda: "Agenda",
+    date: "Date",
+    time: "Time",
+    event: "Event",
+    noEventsInRange: "There are no events in this range.",
+    showMore: (total: number) => `+${total} more`,
+  },
+  hu: {
+    allDay: "Egész nap",
+    previous: "Vissza",
+    next: "Előre",
+    today: "Ma",
+    month: "Hónap",
+    week: "Hét",
+    day: "Nap",
+    agenda: "Naptár",
+    date: "Dátum",
+    time: "Idő",
+    event: "Esemény",
+    noEventsInRange: "Nincsenek események ebben a tartományban.",
+    showMore: (total: number) => `+${total} további`,
+  },
+  de: {
+    allDay: "Ganztägig",
+    previous: "Zurück",
+    next: "Weiter",
+    today: "Heute",
+    month: "Monat",
+    week: "Woche",
+    day: "Tag",
+    agenda: "Agenda",
+    date: "Datum",
+    time: "Zeit",
+    event: "Ereignis",
+    noEventsInRange: "Es gibt keine Ereignisse in diesem Bereich.",
+    showMore: (total: number) => `+${total} weitere`,
+  },
+};
 
 export const Route = createFileRoute(
   "/client/organizations/$orgId/departments/$deptId/providers/$providerId"
@@ -121,9 +168,37 @@ function ClientCalendar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
+  const { t, i18n: i18nInstance } = useTranslation();
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
+
+  // Get current language and locale
+  const currentLang = i18nInstance.language || "en";
+  const langCode = currentLang.split("-")[0]; // Extract 'en' from 'en-US'
+  const dateFnsLocale = dateFnsLocales[currentLang] || dateFnsLocales[langCode] || enUS;
+  const calendarMessagesForLang = calendarMessages[langCode] || calendarMessages.en;
+
+  // Create localizer with current locale for calendar content
+  // But we'll use English locale for time gutter formatting
+  const localizer = useMemo(
+    () =>
+      dateFnsLocalizer({
+        format,
+        parse,
+        startOfWeek,
+        getDay,
+        locales: {
+          [currentLang]: dateFnsLocale,
+          [langCode]: dateFnsLocale,
+        },
+      }),
+    [currentLang, langCode, dateFnsLocale]
+  );
+
+  // Custom format function for time gutter - always use English locale
+  const timeGutterFormat = (date: Date) => {
+    return format(date, "h:mm a", { locale: enUS });
+  };
 
   // Confirmation dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -300,7 +375,105 @@ function ClientCalendar() {
               loading={isLoadingEvents}
             />
           ) : (
-            <div style={{ height: "600px" }}>
+            <div style={{ height: "600px" }} className="calendar-container">
+              <style>{`
+                /* Fix navigation buttons visibility - both light and dark mode */
+                .rbc-toolbar button {
+                  color: hsl(var(--foreground)) !important;
+                  background-color: hsl(var(--background)) !important;
+                  border: 1px solid hsl(var(--border)) !important;
+                  padding: 8px 12px !important;
+                  margin: 0 2px !important;
+                  border-radius: 4px !important;
+                  font-weight: 500 !important;
+                  opacity: 1 !important;
+                }
+                
+                .rbc-toolbar button:hover {
+                  background-color: hsl(var(--accent)) !important;
+                  color: hsl(var(--accent-foreground)) !important;
+                }
+                
+                .rbc-toolbar button.rbc-active {
+                  background-color: hsl(var(--primary)) !important;
+                  color: hsl(var(--primary-foreground)) !important;
+                }
+                
+                /* Dark mode: Ensure buttons are visible */
+                .dark .rbc-toolbar button {
+                  color: #ffffff !important;
+                  background-color: #374151 !important;
+                  border: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-toolbar button:hover {
+                  background-color: #4b5563 !important;
+                  color: #ffffff !important;
+                }
+                
+                .dark .rbc-toolbar button.rbc-active {
+                  background-color: #3b82f6 !important;
+                  color: #ffffff !important;
+                }
+                
+                /* Current day highlighting - only highlight the header, not the whole column */
+                .rbc-today {
+                  background-color: transparent !important;
+                }
+                
+                .rbc-header.rbc-today {
+                  background-color: hsl(var(--primary)) !important;
+                  color: hsl(var(--primary-foreground)) !important;
+                  font-weight: 600 !important;
+                }
+                
+                .dark .rbc-header.rbc-today {
+                  background-color: #3b82f6 !important;
+                  color: #ffffff !important;
+                }
+                
+                /* Ensure day slots don't have background for today */
+                .rbc-day-slot.rbc-today {
+                  background-color: transparent !important;
+                }
+                
+                /* Improve grid border visibility */
+                .rbc-time-view .rbc-time-slot {
+                  border-top: 1px solid hsl(var(--border)) !important;
+                }
+                
+                .rbc-time-view .rbc-day-slot {
+                  border-right: 1px solid hsl(var(--border));
+                }
+                
+                .dark .rbc-time-view .rbc-time-slot {
+                  border-top: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-time-view .rbc-day-bg {
+                  border-right: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-time-header .rbc-time-header-content {
+                  border-bottom: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-time-view {
+                  border: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-time-content {
+                  border-top: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-day-slot {
+                  border-right: 1px solid #6b7280 !important;
+                }
+                
+                .dark .rbc-time-gutter {
+                  border-right: 1px solid #6b7280 !important;
+                }
+              `}</style>
               <BigCalendar
                 localizer={localizer}
                 events={events}
@@ -320,6 +493,11 @@ function ClientCalendar() {
                 max={new Date(0, 0, 0, 20, 0, 0)}
                 popup
                 popupOffset={{ x: 10, y: 10 }}
+                messages={calendarMessagesForLang}
+                culture={currentLang}
+                formats={{
+                  timeGutterFormat: timeGutterFormat,
+                }}
               />
             </div>
           )}
@@ -356,7 +534,7 @@ function ClientCalendar() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">{t("client.date")}</p>
                   <p className="font-medium">
-                    {format(selectedEvent.start, "PPPP")}
+                    {format(selectedEvent.start, "PPPP", { locale: dateFnsLocale })}
                   </p>
                 </div>
               </div>
@@ -366,8 +544,8 @@ function ClientCalendar() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">{t("client.time")}</p>
                   <p className="font-medium">
-                    {format(selectedEvent.start, "p")} -{" "}
-                    {format(selectedEvent.end, "p")}
+                    {format(selectedEvent.start, "h:mm a", { locale: enUS })} -{" "}
+                    {format(selectedEvent.end, "h:mm a", { locale: enUS })}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {t("client.duration")}: {selectedEvent.duration} {t("client.minutes")}
