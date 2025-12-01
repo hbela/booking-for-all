@@ -163,9 +163,46 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.get("/api/org/:id/qrcode", async (req, reply) => {
     const { id } = req.params as { id: string };
 
-    const org = await prisma.organization.findUnique({ where: { id } });
-    if (!org || !org.qrCodeKey) {
-      throw new AppError("QR code not found for this organization", "QR_NOT_FOUND", 404);
+    let org = await prisma.organization.findUnique({ where: { id } });
+    if (!org) {
+      throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+    }
+
+    // If QR code doesn't exist, generate it on-demand
+    if (!org.qrCodeKey) {
+      try {
+        if (!bucket || !publicAppUrl) {
+          throw new AppError("S3 configuration missing, cannot generate QR code", "S3_CONFIG_MISSING", 500);
+        }
+
+        const qrData = `${publicAppUrl}/org/${id}/app`;
+        const pngBuffer = await QRCode.toBuffer(qrData, {
+          errorCorrectionLevel: "H",
+          type: "png",
+          width: 600,
+        });
+
+        const key = `orgs/${id}/qr.png`;
+
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: pngBuffer,
+            ContentType: "image/png",
+          })
+        );
+
+        org = await prisma.organization.update({
+          where: { id },
+          data: { qrCodeKey: key },
+        });
+
+        fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
+      } catch (error: any) {
+        fastify.log.error(error, "❌ Failed to generate QR code on-demand");
+        throw new AppError("Failed to generate QR code", "QR_GENERATION_ERROR", 500);
+      }
     }
 
     const qrUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
