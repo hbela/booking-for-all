@@ -55,7 +55,7 @@ const shouldUseDirectUrl =
   !isAccelerateOrDataProxyUrl &&
   !isDirectUrlActuallyAccelerate;
 
-const databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
+let databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
 
 if (!databaseUrl) {
   throw new Error(
@@ -69,18 +69,34 @@ console.log(
   }: ${databaseUrl.substring(0, 50)}...`,
 );
 
+// Normalize Accelerate URL format for Prisma Client with --no-engine
+// When using --no-engine, Prisma Client expects prisma:// format, not prisma+postgres://
+// IMPORTANT: This must happen BEFORE PrismaClient is instantiated
+const originalDatabaseUrl = databaseUrl;
+if (databaseUrl && databaseUrl.trim().startsWith("prisma+postgres://")) {
+  // Convert prisma+postgres:// to prisma:// format for --no-engine compatibility
+  databaseUrl = databaseUrl.replace("prisma+postgres://", "prisma://");
+  console.log("🔄 Normalized Accelerate URL from prisma+postgres:// to prisma:// format");
+  console.log(`   Original: ${originalDatabaseUrl.substring(0, 70)}...`);
+  console.log(`   Normalized: ${databaseUrl.substring(0, 70)}...`);
+  // Update the environment variable so Prisma schema can read it
+  // This is critical for --no-engine builds - the schema uses env("DATABASE_URL")
+  process.env.DATABASE_URL = databaseUrl;
+  if (shouldUseDirectUrl && process.env.DIRECT_URL) {
+    // Also update DIRECT_URL if it was the source
+    process.env.DIRECT_URL = databaseUrl;
+  }
+} else {
+  console.log(`🔍 Database URL format: ${databaseUrl ? databaseUrl.substring(0, 30) : "undefined"}...`);
+}
+
 // Check if using Accelerate (prisma+postgres://) or Data Proxy (prisma://)
+// Note: After normalization, isAccelerateUrl will be false if we converted it
 const isAccelerateUrl = databaseUrl.startsWith("prisma+postgres://");
 const isDataProxyUrl = databaseUrl.startsWith("prisma://");
 
-// Normalize Accelerate URL format for Prisma Client with --no-engine
-// When using --no-engine, Prisma Client expects prisma:// format, not prisma+postgres://
-let normalizedDatabaseUrl = databaseUrl;
-if (databaseUrl.startsWith("prisma+postgres://")) {
-  // Convert prisma+postgres:// to prisma:// format for --no-engine compatibility
-  normalizedDatabaseUrl = databaseUrl.replace("prisma+postgres://", "prisma://");
-  console.log("🔄 Normalized Accelerate URL from prisma+postgres:// to prisma:// format");
-}
+// Use normalized URL
+const normalizedDatabaseUrl = databaseUrl;
 
 // Create base Prisma Client
 const basePrismaClient = new PrismaClient({
