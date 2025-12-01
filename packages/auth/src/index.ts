@@ -12,13 +12,29 @@ console.log(
 );
 console.log("🔐 Auth Package - BETTER_AUTH_URL:", process.env.BETTER_AUTH_URL);
 
+// Build trusted origins array - filter out empty strings and invalid URLs
+const trustedOrigins: string[] = [];
+if (process.env.CORS_ORIGIN) {
+  trustedOrigins.push(process.env.CORS_ORIGIN);
+}
+if (process.env.FRONTEND_URL) {
+  trustedOrigins.push(process.env.FRONTEND_URL);
+}
+if (process.env.BETTER_AUTH_URL) {
+  trustedOrigins.push(process.env.BETTER_AUTH_URL);
+}
+// Filter out duplicates and empty strings
+const uniqueTrustedOrigins = [...new Set(trustedOrigins.filter((origin) => origin && origin.trim() !== ""))];
+
+console.log("🔐 Auth Package - Trusted Origins:", uniqueTrustedOrigins);
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
   database: prismaAdapter(prisma, {
     provider: "sqlite",
   }),
-  trustedOrigins: [process.env.CORS_ORIGIN || ""],
+  trustedOrigins: uniqueTrustedOrigins.length > 0 ? uniqueTrustedOrigins : undefined,
   databaseHooks: {
     user: {
       read: {

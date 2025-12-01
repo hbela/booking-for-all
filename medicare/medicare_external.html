@@ -206,14 +206,28 @@
           const domain = window.location.hostname;
           console.log("Detected domain:", domain);
 
-          // Call backend API directly (no PHP proxy needed)
-          const apiBaseUrl = window.location.origin.includes('localhost') 
-            ? 'http://localhost:3000' 
-            : (window.location.protocol === 'https:' 
-              ? 'https://api.appointer.hu' 
-              : 'http://localhost:3000');
+          // Determine API URL based on environment
+          let apiBaseUrl;
+          if (window.location.origin.includes("localhost")) {
+            apiBaseUrl = "http://localhost:3000";
+          } else if (
+            window.location.hostname.includes("dev") ||
+            window.location.hostname.includes("wellnessdev") ||
+            window.location.hostname.includes("medicaredev")
+          ) {
+            // Dev environment - use dev API
+            apiBaseUrl = "https://apidev.appointer.hu";
+          } else {
+            // Production environment
+            apiBaseUrl =
+              window.location.protocol === "https:"
+                ? "https://api.appointer.hu"
+                : "http://localhost:3000";
+          }
 
-          const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(domain)}`;
+          const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(
+            domain
+          )}`;
           console.log("Connecting to:", url);
 
           const response = await fetch(url, {
@@ -290,11 +304,23 @@
         
         try {
           // Get API base URL from environment or use default
-          const apiBaseUrl = window.location.origin.includes('localhost') 
-            ? 'http://localhost:3000' 
-            : (window.location.protocol === 'https:' 
-              ? 'https://api.appointer.hu' 
-              : 'http://localhost:3000');
+          let apiBaseUrl;
+          if (window.location.origin.includes("localhost")) {
+            apiBaseUrl = "http://localhost:3000";
+          } else if (
+            window.location.hostname.includes("dev") ||
+            window.location.hostname.includes("wellnessdev") ||
+            window.location.hostname.includes("medicaredev")
+          ) {
+            // Dev environment - use dev API
+            apiBaseUrl = "https://apidev.appointer.hu";
+          } else {
+            // Production environment
+            apiBaseUrl =
+              window.location.protocol === "https:"
+                ? "https://api.appointer.hu"
+                : "http://localhost:3000";
+          }
           
           const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode`;
           const qrImage = document.getElementById('qr-code-image');
