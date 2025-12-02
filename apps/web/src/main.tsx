@@ -1,17 +1,30 @@
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
+import React from "react";
 import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
 
 import * as Sentry from "@sentry/react";
 import "./i18n";
 
+// Validate routeTree
+console.log("🔍 Router setup:", {
+  routeTreeExists: !!routeTree,
+  routeTreeType: typeof routeTree,
+  routeTreeKeys: routeTree ? Object.keys(routeTree) : [],
+});
+
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   defaultPendingComponent: () => <Loader />,
   context: {},
+});
+
+console.log("✅ Router created:", {
+  routerExists: !!router,
+  routerState: router.state.status,
 });
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
@@ -202,8 +215,46 @@ if (!rootElement.innerHTML) {
     <AppRoot />
   );
 
-  root.render(content);
-  console.log("✅ React app rendered successfully");
+  // Wrap render in try-catch to catch any errors
+  try {
+    root.render(content);
+    console.log("✅ React app rendered successfully");
+    
+    // Check if anything was actually rendered after a delay
+    setTimeout(() => {
+      const appEl = document.getElementById("app");
+      console.log("🔍 Post-render check:", {
+        appInnerHTML: appEl?.innerHTML?.length || 0,
+        appChildren: appEl?.children?.length || 0,
+        hasReactRoot: appEl?.hasAttribute("data-reactroot") || appEl?._reactRootContainer || false,
+      });
+      
+      // If still empty after 500ms, something is wrong
+      if (!appEl?.innerHTML || appEl.innerHTML.trim().length === 0) {
+        console.error("❌ CRITICAL: React rendered but DOM is empty!");
+        console.error("   This means React mounted but RouterProvider didn't render anything");
+        
+        // Try to render a simple test component
+        console.log("🧪 Testing: Rendering simple test component...");
+        root.render(<div style={{padding: "20px", backgroundColor: "red", color: "white"}}>
+          TEST: If you see this, React works but RouterProvider doesn't
+        </div>);
+        
+        setTimeout(() => {
+          if (appEl?.innerHTML?.includes("TEST")) {
+            console.error("✅ React works - the issue is with RouterProvider or routing");
+          } else {
+            console.error("❌ React itself isn't rendering - this is a React issue");
+          }
+        }, 100);
+      }
+    }, 500);
+  } catch (error) {
+    console.error("❌ CRITICAL ERROR during render:", error);
+    if (sentryDsn) {
+      Sentry.captureException(error);
+    }
+  }, 500);
   
   // Immediate router state check
   setTimeout(() => {
