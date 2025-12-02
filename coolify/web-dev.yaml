@@ -12,12 +12,14 @@ build:
     export VITE_SENTRY_RELEASE="${VITE_SENTRY_RELEASE}"
     export VITE_ENVIRONMENT="${VITE_ENVIRONMENT:-development}"
     export VITE_SERVER_URL="${VITE_SERVER_URL:-https://apidev.appointer.hu}"
+    export SKIP_PRERENDER="true"
     echo "🔍 Build-time env vars:"
     echo "  VITE_SENTRY_DSN=${VITE_SENTRY_DSN:0:50}..."
     echo "  VITE_SENTRY_RELEASE=${VITE_SENTRY_RELEASE}"
     echo "  VITE_ENVIRONMENT=${VITE_ENVIRONMENT}"
     echo "  VITE_SERVER_URL=${VITE_SERVER_URL}"
-    pnpm --filter web run build
+    echo "  SKIP_PRERENDER=true (prerendering temporarily disabled)"
+    pnpm --filter web run build:no-prerender
 start:
   command: pnpm --filter web run start
 domains:

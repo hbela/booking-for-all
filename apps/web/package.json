@@ -7,7 +7,7 @@
     "dev": "vite --port=3001",
     "build": "vite build && node scripts/prerender.js && node scripts/generate-sitemap.js",
     "build:check": "node -e \"if (!process.env.VITE_SENTRY_DSN) { console.error('❌ VITE_SENTRY_DSN is not set!'); process.exit(1); }\" && vite build && node scripts/prerender.js && node scripts/generate-sitemap.js",
-    "build:no-prerender": "vite build",
+    "build:no-prerender": "vite build && node scripts/generate-sitemap.js",
     "prerender": "node scripts/prerender.js",
     "install-chrome": "npx puppeteer browsers install chrome",
     "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-web --url-prefix '~/'",

@@ -46,8 +46,9 @@ ENV VITE_ENVIRONMENT=${VITE_ENVIRONMENT}
 
 # Install dependencies and build the web app
 # In development, Vite will include source maps and dev optimizations
+# TEMPORARILY: Using build:no-prerender to debug blank page issue
 RUN pnpm install --frozen-lockfile \
- && pnpm --filter web run build
+ && pnpm --filter web run build:no-prerender
 
 # Runtime environment defaults (can be overridden by Coolify)
 ENV NODE_ENV=development \
@@ -56,6 +57,7 @@ ENV NODE_ENV=development \
 
 EXPOSE 4173
 
-# Serve the prebuilt Vite app
-CMD ["pnpm", "--filter", "web", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+# Serve the prebuilt Vite app using custom Express server
+# Note: Coolify may override this with the start command from service settings
+CMD ["pnpm", "--filter", "web", "run", "start"]
 
