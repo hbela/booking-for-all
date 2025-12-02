@@ -70,12 +70,19 @@ function RootComponent() {
 		select: (s) => s.isLoading,
 	});
 
+	// Debug logging
+	useEffect(() => {
+		console.log("🔍 RootComponent mounted, isFetching:", isFetching);
+		console.log("🔍 DOM content:", document.getElementById("app")?.innerHTML?.length || 0, "chars");
+	}, [isFetching]);
+
 	// Dispatch render-complete event for pre-rendering
 	useEffect(() => {
 		// Wait for router to be ready and content to be loaded
 		if (!isFetching) {
 			// Small delay to ensure all content is rendered
 			const timer = setTimeout(() => {
+				console.log("✅ RootComponent: Router loaded, dispatching render-complete");
 				document.dispatchEvent(new Event("render-complete"));
 			}, 100);
 			return () => clearTimeout(timer);

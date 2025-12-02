@@ -205,9 +205,28 @@ if (!rootElement.innerHTML) {
   root.render(content);
   console.log("✅ React app rendered successfully");
   
-  // Log when router is ready
+  // Immediate router state check
+  setTimeout(() => {
+    const currentState = router.state;
+    console.log("🔍 Initial router state:", {
+      status: currentState.status,
+      isLoading: currentState.isLoading,
+      pathname: currentState.location.pathname,
+      matches: currentState.matches.length,
+      error: currentState.error,
+    });
+  }, 100);
+  
+  // Log router state changes for debugging
   router.subscribe(() => {
     const state = router.state;
+    console.log("🔍 Router state:", {
+      status: state.status,
+      isLoading: state.isLoading,
+      pathname: state.location.pathname,
+      matches: state.matches.length,
+    });
+    
     if (state.status === "idle" && !state.isLoading) {
       console.log("✅ Router ready, current route:", state.location.pathname);
       if (sentryDsn) {
@@ -217,6 +236,16 @@ if (!rootElement.innerHTML) {
           level: "info",
         });
       }
+    }
+    
+    // Log if router is stuck
+    if (state.isLoading) {
+      console.log("⏳ Router still loading...");
+    }
+    
+    // Log errors
+    if (state.status === "error") {
+      console.error("❌ Router error:", state.error);
     }
   });
 } else {

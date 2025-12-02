@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { DefaultHomepage } from "@/components/homepages/DefaultHomepage";
 import { AdminHomepage } from "@/components/homepages/AdminHomepage";
 import { OwnerHomepage } from "@/components/homepages/OwnerHomepage";
@@ -57,15 +58,28 @@ export const Route = createFileRoute("/")({
 });
 
 function HomeComponent() {
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, error } = authClient.useSession();
+
+  // Debug logging
+  useEffect(() => {
+    console.log("🏠 HomeComponent mounted");
+    console.log("   isPending:", isPending);
+    console.log("   session:", session ? "✅ Has session" : "❌ No session");
+    console.log("   error:", error);
+  }, [isPending, session, error]);
 
   // Show loading state while checking session
   if (isPending) {
+    console.log("⏳ HomeComponent: Waiting for session check...");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
       </div>
     );
+  }
+  
+  if (error) {
+    console.error("❌ HomeComponent: Session error:", error);
   }
 
   // If user is logged in, show role-specific homepage
