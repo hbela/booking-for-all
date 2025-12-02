@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,8 +12,22 @@ const distPath = resolve(__dirname, 'dist');
 
 // Add request logging middleware
 app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.path} - IP: ${req.ip}`);
+  console.log(`📥 ${req.method} ${req.path} - IP: ${req.ip || req.socket.remoteAddress}`);
   next();
+});
+
+// Add error handling for uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Simple health check endpoint (no file system operations)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Debug endpoint to check server status
@@ -35,7 +49,6 @@ app.get('/debug/status', (req, res) => {
   
   // Try to list some files
   try {
-    const { readdirSync } = require('fs');
     status.distContents = readdirSync(distPath).slice(0, 10); // First 10 items
   } catch (e) {
     status.distContentsError = e.message;
@@ -74,8 +87,24 @@ app.get('*', (req, res, next) => {
   res.status(404).send('Not Found');
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Server error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  });
+});
+
+// Start server with error handling
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://0.0.0.0:${port}`);
   console.log(`📁 Serving from: ${distPath}`);
+  console.log(`📦 Dist exists: ${existsSync(distPath)}`);
+  console.log(`📄 index.html exists: ${existsSync(resolve(distPath, 'index.html'))}`);
+}).on('error', (err) => {
+  console.error('❌ Failed to start server:', err);
+  process.exit(1);
 });
 
