@@ -28,11 +28,20 @@ if (sentryDsn) {
     // Use tunnel to bypass ad blockers
     // In production, use absolute URL to API server since web and API are on different subdomains
     // In development, use full URL since web and server are on different ports
-    tunnel: import.meta.env.DEV
-      ? "http://localhost:3000/api/sentry-tunnel"
-      : import.meta.env.VITE_SERVER_URL
-      ? `${import.meta.env.VITE_SERVER_URL}/api/sentry-tunnel`
-      : "/api/sentry-tunnel", // Fallback to relative if VITE_SERVER_URL not set
+    tunnel: (() => {
+      // Check if we have VITE_SERVER_URL set (build-time variable) - this is the preferred method
+      if (import.meta.env.VITE_SERVER_URL) {
+        return `${import.meta.env.VITE_SERVER_URL}/api/sentry-tunnel`;
+      }
+      // In dev mode (when running vite dev), use localhost
+      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+        return "http://localhost:3000/api/sentry-tunnel";
+      }
+      // Fallback: use relative path (won't work across subdomains, but better than nothing)
+      // This should not happen if VITE_SERVER_URL is properly set during build
+      console.warn('⚠️ VITE_SERVER_URL not set - Sentry tunnel may not work correctly');
+      return "/api/sentry-tunnel";
+    })(),
     // Disable tracing in development to avoid HMR infinite loops
     tracesSampleRate: isDev ? 0 : 1.0,
     tracePropagationTargets: [
