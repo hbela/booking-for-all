@@ -10,6 +10,40 @@ const app = express();
 const port = process.env.PORT || 4173;
 const distPath = resolve(__dirname, 'dist');
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} - IP: ${req.ip}`);
+  next();
+});
+
+// Debug endpoint to check server status
+app.get('/debug/status', (req, res) => {
+  const status = {
+    server: 'running',
+    timestamp: new Date().toISOString(),
+    distPath,
+    distExists: existsSync(distPath),
+    indexHtmlExists: existsSync(resolve(distPath, 'index.html')),
+    loginDirExists: existsSync(resolve(distPath, 'login')),
+    loginIndexExists: existsSync(resolve(distPath, 'login', 'index.html')),
+    assetsDirExists: existsSync(resolve(distPath, 'assets')),
+    env: {
+      PORT: process.env.PORT,
+      NODE_ENV: process.env.NODE_ENV,
+    },
+  };
+  
+  // Try to list some files
+  try {
+    const { readdirSync } = require('fs');
+    status.distContents = readdirSync(distPath).slice(0, 10); // First 10 items
+  } catch (e) {
+    status.distContentsError = e.message;
+  }
+  
+  res.json(status);
+});
+
 // Serve static files (JS, CSS, images, etc.)
 app.use(express.static(distPath, {
   // Don't serve index.html for static files

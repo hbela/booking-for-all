@@ -15,10 +15,33 @@ const router = createRouter({
 });
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
-console.log("Sentry DSN:", sentryDsn);
+
+// Debug logging
+console.log("🚀 App Initialization:", {
+  env: import.meta.env.MODE,
+  dev: import.meta.env.DEV,
+  sentryDsn: sentryDsn ? "✅ Set" : "❌ Not set",
+  serverUrl: import.meta.env.VITE_SERVER_URL || "❌ Not set",
+  environment: import.meta.env.VITE_ENVIRONMENT || "not set",
+  release: import.meta.env.VITE_SENTRY_RELEASE || "not set",
+  currentUrl: window.location.href,
+  pathname: window.location.pathname,
+});
 
 if (sentryDsn) {
   const isDev = import.meta.env.DEV;
+  
+  // Add breadcrumb for app initialization
+  Sentry.addBreadcrumb({
+    category: "app",
+    message: "App initialization started",
+    level: "info",
+    data: {
+      env: import.meta.env.MODE,
+      serverUrl: import.meta.env.VITE_SERVER_URL,
+      pathname: window.location.pathname,
+    },
+  });
 
   Sentry.init({
     dsn: sentryDsn,
@@ -48,20 +71,23 @@ if (sentryDsn) {
       "localhost",
       /^https:\/\/api\.appointer\.hu\/api/,
     ],
-    integrations: isDev
-      ? [
-          // Basic integrations for error tracking (no tracing to avoid HMR issues)
-        ]
-      : [
-          Sentry.browserTracingIntegration({
-            enableInp: true,
-            enableLongTask: false,
-            traceFetch: false,
-            traceXHR: false,
-            instrumentPageLoad: true,
-            instrumentNavigation: true,
-          }),
-        ],
+    integrations: [
+      // Capture console errors and warnings
+      Sentry.captureConsoleIntegration({
+        levels: ["error", "warn"],
+      }),
+      // Add browser tracing in production only
+      ...(isDev ? [] : [
+        Sentry.browserTracingIntegration({
+          enableInp: true,
+          enableLongTask: false,
+          traceFetch: false,
+          traceXHR: false,
+          instrumentPageLoad: true,
+          instrumentNavigation: true,
+        }),
+      ]),
+    ],
     // Filter out expected API errors that are already logged on the server
     beforeSend(event, hint) {
       // Check if this is an error from a failed API request
@@ -82,8 +108,32 @@ if (sentryDsn) {
           return null;
         }
       }
+      
+      // Add additional context to all errors
+      event.tags = {
+        ...event.tags,
+        environment: import.meta.env.VITE_ENVIRONMENT || "unknown",
+        url: window.location.href,
+      };
+      
       return event;
     },
+    // Capture console errors and warnings
+    integrations: [
+      ...(isDev ? [] : [
+        Sentry.browserTracingIntegration({
+          enableInp: true,
+          enableLongTask: false,
+          traceFetch: false,
+          traceXHR: false,
+          instrumentPageLoad: true,
+          instrumentNavigation: true,
+        }),
+      ]),
+      Sentry.captureConsoleIntegration({
+        levels: ["error", "warn"],
+      }),
+    ],
   });
 }
 
@@ -113,11 +163,37 @@ declare module "@tanstack/react-router" {
 const rootElement = document.getElementById("app");
 
 if (!rootElement) {
-  throw new Error("Root element not found");
+  const error = new Error("Root element '#app' not found in DOM");
+  console.error("❌", error);
+  if (sentryDsn) {
+    Sentry.captureException(error);
+  }
+  throw error;
 }
 
+console.log("✅ Root element found:", rootElement);
+
 if (!rootElement.innerHTML) {
+  console.log("🚀 Rendering React app...");
   const root = ReactDOM.createRoot(rootElement);
+  
+  // Track route changes with Sentry
+  if (sentryDsn) {
+    router.subscribe("onBeforeLoad", ({ pathChanged, location }) => {
+      if (pathChanged) {
+        Sentry.addBreadcrumb({
+          category: "navigation",
+          message: `Navigating to ${location.pathname}`,
+          level: "info",
+          data: {
+            pathname: location.pathname,
+            search: location.search,
+          },
+        });
+      }
+    });
+  }
+  
   const content = sentryDsn ? (
     <Sentry.ErrorBoundary
       fallback={({ error }) => (
@@ -143,4 +219,22 @@ if (!rootElement.innerHTML) {
   );
 
   root.render(content);
+  console.log("✅ React app rendered successfully");
+  
+  // Log when router is ready
+  router.subscribe(() => {
+    const state = router.state;
+    if (state.status === "idle" && !state.isLoading) {
+      console.log("✅ Router ready, current route:", state.location.pathname);
+      if (sentryDsn) {
+        Sentry.addBreadcrumb({
+          category: "router",
+          message: `Route loaded: ${state.location.pathname}`,
+          level: "info",
+        });
+      }
+    }
+  });
+} else {
+  console.warn("⚠️ Root element already has content, skipping render");
 }

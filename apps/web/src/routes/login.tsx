@@ -56,6 +56,14 @@ export const Route = createFileRoute("/login")({
 function RouteComponent() {
   const [showSignIn, setShowSignIn] = useState(true);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("🔐 Login route component mounted");
+    console.log("   showSignIn:", showSignIn);
+    console.log("   current URL:", window.location.href);
+    console.log("   pathname:", window.location.pathname);
+  }, [showSignIn]);
+
   // Store external app referrer and organization context for sign-out redirect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
