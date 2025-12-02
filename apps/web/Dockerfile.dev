@@ -57,7 +57,7 @@ ENV NODE_ENV=development \
 
 EXPOSE 4173
 
-# Serve the prebuilt Vite app using custom Express server
+# Serve the prebuilt Vite app using vite preview (simpler, no Express needed)
 # Note: Coolify may override this with the start command from service settings
-CMD ["pnpm", "--filter", "web", "run", "start"]
+CMD ["pnpm", "--filter", "web", "run", "start:preview"]
 
