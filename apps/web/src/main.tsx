@@ -118,22 +118,6 @@ if (sentryDsn) {
       
       return event;
     },
-    // Capture console errors and warnings
-    integrations: [
-      ...(isDev ? [] : [
-        Sentry.browserTracingIntegration({
-          enableInp: true,
-          enableLongTask: false,
-          traceFetch: false,
-          traceXHR: false,
-          instrumentPageLoad: true,
-          instrumentNavigation: true,
-        }),
-      ]),
-      Sentry.captureConsoleIntegration({
-        levels: ["error", "warn"],
-      }),
-    ],
   });
 }
 

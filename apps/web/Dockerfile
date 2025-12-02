@@ -38,8 +38,9 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 COPY . .
 
 # Install dependencies and build the web app
+# TEMPORARILY: Using build:no-prerender to debug blank page issue
 RUN pnpm install --frozen-lockfile \
- && pnpm --filter web run build
+ && pnpm --filter web run build:no-prerender
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
@@ -47,6 +48,6 @@ ENV NODE_ENV=production \
 
 EXPOSE 4173
 
-# Serve the prebuilt Vite app
-CMD ["pnpm", "--filter", "web", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+# Serve the prebuilt Vite app using vite preview (simpler, no Express needed)
+CMD ["pnpm", "--filter", "web", "run", "start:preview"]
 
