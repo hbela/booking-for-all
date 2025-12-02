@@ -102,9 +102,7 @@ app.get('*', (req, res, next) => {
   // React Router will handle the client-side routing
   const indexPath = resolve(distPath, 'index.html');
   if (existsSync(indexPath)) {
-    if (!isCrawler) {
-      console.log(`👤 Serving root index.html for SPA routing: ${normalizedPath}`);
-    }
+    console.log(`📄 Serving root index.html for SPA routing: ${normalizedPath}`);
     return res.sendFile(indexPath);
   }
 
