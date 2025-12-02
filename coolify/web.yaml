@@ -16,7 +16,7 @@ build:
     echo "  VITE_ENVIRONMENT=${VITE_ENVIRONMENT}"
     pnpm --filter web run build
 start:
-  command: pnpm --filter web exec vite preview --host 0.0.0.0 --port 4173
+  command: pnpm --filter web run start
 domains:
   - app.appointer.hu
 environment:
