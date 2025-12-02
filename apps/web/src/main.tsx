@@ -43,7 +43,7 @@ console.log("🚀 App Initialization:", {
 
 if (sentryDsn) {
   const isDev = import.meta.env.DEV;
-  
+
   // Add breadcrumb for app initialization
   Sentry.addBreadcrumb({
     category: "app",
@@ -70,12 +70,14 @@ if (sentryDsn) {
         return `${import.meta.env.VITE_SERVER_URL}/api/sentry-tunnel`;
       }
       // In dev mode (when running vite dev), use localhost
-      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+      if (import.meta.env.DEV || import.meta.env.MODE === "development") {
         return "http://localhost:3000/api/sentry-tunnel";
       }
       // Fallback: use relative path (won't work across subdomains, but better than nothing)
       // This should not happen if VITE_SERVER_URL is properly set during build
-      console.warn('⚠️ VITE_SERVER_URL not set - Sentry tunnel may not work correctly');
+      console.warn(
+        "⚠️ VITE_SERVER_URL not set - Sentry tunnel may not work correctly"
+      );
       return "/api/sentry-tunnel";
     })(),
     // Disable tracing in development to avoid HMR infinite loops
@@ -90,16 +92,18 @@ if (sentryDsn) {
         levels: ["error", "warn"],
       }),
       // Add browser tracing in production only
-      ...(isDev ? [] : [
-        Sentry.browserTracingIntegration({
-          enableInp: true,
-          enableLongTask: false,
-          traceFetch: false,
-          traceXHR: false,
-          instrumentPageLoad: true,
-          instrumentNavigation: true,
-        }),
-      ]),
+      ...(isDev
+        ? []
+        : [
+            Sentry.browserTracingIntegration({
+              enableInp: true,
+              enableLongTask: false,
+              traceFetch: false,
+              traceXHR: false,
+              instrumentPageLoad: true,
+              instrumentNavigation: true,
+            }),
+          ]),
     ],
     // Filter out expected API errors that are already logged on the server
     beforeSend(event, hint) {
@@ -114,21 +118,21 @@ if (sentryDsn) {
           "Failed to load",
           "Failed to fetch",
         ];
-        
-        if (expectedApiErrors.some(msg => error.message.includes(msg))) {
+
+        if (expectedApiErrors.some((msg) => error.message.includes(msg))) {
           // This is an expected API error that's already logged on the server
           // Don't send it to Sentry web project
           return null;
         }
       }
-      
+
       // Add additional context to all errors
       event.tags = {
         ...event.tags,
         environment: import.meta.env.VITE_ENVIRONMENT || "unknown",
         url: window.location.href,
       };
-      
+
       return event;
     },
   });
@@ -145,11 +149,30 @@ const queryClient = new QueryClient({
   },
 });
 
-const AppRoot = () => (
-  <QueryClientProvider client={queryClient}>
-    <RouterProvider router={router} />
-  </QueryClientProvider>
-);
+const AppRoot = () => {
+  // Debug: Check router before rendering
+  console.log("🔍 AppRoot rendering, router state:", {
+    routerExists: !!router,
+    routerStatus: router?.state?.status,
+    routerIsLoading: router?.state?.isLoading,
+    routerMatches: router?.state?.matches?.length || 0,
+  });
+
+  if (!router) {
+    console.error("❌ CRITICAL: Router is null/undefined!");
+    return (
+      <div style={{ padding: "20px", backgroundColor: "red", color: "white" }}>
+        Router is null!
+      </div>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+};
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -173,24 +196,26 @@ console.log("✅ Root element found:", rootElement);
 if (!rootElement.innerHTML) {
   console.log("🚀 Rendering React app...");
   const root = ReactDOM.createRoot(rootElement);
-  
-  // Track route changes with Sentry
+
+  // Track route changes with Sentry (using periodic check instead of subscribe)
   if (sentryDsn) {
-    router.subscribe("onBeforeLoad", ({ pathChanged, location }) => {
-      if (pathChanged) {
+    let lastPathname = router.state.location?.pathname;
+    setInterval(() => {
+      const currentPathname = router.state.location?.pathname;
+      if (currentPathname && currentPathname !== lastPathname) {
         Sentry.addBreadcrumb({
           category: "navigation",
-          message: `Navigating to ${location.pathname}`,
+          message: `Navigating to ${currentPathname}`,
           level: "info",
           data: {
-            pathname: location.pathname,
-            search: location.search,
+            pathname: currentPathname,
           },
         });
+        lastPathname = currentPathname;
       }
-    });
+    }, 1000);
   }
-  
+
   const content = sentryDsn ? (
     <Sentry.ErrorBoundary
       fallback={({ error }) => (
@@ -219,34 +244,56 @@ if (!rootElement.innerHTML) {
   try {
     root.render(content);
     console.log("✅ React app rendered successfully");
-    
+
     // Check if anything was actually rendered after a delay
     setTimeout(() => {
       const appEl = document.getElementById("app");
       console.log("🔍 Post-render check:", {
         appInnerHTML: appEl?.innerHTML?.length || 0,
         appChildren: appEl?.children?.length || 0,
-        hasReactRoot: appEl?.hasAttribute("data-reactroot") || appEl?._reactRootContainer || false,
+        hasReactRoot: appEl?.hasAttribute("data-reactroot") || false,
       });
-      
+
       // If still empty after 500ms, something is wrong
       if (!appEl?.innerHTML || appEl.innerHTML.trim().length === 0) {
         console.error("❌ CRITICAL: React rendered but DOM is empty!");
-        console.error("   This means React mounted but RouterProvider didn't render anything");
-        
-        // Try to render a simple test component
-        console.log("🧪 Testing: Rendering simple test component...");
-        root.render(<div style={{padding: "20px", backgroundColor: "red", color: "white"}}>
-          TEST: If you see this, React works but RouterProvider doesn't
-        </div>);
-        
-        setTimeout(() => {
-          if (appEl?.innerHTML?.includes("TEST")) {
-            console.error("✅ React works - the issue is with RouterProvider or routing");
-          } else {
-            console.error("❌ React itself isn't rendering - this is a React issue");
-          }
-        }, 100);
+        console.error(
+          "   This means React mounted but RouterProvider didn't render anything"
+        );
+
+        // Try to render RouterProvider with error handling
+        console.log("🧪 Testing: Trying RouterProvider with error boundary...");
+        try {
+          root.render(
+            <div
+              style={{
+                padding: "20px",
+                backgroundColor: "yellow",
+                color: "black",
+              }}
+            >
+              <h2>Testing RouterProvider...</h2>
+              <QueryClientProvider client={queryClient}>
+                <RouterProvider router={router} />
+              </QueryClientProvider>
+            </div>
+          );
+          console.log("✅ RouterProvider render attempted");
+        } catch (routerError) {
+          console.error("❌ RouterProvider threw error:", routerError);
+          root.render(
+            <div
+              style={{
+                padding: "20px",
+                backgroundColor: "red",
+                color: "white",
+              }}
+            >
+              <h2>RouterProvider Error:</h2>
+              <pre>{String(routerError)}</pre>
+            </div>
+          );
+        }
       }
     }, 500);
   } catch (error) {
@@ -255,50 +302,39 @@ if (!rootElement.innerHTML) {
       Sentry.captureException(error);
     }
   }
-  
+
   // Immediate router state check
   setTimeout(() => {
     const currentState = router.state;
     console.log("🔍 Initial router state:", {
       status: currentState.status,
       isLoading: currentState.isLoading,
-      pathname: currentState.location.pathname,
-      matches: currentState.matches.length,
-      error: currentState.error,
+      pathname: currentState.location?.pathname,
+      matches: currentState.matches?.length || 0,
     });
   }, 100);
-  
-  // Log router state changes for debugging
-  router.subscribe(() => {
+
+  // Log router state changes periodically for debugging
+  const logRouterState = () => {
     const state = router.state;
     console.log("🔍 Router state:", {
       status: state.status,
       isLoading: state.isLoading,
-      pathname: state.location.pathname,
-      matches: state.matches.length,
+      pathname: state.location?.pathname,
+      matches: state.matches?.length || 0,
     });
-    
+
     if (state.status === "idle" && !state.isLoading) {
-      console.log("✅ Router ready, current route:", state.location.pathname);
-      if (sentryDsn) {
-        Sentry.addBreadcrumb({
-          category: "router",
-          message: `Route loaded: ${state.location.pathname}`,
-          level: "info",
-        });
-      }
-    }
-    
-    // Log if router is stuck
-    if (state.isLoading) {
+      console.log("✅ Router ready, current route:", state.location?.pathname);
+    } else if (state.isLoading) {
       console.log("⏳ Router still loading...");
+      // Check again in 1 second
+      setTimeout(logRouterState, 1000);
     }
-    
-    // Log errors
-    if (state.status === "error") {
-      console.error("❌ Router error:", state.error);
-    }
-  });
+  };
+
+  // Start logging router state
+  setTimeout(logRouterState, 500);
 } else {
   console.warn("⚠️ Root element already has content, skipping render");
 }
