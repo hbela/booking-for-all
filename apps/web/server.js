@@ -16,7 +16,8 @@ app.use(express.static(distPath, {
   index: false,
 }));
 
-// Handle SPA routing - check for prerendered routes first, then fallback to index.html
+// Handle SPA routing - always serve root index.html and let React Router handle routing
+// Prerendered files are for SEO/crawlers, but for serving we use client-side routing
 app.get('*', (req, res, next) => {
   // Normalize path - remove double slashes and trailing slashes
   let normalizedPath = req.path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
@@ -26,25 +27,11 @@ app.get('*', (req, res, next) => {
     return next();
   }
 
-  // For root path, serve index.html directly
-  if (normalizedPath === '/') {
-    const indexPath = resolve(distPath, 'index.html');
-    if (existsSync(indexPath)) {
-      return res.sendFile(indexPath);
-    }
-  }
-
-  // Try to serve prerendered route (e.g., /login/index.html)
-  const prerenderedPath = resolve(distPath, normalizedPath, 'index.html');
-  if (existsSync(prerenderedPath)) {
-    console.log(`✅ Serving prerendered route: ${normalizedPath}`);
-    return res.sendFile(prerenderedPath);
-  }
-
-  // Fallback to root index.html for client-side routing
+  // Always serve root index.html for SPA routing
+  // React Router will handle the client-side routing
   const indexPath = resolve(distPath, 'index.html');
   if (existsSync(indexPath)) {
-    console.log(`📄 Serving root index.html for client-side routing: ${normalizedPath}`);
+    console.log(`📄 Serving root index.html for SPA routing: ${normalizedPath}`);
     return res.sendFile(indexPath);
   }
 
