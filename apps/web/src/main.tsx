@@ -254,7 +254,7 @@ if (!rootElement.innerHTML) {
     if (sentryDsn) {
       Sentry.captureException(error);
     }
-  }, 500);
+  }
   
   // Immediate router state check
   setTimeout(() => {
