@@ -160,11 +160,21 @@ async function prerender() {
       // Get the rendered HTML
       const html = await page.content();
 
-      // Fix asset paths to be relative
-      const fixedHtml = html.replace(
-        new RegExp(`${baseUrl}`, "g"),
-        ""
-      );
+      // Fix asset paths - use absolute paths from root so they work from any directory
+      const fixedHtml = html
+        .replace(new RegExp(`${baseUrl}`, "g"), "")
+        // Fix relative asset paths to be absolute from root
+        .replace(/href="\.\//g, 'href="/')
+        .replace(/src="\.\//g, 'src="/')
+        .replace(/href="assets\//g, 'href="/assets/')
+        .replace(/src="assets\//g, 'src="/assets/')
+        // Fix any other relative paths
+        .replace(/href="([^"]*)\/([^\/"]+)"/g, (match, path, file) => {
+          // If it's a relative path starting with /, keep it
+          if (path.startsWith('/')) return match;
+          // Otherwise make it absolute
+          return `href="/${path}/${file}"`;
+        });
 
       // Save to appropriate path
       if (route === "/") {

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /client/
+Disallow: /owner/
+Disallow: /provider/
+Sitemap: https://webdev.appointer.hu/sitemap.xml
+

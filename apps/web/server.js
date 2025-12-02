@@ -63,8 +63,18 @@ app.use(express.static(distPath, {
   index: false,
 }));
 
-// Handle SPA routing - always serve root index.html and let React Router handle routing
-// Prerendered files are for SEO/crawlers, but for serving we use client-side routing
+// Serve sitemap.xml
+app.get('/sitemap.xml', (req, res) => {
+  const sitemapPath = resolve(distPath, 'sitemap.xml');
+  if (existsSync(sitemapPath)) {
+    res.type('application/xml');
+    res.sendFile(sitemapPath);
+  } else {
+    res.status(404).send('Sitemap not found');
+  }
+});
+
+// Handle SPA routing - serve prerendered files to crawlers, root index.html to users
 app.get('*', (req, res, next) => {
   // Normalize path - remove double slashes and trailing slashes
   let normalizedPath = req.path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
@@ -74,11 +84,26 @@ app.get('*', (req, res, next) => {
     return next();
   }
 
-  // Always serve root index.html for SPA routing
+  // Check if request is from a crawler/bot (for SEO)
+  const userAgent = req.get('user-agent') || '';
+  const isCrawler = /bot|crawler|spider|crawling|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|sogou|exabot|facebot|ia_archiver|facebookexternalhit|twitterbot|linkedinbot|whatsapp|applebot|flipboard|tumblr|bitlybot|skypeuripreview|nuzzel|quora link preview|pinterest|slackbot|vkShare|W3C_Validator|redditbot|applebot|flipboard|tumblr|bitlybot|skypeuripreview|nuzzel|quora link preview|pinterest|slackbot|vkShare|W3C_Validator|redditbot/i.test(userAgent);
+  
+  // Serve prerendered file to crawlers for SEO
+  if (isCrawler) {
+    const prerenderedPath = resolve(distPath, normalizedPath, 'index.html');
+    if (existsSync(prerenderedPath)) {
+      console.log(`🤖 Serving prerendered to crawler: ${normalizedPath} (${userAgent.substring(0, 50)})`);
+      return res.sendFile(prerenderedPath);
+    }
+  }
+  
+  // Regular users: always serve root index.html for SPA routing
   // React Router will handle the client-side routing
   const indexPath = resolve(distPath, 'index.html');
   if (existsSync(indexPath)) {
-    console.log(`📄 Serving root index.html for SPA routing: ${normalizedPath}`);
+    if (!isCrawler) {
+      console.log(`👤 Serving root index.html for SPA routing: ${normalizedPath}`);
+    }
     return res.sendFile(indexPath);
   }
 
