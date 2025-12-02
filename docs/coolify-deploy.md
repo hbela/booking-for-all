@@ -39,8 +39,19 @@ Add the following variables in Coolify -> Project -> Environment. Use the same v
 | `POLAR_SANDBOX` | Optional | Set to `true` to use Polar sandbox.
 | `RATE_LIMIT_*` | Optional | Fine-tune external API rate limits (`RATE_LIMIT_MAX_REQUESTS`, etc.).
 | `LOG_LEVEL` | Optional | Defaults to `info`.
+| `S3_ENDPOINT` | Conditional | S3-compatible storage endpoint (required for QR codes and file uploads). Get from Coolify S3 storage resource.
+| `S3_ACCESS_KEY` | Conditional | S3 access key ID (required for QR codes and file uploads). Get from Coolify S3 storage resource.
+| `S3_SECRET_KEY` | Conditional | S3 secret access key (required for QR codes and file uploads). Get from Coolify S3 storage resource.
+| `S3_BUCKET` | Conditional | S3 bucket name (required for QR codes and file uploads). Get from Coolify S3 storage resource.
+| `S3_REGION` | Conditional | S3 region (use `auto` for Cloudflare R2, `us-east-1` for Hetzner). Get from Coolify S3 storage resource.
+| `PUBLIC_APP_URL` | Conditional | Public application URL (required for generating QR code URLs). Usually same as `CORS_ORIGIN`.
 
 Tip: Coolify supports environment groups. Create one called `booking-for-all` and attach it to each service so you maintain the variables only once.
+
+**S3 Storage Setup:** If you've created an S3 storage resource in Coolify (e.g., `my-coolify-s3-storage`), you can either:
+- Link it to your service (if Coolify supports automatic injection), or
+- Manually add the S3 environment variables above using values from the storage resource details.
+See `docs/coolify-s3-next-steps.md` for detailed instructions.
 
 ## 3. Create the Services in Coolify
 1. In Coolify, go to Projects -> select (or create) a project for Booking for All.

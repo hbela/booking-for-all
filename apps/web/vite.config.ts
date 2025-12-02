@@ -40,5 +40,8 @@ export default defineConfig({
       "wellnessdev.appointer.hu",
       "medicaredev.appointer.hu",
     ],
+    // Enable history API fallback for SPA routing
+    // This ensures all routes serve index.html and let React Router handle routing
+    strictPort: false,
   },
 });
