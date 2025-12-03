@@ -1,0 +1,229 @@
+name: EAS Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/eas-build-android.yml"
+  workflow_dispatch:
+    inputs:
+      organization_id:
+        description: "Organization ID to upload APK to"
+        required: true
+        type: string
+      build_profile:
+        description: "EAS Build Profile"
+        required: false
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.1"
+
+jobs:
+  build-and-upload:
+    name: Build APK and Upload to S3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate placeholder assets
+        working-directory: apps/mobile
+        run: |
+          echo "🎨 Generating placeholder assets..."
+          pnpm run generate-assets || node scripts/generate-assets.js
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine Organization ID
+        id: org-id
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "org_id=${{ github.event.inputs.organization_id }}" >> $GITHUB_OUTPUT
+          else
+            # For push events, you can set a default org ID or use an env var
+            # You may want to modify this to fetch from your API or use a secret
+            echo "org_id=${{ secrets.DEFAULT_ORG_ID }}" >> $GITHUB_OUTPUT
+          fi
+          echo "Using Organization ID: $(echo ${{ steps.org-id.outputs.org_id }})"
+
+      - name: Determine Build Profile
+        id: build-profile
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "profile=${{ github.event.inputs.build_profile }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Android APK with EAS
+        id: build
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          echo "🔨 Building Android APK with profile: ${{ steps.build-profile.outputs.profile }}"
+
+          # Start build and capture build ID
+          BUILD_OUTPUT=$(eas build --platform android \
+            --profile ${{ steps.build-profile.outputs.profile }} \
+            --non-interactive \
+            --json)
+
+          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r '.id // empty')
+
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Failed to get build ID from EAS"
+            echo "Build output: $BUILD_OUTPUT"
+            exit 1
+          fi
+
+          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
+          echo "📦 Build ID: $BUILD_ID"
+          echo "🔗 View build: https://expo.dev/accounts/[your-account]/builds/$BUILD_ID"
+
+      - name: Wait for EAS Build to Complete
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          echo "⏳ Waiting for EAS build to complete (timeout: 30 minutes)..."
+          eas build:wait --id $BUILD_ID --timeout 1800
+
+          # Get build status
+          BUILD_INFO=$(eas build:view $BUILD_ID --json)
+          BUILD_STATUS=$(echo "$BUILD_INFO" | jq -r '.status')
+
+          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+
+          if [ "$BUILD_STATUS" != "finished" ]; then
+            echo "❌ Build failed with status: $BUILD_STATUS"
+            echo "Build info: $BUILD_INFO"
+            exit 1
+          fi
+
+          echo "✅ Build completed successfully"
+
+      - name: Download APK from EAS
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          echo "📥 Downloading APK..."
+          eas build:download --id $BUILD_ID --platform android --output ./app.apk
+
+          if [ ! -f ./app.apk ]; then
+            echo "❌ APK file not found after download"
+            exit 1
+          fi
+
+          # Verify APK is a valid ZIP file (APKs are ZIP archives)
+          if ! unzip -t ./app.apk > /dev/null 2>&1; then
+            echo "❌ Downloaded file is not a valid APK (ZIP archive)"
+            exit 1
+          fi
+
+          APK_SIZE=$(du -h ./app.apk | cut -f1)
+          APK_MD5=$(md5sum ./app.apk | cut -d' ' -f1)
+          echo "✅ APK downloaded successfully"
+          echo "   Size: $APK_SIZE"
+          echo "   MD5: $APK_MD5"
+          echo "APK_PATH=$(pwd)/app.apk" >> $GITHUB_ENV
+
+      - name: Authenticate with API
+        id: auth
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.appointer.hu' }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          echo "🔐 Authenticating with API..."
+
+          # Login to get session cookie
+          RESPONSE=$(curl -s -c /tmp/cookies.txt -X POST "$API_BASE_URL/api/auth/sign-in/email" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")
+
+          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
+            echo "❌ Authentication failed: $(echo $RESPONSE | jq -r '.message // .error')"
+            exit 1
+          fi
+
+          echo "✅ Authentication successful"
+          echo "COOKIE_FILE=/tmp/cookies.txt" >> $GITHUB_ENV
+
+      - name: Upload APK to S3 via API
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.appointer.hu' }}
+          ORG_ID: ${{ steps.org-id.outputs.org_id }}
+        run: |
+          echo "📤 Uploading APK to organization: $ORG_ID"
+
+          # Upload APK using multipart/form-data
+          RESPONSE=$(curl -s -b "$COOKIE_FILE" -X POST \
+            "$API_BASE_URL/api/admin/organizations/$ORG_ID/upload-apk" \
+            -F "file=@$APK_PATH" \
+            -H "Content-Type: multipart/form-data")
+
+          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
+            echo "❌ Upload failed: $(echo $RESPONSE | jq -r '.message // .error')"
+            exit 1
+          fi
+
+          APK_KEY=$(echo "$RESPONSE" | jq -r '.data.key // empty')
+          if [ -z "$APK_KEY" ]; then
+            echo "❌ Upload response missing APK key"
+            echo "Response: $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ APK uploaded successfully"
+          echo "📦 S3 Key: $APK_KEY"
+          echo "🔗 Download URL: $API_BASE_URL/api/file/$APK_KEY"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f apps/mobile/app.apk
+          rm -f /tmp/cookies.txt
+          echo "🧹 Cleanup completed"
