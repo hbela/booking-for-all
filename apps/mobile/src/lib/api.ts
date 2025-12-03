@@ -95,3 +95,38 @@ export async function clearSession(sessionId: string, authToken?: string) {
   return response.json();
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug?: string;
+  description?: string | null;
+}
+
+export async function getOrganizationById(orgId: string): Promise<Organization> {
+  // Try external endpoint first (public)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/external/organization/${orgId}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.data) {
+        return data.data;
+      }
+    }
+  } catch (error) {
+    console.log('External endpoint failed, trying client endpoint');
+  }
+
+  // Fallback to client endpoint (requires auth, but might work if user is logged in)
+  const response = await fetch(`${API_BASE_URL}/api/client/organizations/${orgId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch organization: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.success && data.data) {
+    return data.data;
+  }
+  
+  throw new Error('Invalid response format');
+}
+

@@ -110,18 +110,197 @@ export default fp(async (fastify: FastifyInstance) => {
   );
 
   // ------------------------
-  // Download APK (Public Route)
+  // Download APK Page (Public Route)
   // ------------------------
   fastify.get("/org/:id/app", async (req, reply) => {
     const { id } = req.params as { id: string };
 
     const org = await prisma.organization.findUnique({ where: { id } });
-    if (!org || !org.apkKey) {
-      throw new AppError("No APK found for this organization", "APK_NOT_FOUND", 404);
+    if (!org) {
+      throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+    }
+
+    if (!org.apkKey) {
+      // Return HTML page with error message
+      const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${org.name} - Mobile App Download</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    h1 { color: #333; margin-bottom: 10px; font-size: 24px; }
+    .org-name { color: #667eea; font-size: 20px; margin-bottom: 30px; font-weight: 600; }
+    .error { color: #e74c3c; background: #fee; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .qr-container { margin: 30px 0; }
+    .qr-code { width: 200px; height: 200px; border: 3px solid #667eea; border-radius: 12px; margin: 0 auto; }
+    .download-btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 16px 32px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    .download-btn:hover { background: #5568d3; }
+    .info { color: #666; margin-top: 20px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Mobile App Download</h1>
+    <div class="org-name">${org.name}</div>
+    <div class="error">
+      <strong>APK not available</strong><br>
+      The mobile app APK has not been uploaded for this organization yet.
+    </div>
+  </div>
+</body>
+</html>`;
+      reply.type("text/html").send(html);
+      return;
+    }
+
+    // Get QR code URL
+    let qrCodeUrl = "";
+    if (org.qrCodeKey) {
+      qrCodeUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
+    } else {
+      // Generate QR code on-demand if it doesn't exist
+      try {
+        if (bucket && publicAppUrl) {
+          const qrData = `${publicAppUrl}/org/${id}/app`;
+          const pngBuffer = await QRCode.toBuffer(qrData, {
+            errorCorrectionLevel: "H",
+            type: "png",
+            width: 600,
+          });
+
+          const key = `orgs/${id}/qr.png`;
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: bucket,
+              Key: key,
+              Body: pngBuffer,
+              ContentType: "image/png",
+            })
+          );
+
+          await prisma.organization.update({
+            where: { id },
+            data: { qrCodeKey: key },
+          });
+
+          qrCodeUrl = `${publicAppUrl}/api/file/${key}`;
+          fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
+        }
+      } catch (error: any) {
+        fastify.log.error(error, "❌ Failed to generate QR code on-demand");
+      }
     }
 
     const apkUrl = `${publicAppUrl}/api/file/${org.apkKey}`;
-    return reply.redirect(apkUrl);
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${org.name} - Mobile App Download</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    h1 { color: #333; margin-bottom: 10px; font-size: 24px; }
+    .org-name { color: #667eea; font-size: 20px; margin-bottom: 30px; font-weight: 600; }
+    .qr-container { margin: 30px 0; }
+    .qr-code { width: 200px; height: 200px; border: 3px solid #667eea; border-radius: 12px; margin: 0 auto; display: block; }
+    .qr-label { color: #666; font-size: 14px; margin-top: 10px; }
+    .download-btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 16px 32px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: background 0.3s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .download-btn:hover { background: #5568d3; }
+    .download-btn:active { transform: scale(0.98); }
+    .info { color: #666; margin-top: 20px; font-size: 14px; line-height: 1.6; }
+    @media (max-width: 480px) {
+      .container { padding: 30px 20px; }
+      h1 { font-size: 20px; }
+      .org-name { font-size: 18px; }
+      .qr-code { width: 180px; height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Mobile App Download</h1>
+    <div class="org-name">${org.name}</div>
+    ${qrCodeUrl ? `
+    <div class="qr-container">
+      <img src="${qrCodeUrl}" alt="QR Code" class="qr-code" />
+      <p class="qr-label">Scan to download on another device</p>
+    </div>
+    ` : ""}
+    <a href="${apkUrl}" class="download-btn" download>
+      📥 Download APK
+    </a>
+    <p class="info">
+      Tap the button above to download and install the mobile app for ${org.name}.
+      ${qrCodeUrl ? "You can also scan the QR code with another device." : ""}
+    </p>
+  </div>
+</body>
+</html>`;
+    reply.type("text/html").send(html);
   });
 
   // ------------------------

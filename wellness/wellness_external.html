@@ -196,17 +196,36 @@
             <p style="margin: 0 0 8px 0; font-size: 12px; color: #666">
               Scan to download mobile app
             </p>
-            <img
-              id="qr-code-image"
-              src=""
-              alt="QR Code"
+            <a
+              id="qr-code-link"
+              href=""
+              target="_blank"
               style="
-                width: 150px;
-                height: 150px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
+                display: inline-block;
+                cursor: pointer;
+                text-decoration: none;
+                transition: transform 0.2s;
               "
-            />
+              onmouseover="this.style.transform='scale(1.05)'"
+              onmouseout="this.style.transform='scale(1)'"
+              onclick="return true;"
+            >
+              <img
+                id="qr-code-image"
+                src=""
+                alt="QR Code - Click to download"
+                style="
+                  width: 150px;
+                  height: 150px;
+                  border: 2px solid #007bff;
+                  border-radius: 4px;
+                  display: block;
+                "
+              />
+            </a>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #007bff">
+              Click QR code to download
+            </p>
           </div>
         </div>
       </div>
@@ -363,10 +382,16 @@
           const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode`;
           const qrImage = document.getElementById("qr-code-image");
           const qrContainer = document.getElementById("qr-code-container");
+          const qrLink = document.getElementById("qr-code-link");
 
           if (qrImage && qrContainer) {
             qrImage.src = qrCodeUrl;
             qrContainer.style.display = "block";
+            
+            // Set the download page URL for the QR code link
+            if (qrLink) {
+              qrLink.href = `${apiBaseUrl}/org/${orgId}/app`;
+            }
           }
         } catch (error) {
           console.error("Failed to load QR code:", error);

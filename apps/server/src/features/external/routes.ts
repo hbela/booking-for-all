@@ -55,6 +55,46 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
     return domains.includes(normalizedRequested);
   }
 
+  // Public endpoint to get organization by ID (for mobile app)
+  app.get(
+    "/organization/:id",
+    {
+      config: {
+        rateLimit: {
+          max: Number(process.env.RATE_LIMIT_ORG_LOOKUP_MAX) || 30,
+          timeWindow: process.env.RATE_LIMIT_ORG_LOOKUP_WINDOW || "1 minute",
+        },
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+
+      if (!id) {
+        throw new AppError("Organization ID is required", "ORG_ID_REQUIRED", 400);
+      }
+
+      const organization = await prisma.organization.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          logo: true,
+        },
+      });
+
+      if (!organization) {
+        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+      }
+
+      reply.send({
+        success: true,
+        data: organization,
+      });
+    }
+  );
+
   // NEW: Public endpoint to get organization by domain
   app.get(
     "/organization-by-domain",

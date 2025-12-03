@@ -57,6 +57,7 @@ interface Organization {
   logo?: string;
   enabled: boolean;
   members?: any[];
+  apkKey?: string | null;
 }
 
 interface CreateOrgData {
@@ -122,6 +123,33 @@ const deleteOrganization = async (orgId: string): Promise<void> => {
   if (data && typeof data === "object" && "success" in data) {
     return;
   }
+};
+
+const uploadApk = async (orgId: string, file: File): Promise<{ key: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}/upload-apk`,
+    {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }
+  );
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const message = data?.message || "Upload failed";
+    const code = data?.code || "UPLOAD_ERROR";
+    throw new ApiError(message, code, res.status);
+  }
+
+  const data = await res.json();
+  if (data.success && data.data) {
+    return data.data;
+  }
+  throw new ApiError("Invalid response from server", "INVALID_RESPONSE", res.status);
 };
 
 const createCheckout = async (
@@ -219,6 +247,23 @@ function AdminComponent() {
     },
   });
 
+  // Upload APK mutation
+  const uploadApkMutation = useMutation({
+    mutationFn: ({ orgId, file }: { orgId: string; file: File }) =>
+      uploadApk(orgId, file),
+    onSuccess: () => {
+      toast.success(t("admin.apkUploadedSuccessfully") || "APK uploaded successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error(t("admin.failedToUploadApk") || "Failed to upload APK");
+      }
+    },
+  });
+
   // TanStack Form for create organization
   const form = useForm({
     defaultValues: {
@@ -262,11 +307,24 @@ function AdminComponent() {
     await subscribeMutation.mutateAsync(orgId);
   };
 
+  const handleApkUpload = async (orgId: string, file: File | null) => {
+    if (!file) {
+      toast.error(t("admin.noFileSelected") || "Please select a file");
+      return;
+    }
+    if (!file.name.endsWith(".apk")) {
+      toast.error(t("admin.apkFileRequired") || "APK file required");
+      return;
+    }
+    await uploadApkMutation.mutateAsync({ orgId, file });
+  };
+
   const isLoadingAny =
     isLoading ||
     createOrgMutation.isPending ||
     deleteOrgMutation.isPending ||
-    subscribeMutation.isPending;
+    subscribeMutation.isPending ||
+    uploadApkMutation.isPending;
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
@@ -617,6 +675,52 @@ function AdminComponent() {
                       <p className="text-xs text-muted-foreground">
                         {t("admin.members")}: {org.members?.length || 0}
                       </p>
+                      {/* APK Management */}
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs font-semibold mb-2">
+                          {t("admin.apkManagement") || "APK Management"}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept=".apk"
+                            id={`apk-upload-${org.id}`}
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleApkUpload(org.id, file);
+                                // Reset input
+                                e.target.value = "";
+                              }
+                            }}
+                            disabled={uploadApkMutation.isPending}
+                          />
+                          <label
+                            htmlFor={`apk-upload-${org.id}`}
+                            className="cursor-pointer"
+                          >
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              disabled={uploadApkMutation.isPending}
+                            >
+                              <span>
+                                {org.apkKey
+                                  ? t("admin.replaceApk") || "Replace APK"
+                                  : t("admin.uploadApk") || "Upload APK"}
+                              </span>
+                            </Button>
+                          </label>
+                          {org.apkKey && (
+                            <span className="text-xs text-green-600">
+                              {t("admin.apkUploaded") || "✓ APK uploaded"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
