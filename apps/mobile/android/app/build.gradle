@@ -141,6 +141,7 @@ dependencies {
 // instead of the correct 'expo.modules.core.ExpoModulesPackage'
 tasks.register('fixAutolinking') {
     description = 'Fixes autolinking PackageList.java import path'
+    mustRunAfter 'generateAutolinkingPackageList'
     doLast {
         def packageListFile = file("${project.buildDir}/generated/autolinking/src/main/java/com/facebook/react/PackageList.java")
         if (packageListFile.exists()) {
@@ -148,17 +149,16 @@ tasks.register('fixAutolinking') {
             def fixedContent = content.replace('import expo.core.ExpoModulesPackage;', 'import expo.modules.core.ExpoModulesPackage;')
             packageListFile.write(fixedContent)
             println "Fixed autolinking import in PackageList.java"
+        } else {
+            println "Warning: PackageList.java not found, autolinking may not have run yet"
         }
     }
 }
 
 // Make Java compilation depend on fixAutolinking
-tasks.named('compileReleaseJavaWithJavac').configure {
-    dependsOn 'fixAutolinking'
-    mustRunAfter 'generateAutolinkingPackageList'
-}
-
-tasks.named('compileDebugJavaWithJavac').configure {
-    dependsOn 'fixAutolinking'
-    mustRunAfter 'generateAutolinkingPackageList'
+// Use whenTaskAdded to handle tasks that may not exist yet at configuration time
+tasks.whenTaskAdded { task ->
+    if (task.name == 'compileReleaseJavaWithJavac' || task.name == 'compileDebugJavaWithJavac') {
+        task.dependsOn 'fixAutolinking'
+    }
 }
