@@ -4,6 +4,22 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       'expo-router/babel',
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: {
+            '@': './src',
+          },
+          extensions: [
+            '.js',
+            '.jsx',
+            '.ts',
+            '.tsx',
+            '.json',
+          ],
+        },
+      ],
     ],
   };
 };

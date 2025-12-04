@@ -16,5 +16,10 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Configure path alias resolution for @/
+config.resolver.alias = {
+  '@': path.resolve(projectRoot, 'src'),
+};
+
 module.exports = config;
 
