@@ -136,19 +136,24 @@ dependencies {
     }
 }
 
-// Fix autolinking issue: Patch PackageList.java to use correct import
-// This fixes the bug where autolinking generates 'expo.core.ExpoModulesPackage' 
-// instead of the correct 'expo.modules.core.ExpoModulesPackage'
+// Fix autolinking issue: Remove ExpoModulesPackage reference
+// ExpoModulesPackage doesn't exist in Expo SDK 52, so we remove the import and usage
 tasks.register('fixAutolinking') {
-    description = 'Fixes autolinking PackageList.java import path'
+    description = 'Fixes autolinking PackageList.java by removing non-existent ExpoModulesPackage'
     mustRunAfter 'generateAutolinkingPackageList'
     doLast {
         def packageListFile = file("${project.buildDir}/generated/autolinking/src/main/java/com/facebook/react/PackageList.java")
         if (packageListFile.exists()) {
             def content = packageListFile.text
-            def fixedContent = content.replace('import expo.core.ExpoModulesPackage;', 'import expo.modules.core.ExpoModulesPackage;')
+            // Remove import line (handles both expo.core and expo.modules.core)
+            def fixedContent = content.replaceAll(/import\s+expo\.(core|modules\.core)\.ExpoModulesPackage;\s*\n/, '')
+            // Remove the new ExpoModulesPackage() line and handle commas properly
+            // Pattern 1: ", new ExpoModulesPackage()," or ", new ExpoModulesPackage()"
+            fixedContent = fixedContent.replaceAll(/,\s*new\s+ExpoModulesPackage\(\)\s*,?/, '')
+            // Pattern 2: "new ExpoModulesPackage()," at start of list
+            fixedContent = fixedContent.replaceAll(/new\s+ExpoModulesPackage\(\)\s*,?\s*/, '')
             packageListFile.write(fixedContent)
-            println "Fixed autolinking import in PackageList.java"
+            println "Fixed autolinking by removing ExpoModulesPackage reference"
         } else {
             println "Warning: PackageList.java not found, autolinking may not have run yet"
         }
