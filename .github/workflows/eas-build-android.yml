@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/eas-build-android.yml"
+      - dev
   workflow_dispatch:
     inputs:
       organization_id:
@@ -67,10 +65,11 @@ jobs:
           echo "🎨 Generating placeholder assets..."
           pnpm run generate-assets || node scripts/generate-assets.js
 
-      - name: Setup EAS CLI
+      - name: Setup Expo CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
+          # Only need token for prebuild, not for building
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Determine Organization ID
@@ -86,89 +85,62 @@ jobs:
           fi
           echo "Using Organization ID: $(echo ${{ steps.org-id.outputs.org_id }})"
 
-      - name: Determine Build Profile
-        id: build-profile
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "profile=${{ github.event.inputs.build_profile }}" >> $GITHUB_OUTPUT
-          else
-            echo "profile=production" >> $GITHUB_OUTPUT
-          fi
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
-      - name: Build Android APK with EAS
-        id: build
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run Expo Prebuild
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "🔨 Building Android APK with profile: ${{ steps.build-profile.outputs.profile }}"
+          echo "🔧 Running Expo prebuild to generate native Android project..."
+          npx expo prebuild --platform android --clean
 
-          # Start build and capture build ID
-          BUILD_OUTPUT=$(eas build --platform android \
-            --profile ${{ steps.build-profile.outputs.profile }} \
-            --non-interactive \
-            --json)
-
-          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r '.id // empty')
-
-          if [ -z "$BUILD_ID" ]; then
-            echo "❌ Failed to get build ID from EAS"
-            echo "Build output: $BUILD_OUTPUT"
-            exit 1
-          fi
-
-          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
-          echo "📦 Build ID: $BUILD_ID"
-          echo "🔗 View build: https://expo.dev/accounts/[your-account]/builds/$BUILD_ID"
-
-      - name: Wait for EAS Build to Complete
-        working-directory: apps/mobile
+      - name: Build Android APK with Gradle
+        working-directory: apps/mobile/android
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          NODE_ENV: production
         run: |
-          echo "⏳ Waiting for EAS build to complete (timeout: 30 minutes)..."
-          eas build:wait --id $BUILD_ID --timeout 1800
+          echo "🔨 Building Android APK with Gradle (no EAS queue!)..."
 
-          # Get build status
-          BUILD_INFO=$(eas build:view $BUILD_ID --json)
-          BUILD_STATUS=$(echo "$BUILD_INFO" | jq -r '.status')
+          # Make gradlew executable
+          chmod +x ./gradlew
 
-          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_ENV
+          # Build release APK
+          ./gradlew assembleRelease
 
-          if [ "$BUILD_STATUS" != "finished" ]; then
-            echo "❌ Build failed with status: $BUILD_STATUS"
-            echo "Build info: $BUILD_INFO"
+          # Find the generated APK
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+
+          if [ -z "$APK_PATH" ]; then
+            echo "❌ APK file not found after build"
+            echo "Build output directory contents:"
+            ls -la app/build/outputs/apk/release/ || true
             exit 1
           fi
 
-          echo "✅ Build completed successfully"
-
-      - name: Download APK from EAS
-        working-directory: apps/mobile
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          echo "📥 Downloading APK..."
-          eas build:download --id $BUILD_ID --platform android --output ./app.apk
-
-          if [ ! -f ./app.apk ]; then
-            echo "❌ APK file not found after download"
-            exit 1
-          fi
+          # Copy APK to a predictable location
+          cp "$APK_PATH" ../app-release.apk
 
           # Verify APK is a valid ZIP file (APKs are ZIP archives)
-          if ! unzip -t ./app.apk > /dev/null 2>&1; then
-            echo "❌ Downloaded file is not a valid APK (ZIP archive)"
+          if ! unzip -t ../app-release.apk > /dev/null 2>&1; then
+            echo "❌ Generated file is not a valid APK (ZIP archive)"
             exit 1
           fi
 
-          APK_SIZE=$(du -h ./app.apk | cut -f1)
-          APK_MD5=$(md5sum ./app.apk | cut -d' ' -f1)
-          echo "✅ APK downloaded successfully"
+          APK_SIZE=$(du -h ../app-release.apk | cut -f1)
+          APK_MD5=$(md5sum ../app-release.apk | cut -d' ' -f1)
+          echo "✅ APK built successfully"
           echo "   Size: $APK_SIZE"
           echo "   MD5: $APK_MD5"
-          echo "APK_PATH=$(pwd)/app.apk" >> $GITHUB_ENV
+          echo "APK_PATH=$(pwd)/../app-release.apk" >> $GITHUB_ENV
 
       - name: Authenticate with API
         id: auth
@@ -224,6 +196,6 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          rm -f apps/mobile/app.apk
+          rm -f apps/mobile/app-release.apk
           rm -f /tmp/cookies.txt
           echo "🧹 Cleanup completed"

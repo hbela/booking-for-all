@@ -75,26 +75,31 @@ export async function processVoiceInput(
 
   // Update session with new state
   if (updatedSessionState) {
-    const state = JSON.parse(updatedSessionState);
-    updateSession(session.sessionId, {
-      currentStep: state.currentStep,
-      selectedOrganizationId: state.selectedOrganizationId,
-      selectedDepartmentId: state.selectedDepartmentId,
-      selectedProviderId: state.selectedProviderId,
-      conversationHistory: [
-        ...session.conversationHistory,
-        ...(transcript ? [{
-          role: 'user' as const,
-          text: transcript,
-          timestamp: new Date(),
-        }] : []),
-        ...(responseText ? [{
-          role: 'assistant' as const,
-          text: responseText,
-          timestamp: new Date(),
-        }] : []),
-      ],
-    });
+    try {
+      const state = JSON.parse(updatedSessionState);
+      updateSession(session.sessionId, {
+        currentStep: state.currentStep,
+        selectedOrganizationId: state.selectedOrganizationId,
+        selectedDepartmentId: state.selectedDepartmentId,
+        selectedProviderId: state.selectedProviderId,
+        conversationHistory: [
+          ...session.conversationHistory,
+          ...(transcript ? [{
+            role: 'user' as const,
+            text: transcript,
+            timestamp: new Date(),
+          }] : []),
+          ...(responseText ? [{
+            role: 'assistant' as const,
+            text: responseText,
+            timestamp: new Date(),
+          }] : []),
+        ],
+      });
+    } catch (parseError) {
+      app.log.warn({ error: parseError, sessionId: session.sessionId }, 'Failed to parse session state from n8n response');
+      // Continue with existing session state
+    }
   }
 
   // Get updated session
