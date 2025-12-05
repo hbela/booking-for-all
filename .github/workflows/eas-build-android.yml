@@ -103,18 +103,6 @@ jobs:
           echo "🔧 Running Expo prebuild to generate native Android project..."
           npx expo prebuild --platform android --clean
 
-      - name: Verify expo-modules-core installation
-        working-directory: apps/mobile
-        run: |
-          echo "🔍 Verifying expo-modules-core is installed..."
-          if pnpm list expo-modules-core > /dev/null 2>&1; then
-            echo "✅ expo-modules-core is installed"
-            pnpm list expo-modules-core
-          else
-            echo "⚠️  expo-modules-core not found in node_modules, but should be in package.json"
-            echo "This is expected if it was just added - autolinking should handle it"
-          fi
-
       - name: Build Android APK with Gradle
         working-directory: apps/mobile/android
         env:

@@ -111,9 +111,8 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     
-    // expo-modules-core should be automatically linked via autolinking
-    // If autolinking doesn't work, uncomment the line below and set the correct version
-    // implementation("expo.modules:core:2.0.0")
+    // expo-modules-core is provided by the expo package and automatically linked via autolinking
+    // No need to add it manually - it's included with expo SDK
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
