@@ -117,49 +117,44 @@ jobs:
           echo "🧹 Cleaning previous build..."
           ./gradlew clean
 
-          # Generate autolinking PackageList to check if expo-modules-core is linked
+          # Generate autolinking PackageList first
           echo "📦 Generating autolinking PackageList..."
           ./gradlew :app:generateAutolinkingPackageList || true
 
-          # Fix: Remove ExpoModulesPackage reference (expo.core.ExpoModulesPackage doesn't exist in SDK 52)
+          # Explicitly run the fix task to ensure PackageList.java is fixed
+          echo "🔧 Running fixAutolinking task..."
+          ./gradlew :app:fixAutolinking || true
+
+          # Verify the fix worked
           PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
           if [ -f "$PACKAGE_LIST_FILE" ]; then
             if grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
-              echo "⚠️  ExpoModulesPackage still referenced, applying fix..."
-              
-              # Create a backup
-              cp "$PACKAGE_LIST_FILE" "${PACKAGE_LIST_FILE}.bak"
-              
-              # Remove import lines (both expo.core and expo.modules variants)
-              sed -i '/import expo\.core\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
-              sed -i '/import expo\.modules\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
-              
-              # Remove the instantiation line (handle various formats)
-              sed -i '/new ExpoModulesPackage()/d' "$PACKAGE_LIST_FILE"
-              sed -i '/\bExpoModulesPackage\b/d' "$PACKAGE_LIST_FILE"
-              
-              # Clean up trailing commas and formatting
-              # Remove comma before closing parenthesis
+              echo "⚠️  ExpoModulesPackage still found, applying manual fix..."
+              # Manual fix as fallback
+              sed -i '/import.*ExpoModulesPackage/d' "$PACKAGE_LIST_FILE"
+              sed -i '/ExpoModulesPackage/d' "$PACKAGE_LIST_FILE"
               sed -i 's/,\s*)/)/g' "$PACKAGE_LIST_FILE"
-              # Remove trailing comma at end of line
               sed -i 's/,\s*$//' "$PACKAGE_LIST_FILE"
-              # Fix double commas
-              sed -i 's/,\s*,/,/g' "$PACKAGE_LIST_FILE"
-              # Remove comma before closing brace if on same line
-              sed -i 's/,\s*}/}/g' "$PACKAGE_LIST_FILE"
-              
-              echo "✅ Fixed PackageList.java - removed ExpoModulesPackage references"
-              echo "📝 Diff:"
-              diff "${PACKAGE_LIST_FILE}.bak" "$PACKAGE_LIST_FILE" || true
+              echo "✅ Manual fix applied"
             else
-              echo "✅ PackageList.java looks correct (no ExpoModulesPackage reference)"
+              echo "✅ PackageList.java verified - no ExpoModulesPackage references"
             fi
-          else
-            echo "⚠️  PackageList.java not found yet, will be generated during build"
           fi
 
-          # Build release APK
+          # Build release APK (fixAutolinking task will also run automatically before compilation)
+          echo "🔨 Building release APK..."
           ./gradlew assembleRelease
+
+          # Safety check: Verify PackageList.java was fixed (in case Gradle task didn't run)
+          PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
+          if [ -f "$PACKAGE_LIST_FILE" ] && grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
+            echo "⚠️  WARNING: PackageList.java still contains ExpoModulesPackage after build!"
+            echo "This should not happen if the Gradle fixAutolinking task ran correctly."
+            echo "File contents:"
+            grep -n "ExpoModulesPackage" "$PACKAGE_LIST_FILE" || true
+          else
+            echo "✅ PackageList.java verified - no ExpoModulesPackage references found"
+          fi
 
           # Find the generated APK
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)

@@ -157,20 +157,30 @@ tasks.register('fixAutolinking') {
             
             println "Fixing PackageList.java: removing ExpoModulesPackage references..."
             
-            // Remove import statements (both expo.core and expo.modules variants)
-            content = content.replaceAll(/import\s+expo\.core\.ExpoModulesPackage;?\s*\n/, '')
-            content = content.replaceAll(/import\s+expo\.modules\.ExpoModulesPackage;?\s*\n/, '')
+            // Remove ALL import statements containing ExpoModulesPackage (any package path)
+            content = content.replaceAll(/import\s+expo\.core\.ExpoModulesPackage;?\s*\n?/, '')
+            content = content.replaceAll(/import\s+expo\.modules\.ExpoModulesPackage;?\s*\n?/, '')
+            content = content.replaceAll(/import\s+expo\.modules\.core\.ExpoModulesPackage;?\s*\n?/, '')
+            content = content.replaceAll(/import\s+.*ExpoModulesPackage.*;?\s*\n?/, '')
             
-            // Remove the instantiation line (handle various formats)
-            content = content.replaceAll(/\s*new\s+ExpoModulesPackage\(\)\s*,?\s*\n/, '\n')
-            content = content.replaceAll(/,\s*new\s+ExpoModulesPackage\(\)\s*\n/, '\n')
-            content = content.replaceAll(/\s*new\s+ExpoModulesPackage\(\)\s*\n/, '\n')
+            // Remove ALL lines containing "new ExpoModulesPackage()" (handle all variations)
+            content = content.replaceAll(/\s*new\s+ExpoModulesPackage\(\)\s*,?\s*\n?/, '')
+            content = content.replaceAll(/,\s*new\s+ExpoModulesPackage\(\)\s*\n?/, '')
+            content = content.replaceAll(/new\s+ExpoModulesPackage\(\)\s*,?\s*\n?/, '')
             
-            // Clean up trailing commas and formatting issues
+            // Remove any remaining references to ExpoModulesPackage
+            content = content.replaceAll(/.*ExpoModulesPackage.*\n?/, '')
+            
+            // Clean up trailing commas and formatting issues (multiple passes for safety)
             content = content.replaceAll(/,\s*\)/, ')')  // Remove comma before closing paren
             content = content.replaceAll(/,\s*$/, '')    // Remove trailing comma at end of line
             content = content.replaceAll(/,\s*,/, ',')   // Fix double commas
             content = content.replaceAll(/,\s*}/, '}')  // Remove comma before closing brace
+            content = content.replaceAll(/\(\s*,/, '(')  // Remove comma after opening paren
+            content = content.replaceAll(/,\s*\)/, ')')  // Remove comma before closing paren (again)
+            
+            // Clean up multiple blank lines
+            content = content.replaceAll(/\n\n\n+/, '\n\n')
             
             packageListFile.write(content)
             println "✅ Fixed autolinking by removing ExpoModulesPackage reference"
@@ -190,7 +200,18 @@ tasks.whenTaskAdded { task ->
 
 // Also ensure fixAutolinking runs after autolinking generation
 afterEvaluate {
+    // Make sure fixAutolinking runs after generateAutolinkingPackageList
     tasks.named('generateAutolinkingPackageList').configure {
         finalizedBy 'fixAutolinking'
+    }
+    
+    // Also make compilation tasks depend on fixAutolinking
+    tasks.matching { it.name == 'compileReleaseJavaWithJavac' || it.name == 'compileDebugJavaWithJavac' }.configureEach {
+        dependsOn 'fixAutolinking'
+    }
+    
+    // Make sure fixAutolinking runs before any Java compilation
+    tasks.matching { it.name.startsWith('compile') && it.name.contains('Java') }.configureEach {
+        dependsOn 'fixAutolinking'
     }
 }
