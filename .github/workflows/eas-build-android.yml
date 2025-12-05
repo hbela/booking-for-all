@@ -133,20 +133,41 @@ jobs:
           echo "📦 Generating autolinking PackageList..."
           ./gradlew :app:generateAutolinkingPackageList || true
 
-          # Safety fix: Remove ExpoModulesPackage reference if it still exists
-          # (This should not be needed if expo-modules-core is properly linked)
+          # Fix: Remove ExpoModulesPackage reference (expo.core.ExpoModulesPackage doesn't exist in SDK 52)
           PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
           if [ -f "$PACKAGE_LIST_FILE" ]; then
             if grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
-              echo "⚠️  ExpoModulesPackage still referenced, applying safety fix..."
+              echo "⚠️  ExpoModulesPackage still referenced, applying fix..."
+              
+              # Create a backup
+              cp "$PACKAGE_LIST_FILE" "${PACKAGE_LIST_FILE}.bak"
+              
+              # Remove import lines (both expo.core and expo.modules variants)
               sed -i '/import expo\.core\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
+              sed -i '/import expo\.modules\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
+              
+              # Remove the instantiation line (handle various formats)
               sed -i '/new ExpoModulesPackage()/d' "$PACKAGE_LIST_FILE"
+              sed -i '/\bExpoModulesPackage\b/d' "$PACKAGE_LIST_FILE"
+              
+              # Clean up trailing commas and formatting
+              # Remove comma before closing parenthesis
               sed -i 's/,\s*)/)/g' "$PACKAGE_LIST_FILE"
+              # Remove trailing comma at end of line
               sed -i 's/,\s*$//' "$PACKAGE_LIST_FILE"
-              echo "✅ Applied safety fix to PackageList.java"
+              # Fix double commas
+              sed -i 's/,\s*,/,/g' "$PACKAGE_LIST_FILE"
+              # Remove comma before closing brace if on same line
+              sed -i 's/,\s*}/}/g' "$PACKAGE_LIST_FILE"
+              
+              echo "✅ Fixed PackageList.java - removed ExpoModulesPackage references"
+              echo "📝 Diff:"
+              diff "${PACKAGE_LIST_FILE}.bak" "$PACKAGE_LIST_FILE" || true
             else
               echo "✅ PackageList.java looks correct (no ExpoModulesPackage reference)"
             fi
+          else
+            echo "⚠️  PackageList.java not found yet, will be generated during build"
           fi
 
           # Build release APK

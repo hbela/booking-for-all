@@ -149,68 +149,32 @@ tasks.register('fixAutolinking') {
         def packageListFile = file("${project.buildDir}/generated/autolinking/src/main/java/com/facebook/react/PackageList.java")
         if (packageListFile.exists()) {
             def content = packageListFile.text
-            def lines = content.split('\n')
-            def fixedLines = []
-            boolean skipNextComma = false
             
-            lines.each { line ->
-                // Skip import line
-                if (line.contains('ExpoModulesPackage') && line.contains('import')) {
-                    return
-                }
-                
-                // Skip ExpoModulesPackage instantiation line
-                if (line.contains('ExpoModulesPackage') && line.contains('new')) {
-                    // If this line has a comma, we need to ensure previous line has a comma
-                    if (line.trim().endsWith(',')) {
-                        // Ensure previous line has a comma
-                        if (fixedLines.size() > 0) {
-                            def lastLine = fixedLines[fixedLines.size() - 1].trim()
-                            if (lastLine.startsWith('new ') && lastLine.endsWith(')') && !lastLine.endsWith(',')) {
-                                fixedLines[fixedLines.size() - 1] = fixedLines[fixedLines.size() - 1] + ','
-                            }
-                        }
-                    } else {
-                        // No comma on this line, next line might start with comma
-                        skipNextComma = true
-                    }
-                    return
-                }
-                
-                // Handle comma if we just skipped ExpoModulesPackage without comma
-                if (skipNextComma) {
-                    if (line.trim().startsWith(',')) {
-                        // Remove comma from this line and add to previous
-                        def cleaned = line.replaceFirst(/^\s*,\s*/, '')
-                        if (fixedLines.size() > 0) {
-                            def lastLine = fixedLines[fixedLines.size() - 1].trim()
-                            if (lastLine.startsWith('new ') && lastLine.endsWith(')') && !lastLine.endsWith(',')) {
-                                fixedLines[fixedLines.size() - 1] = fixedLines[fixedLines.size() - 1] + ','
-                            }
-                        }
-                        if (cleaned) {
-                            fixedLines.add(cleaned)
-                        }
-                    } else {
-                        // No comma, ensure previous line has comma if it's a package
-                        if (fixedLines.size() > 0) {
-                            def lastLine = fixedLines[fixedLines.size() - 1].trim()
-                            if (lastLine.startsWith('new ') && lastLine.endsWith(')') && !lastLine.endsWith(',')) {
-                                fixedLines[fixedLines.size() - 1] = fixedLines[fixedLines.size() - 1] + ','
-                            }
-                        }
-                        fixedLines.add(line)
-                    }
-                    skipNextComma = false
-                    return
-                }
-                
-                fixedLines.add(line)
+            // Check if ExpoModulesPackage is referenced
+            if (!content.contains('ExpoModulesPackage')) {
+                println "PackageList.java is already correct (no ExpoModulesPackage reference)"
+                return
             }
             
-            def fixedContent = fixedLines.join('\n')
-            packageListFile.write(fixedContent)
-            println "Fixed autolinking by removing ExpoModulesPackage reference"
+            println "Fixing PackageList.java: removing ExpoModulesPackage references..."
+            
+            // Remove import statements (both expo.core and expo.modules variants)
+            content = content.replaceAll(/import\s+expo\.core\.ExpoModulesPackage;?\s*\n/, '')
+            content = content.replaceAll(/import\s+expo\.modules\.ExpoModulesPackage;?\s*\n/, '')
+            
+            // Remove the instantiation line (handle various formats)
+            content = content.replaceAll(/\s*new\s+ExpoModulesPackage\(\)\s*,?\s*\n/, '\n')
+            content = content.replaceAll(/,\s*new\s+ExpoModulesPackage\(\)\s*\n/, '\n')
+            content = content.replaceAll(/\s*new\s+ExpoModulesPackage\(\)\s*\n/, '\n')
+            
+            // Clean up trailing commas and formatting issues
+            content = content.replaceAll(/,\s*\)/, ')')  // Remove comma before closing paren
+            content = content.replaceAll(/,\s*$/, '')    // Remove trailing comma at end of line
+            content = content.replaceAll(/,\s*,/, ',')   // Fix double commas
+            content = content.replaceAll(/,\s*}/, '}')  // Remove comma before closing brace
+            
+            packageListFile.write(content)
+            println "✅ Fixed autolinking by removing ExpoModulesPackage reference"
         } else {
             println "Warning: PackageList.java not found, autolinking may not have run yet"
         }
