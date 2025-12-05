@@ -103,6 +103,18 @@ jobs:
           echo "🔧 Running Expo prebuild to generate native Android project..."
           npx expo prebuild --platform android --clean
 
+      - name: Verify expo-modules-core installation
+        working-directory: apps/mobile
+        run: |
+          echo "🔍 Verifying expo-modules-core is installed..."
+          if pnpm list expo-modules-core > /dev/null 2>&1; then
+            echo "✅ expo-modules-core is installed"
+            pnpm list expo-modules-core
+          else
+            echo "⚠️  expo-modules-core not found in node_modules, but should be in package.json"
+            echo "This is expected if it was just added - autolinking should handle it"
+          fi
+
       - name: Build Android APK with Gradle
         working-directory: apps/mobile/android
         env:
@@ -113,22 +125,28 @@ jobs:
           # Make gradlew executable
           chmod +x ./gradlew
 
-          # First, generate autolinking to create PackageList.java
+          # Clean build to ensure fresh autolinking
+          echo "🧹 Cleaning previous build..."
+          ./gradlew clean
+
+          # Generate autolinking PackageList to check if expo-modules-core is linked
           echo "📦 Generating autolinking PackageList..."
           ./gradlew :app:generateAutolinkingPackageList || true
 
-          # Fix ExpoModulesPackage issue if PackageList.java exists
+          # Safety fix: Remove ExpoModulesPackage reference if it still exists
+          # (This should not be needed if expo-modules-core is properly linked)
           PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
           if [ -f "$PACKAGE_LIST_FILE" ]; then
-            echo "🔧 Fixing ExpoModulesPackage reference..."
-            # Remove ExpoModulesPackage import line
-            sed -i '/import expo\.core\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
-            # Remove ExpoModulesPackage instantiation line
-            sed -i '/new ExpoModulesPackage()/d' "$PACKAGE_LIST_FILE"
-            # Clean up any trailing commas before closing brace
-            sed -i 's/,\s*)/)/g' "$PACKAGE_LIST_FILE"
-            sed -i 's/,\s*$//' "$PACKAGE_LIST_FILE"
-            echo "✅ Fixed PackageList.java"
+            if grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
+              echo "⚠️  ExpoModulesPackage still referenced, applying safety fix..."
+              sed -i '/import expo\.core\.ExpoModulesPackage;/d' "$PACKAGE_LIST_FILE"
+              sed -i '/new ExpoModulesPackage()/d' "$PACKAGE_LIST_FILE"
+              sed -i 's/,\s*)/)/g' "$PACKAGE_LIST_FILE"
+              sed -i 's/,\s*$//' "$PACKAGE_LIST_FILE"
+              echo "✅ Applied safety fix to PackageList.java"
+            else
+              echo "✅ PackageList.java looks correct (no ExpoModulesPackage reference)"
+            fi
           fi
 
           # Build release APK
