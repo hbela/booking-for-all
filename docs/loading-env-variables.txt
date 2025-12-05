@@ -11,7 +11,7 @@ Bash
 download
 content_copy
 expand_less
-# Navigate to your fastify app directory
+# Navigate to your fastify app directory first
 cd apps/api
 
 # Install the dependencies
