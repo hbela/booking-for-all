@@ -26,7 +26,6 @@ pluginManagement {
 plugins {
     id("com.facebook.react.settings")
 }
-rootProject.name = "Booking for All"
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     // Expo autolinking
     def command = [
@@ -65,3 +64,5 @@ apply from: new File(
 useExpoModules()
 
 include(":app")
+
+rootProject.name = "Booking for All"
