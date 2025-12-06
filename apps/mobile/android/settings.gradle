@@ -20,7 +20,8 @@ dependencyResolutionManagement {
 rootProject.name = "my-better-t-app"
 
 // Expo autolinking
-apply from: file("../node_modules/expo-autolinking/scripts/autolinking.gradle")
+apply from: file("../../../node_modules/expo-autolinking/scripts/autolinking.gradle")
 useExpoModules()
+
 
 include(":app")
