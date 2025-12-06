@@ -1,19 +1,15 @@
 pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        google()
-        mavenCentral()
-    }
+    includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()).getParentFile())
+}
+plugins {
+    id("com.facebook.react.settings")
 }
 
-rootProject.name = "Booking for All"
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
 
-// Correct path to React Native Gradle plugin
-apply from: file("../node_modules/react-native/ReactAndroid/gradle-plugin/settings.gradle")
+rootProject.name = 'bookingforall' // CHANGE THIS to match your app.json "name" (sanitized)
 
-// Correct path to Expo autolinking
-apply from: file("../node_modules/expo-modules-autolinking/scripts/android/autolinking.gradle")
-
-useExpoModules()
-
-include(":app")
+include ':app'
+includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()).getParentFile())
