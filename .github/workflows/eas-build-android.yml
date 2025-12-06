@@ -101,7 +101,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "🔧 Running Expo prebuild to generate native Android project..."
-          npx expo prebuild --platform android --clean
+          npx expo prebuild --platform android --non-interactive
 
       - name: Build Android APK with Gradle
         working-directory: apps/mobile/android

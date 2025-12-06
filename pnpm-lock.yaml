@@ -96,6 +96,12 @@ importers:
       expo-linking:
         specifier: ~7.0.5
         version: 7.0.5(expo@52.0.47(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1))(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
+      expo-modules-autolinking:
+        specifier: ^3.0.23
+        version: 3.0.23
+      expo-modules-core:
+        specifier: ^3.0.28
+        version: 3.0.28(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
       expo-router:
         specifier: ~4.0.0
         version: 4.0.21(8f81ddbf31e67658121962394a18201a)
@@ -1569,7 +1575,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.26':
     resolution: {integrity: sha512-I689wc8Fn/AX7aUGiwrh3HnssiORMJtR2fpksX+JIe8Cj/EDleblYMSwRPd0025wrwOV9UN1KM/RuEt/QjCS3Q==}
@@ -5039,8 +5045,18 @@ packages:
     resolution: {integrity: sha512-DezgnEYFQYic8hKGhkbztBA3QUmSftjaNDIKNAtS2iGJmzCcNIkatjN2slFDSWjSTNo8gOvPQyMKfyHWFvLpOQ==}
     hasBin: true
 
+  expo-modules-autolinking@3.0.23:
+    resolution: {integrity: sha512-YZnaE0G+52xftjH5nsIRaWsoVBY38SQCECclpdgLisdbRY/6Mzo7ndokjauOv3mpFmzMZACHyJNu1YSAffQwTg==}
+    hasBin: true
+
   expo-modules-core@2.2.3:
     resolution: {integrity: sha512-01QqZzpP/wWlxnNly4G06MsOBUTbMDj02DQigZoXfDh80vd/rk3/uVXqnZgOdLSggTs6DnvOgAUy0H2q30XdUg==}
+
+  expo-modules-core@3.0.28:
+    resolution: {integrity: sha512-8EDpksNxnN4HXWE+yhYUYAZAWTEDRzK2VpZjPSp+UBF2LtWZicXKLOCODCvsjCkTCVVA2JKKcWtGxWiteV3ueA==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   expo-router@4.0.21:
     resolution: {integrity: sha512-z1U9cGZbgL+ZSHp533VMobOqdkUpFBlDXBpd9/JH+Q0wW49is0G2PrJVUYMzdwr30HSUltdO/19W8rRwjfOnFw==}
@@ -13878,9 +13894,23 @@ snapshots:
       require-from-string: 2.0.2
       resolve-from: 5.0.0
 
+  expo-modules-autolinking@3.0.23:
+    dependencies:
+      '@expo/spawn-async': 1.7.2
+      chalk: 4.1.2
+      commander: 7.2.0
+      require-from-string: 2.0.2
+      resolve-from: 5.0.0
+
   expo-modules-core@2.2.3:
     dependencies:
       invariant: 2.2.4
+
+  expo-modules-core@3.0.28(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1):
+    dependencies:
+      invariant: 2.2.4
+      react: 18.3.1
+      react-native: 0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@types/react@18.3.27)(react@18.3.1)
 
   expo-router@4.0.21(8f81ddbf31e67658121962394a18201a):
     dependencies:
