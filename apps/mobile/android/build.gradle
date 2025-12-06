@@ -1,6 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules
 
-// 1️⃣ buildscript must come first
 buildscript {
     ext {
         buildToolsVersion = findProperty('android.buildToolsVersion') ?: '35.0.0'
@@ -23,15 +22,9 @@ buildscript {
     }
 }
 
-// 2️⃣ Then plugins block
-plugins {
-    id("expo-root-project")
-}
-
-// 3️⃣ Apply the React Native root project plugin
+// Apply React Native root project plugin
 apply plugin: "com.facebook.react.rootproject"
 
-// 4️⃣ Repositories for all projects
 allprojects {
     repositories {
         maven {
