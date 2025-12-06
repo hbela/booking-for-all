@@ -1,13 +1,15 @@
-// Top-level build file
+// Top-level build file for all sub-projects/modules
+plugins {
+    id("expo-root-project")
+}
 
 buildscript {
     ext {
-        buildToolsVersion = findProperty("android.buildToolsVersion") ?: "35.0.0"
-        minSdkVersion = Integer.parseInt(findProperty("android.minSdkVersion") ?: "24")
-        compileSdkVersion = Integer.parseInt(findProperty("android.compileSdkVersion") ?: "35")
-        targetSdkVersion = Integer.parseInt(findProperty("android.targetSdkVersion") ?: "34")
-        kotlinVersion = findProperty("android.kotlinVersion") ?: "1.9.25"
-
+        buildToolsVersion = findProperty('android.buildToolsVersion') ?: '35.0.0'
+        minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '24')
+        compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '35')
+        targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
+        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.25'
         ndkVersion = "26.1.10909125"
     }
 
@@ -17,34 +19,35 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.5.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
+
+// Apply the React Native root project plugin
+apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
     repositories {
         maven {
             url(new File(
-                ["node", "--print", "require.resolve('react-native/package.json')"]
+                ['node', '--print', "require.resolve('react-native/package.json')"]
                     .execute(null, rootDir)
                     .text.trim(),
-                "../android"
+                '../android'
             ))
         }
         maven {
             url(new File(
-                ["node", "--print",
-                    "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+                ['node', '--print', "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"]
                     .execute(null, rootDir)
                     .text.trim(),
-                "../dist"
+                '../dist'
             ))
         }
-
         google()
         mavenCentral()
-        maven { url "https://www.jitpack.io" }
+        maven { url 'https://www.jitpack.io' }
     }
 }
