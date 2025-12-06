@@ -11,6 +11,15 @@ on:
         description: "Organization ID to upload APK to"
         required: true
         type: string
+      api_env:
+        description: "API environment override (optional)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - production
+          - development
       build_profile:
         description: "EAS Build Profile"
         required: false
@@ -26,13 +35,45 @@ env:
 
 jobs:
   build-and-upload:
-    name: Build APK and Upload to S3
     runs-on: ubuntu-latest
+    name: Build APK and Upload to S3
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ----------------------------
+      # Determine API Base URL
+      # ----------------------------
+      - name: Determine API Base URL
+        id: api
+        shell: bash
+        run: |
+          INPUT_API="${{ github.event.inputs.api_env }}"
+          BRANCH="${GITHUB_REF##*/}"
+
+          if [ "$INPUT_API" = "production" ]; then
+            echo "API_URL=https://api.appointer.hu" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "$INPUT_API" = "development" ]; then
+            echo "API_URL=https://apidev.appointer.hu" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # AUTO MODE — follows branch
+          if [ "$BRANCH" = "main" ]; then
+            echo "API_URL=https://api.appointer.hu" >> $GITHUB_OUTPUT
+            echo "Using PRODUCTION API"
+          else
+            echo "API_URL=https://apidev.appointer.hu" >> $GITHUB_OUTPUT
+            echo "Using DEVELOPMENT API"
+          fi
+
+      # ----------------------------
+      # Node + pnpm setup
+      # ----------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -44,17 +85,15 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -62,29 +101,28 @@ jobs:
       - name: Generate placeholder assets
         working-directory: apps/mobile
         run: |
-          echo "🎨 Generating placeholder assets..."
           pnpm run generate-assets || node scripts/generate-assets.js
 
+      # ----------------------------
+      # Expo prebuild
+      # ----------------------------
       - name: Setup Expo CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          # Only need token for prebuild, not for building
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Determine Organization ID
-        id: org-id
-        shell: bash
+      - name: Run Expo Prebuild
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "org_id=${{ github.event.inputs.organization_id }}" >> $GITHUB_OUTPUT
-          else
-            # For push events, you can set a default org ID or use an env var
-            # You may want to modify this to fetch from your API or use a secret
-            echo "org_id=${{ secrets.DEFAULT_ORG_ID }}" >> $GITHUB_OUTPUT
-          fi
-          echo "Using Organization ID: $(echo ${{ steps.org-id.outputs.org_id }})"
+          echo "Running Expo prebuild..."
+          npx expo prebuild --platform android --non-interactive
 
+      # ----------------------------
+      # Android build
+      # ----------------------------
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -95,147 +133,51 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Run Expo Prebuild
-        working-directory: apps/mobile
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          echo "🔧 Running Expo prebuild to generate native Android project..."
-          npx expo prebuild --platform android --non-interactive
-
       - name: Build Android APK with Gradle
+        id: build_apk
         working-directory: apps/mobile/android
-        env:
-          NODE_ENV: production
         run: |
-          echo "🔨 Building Android APK with Gradle (no EAS queue!)..."
-
-          # Make gradlew executable
           chmod +x ./gradlew
 
-          # Clean build to ensure fresh autolinking
-          echo "🧹 Cleaning previous build..."
+          echo "Cleaning build..."
           ./gradlew clean
 
-          # Generate autolinking PackageList first
-          echo "📦 Generating autolinking PackageList..."
+          echo "Generating autolinking PackageList..."
           ./gradlew :app:generateAutolinkingPackageList || true
 
-          # Explicitly run the fix task to ensure PackageList.java is fixed
-          echo "🔧 Running fixAutolinking task..."
+          echo "Running fixAutolinking..."
           ./gradlew :app:fixAutolinking || true
 
-          # Verify the fix worked
-          PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
-          if [ -f "$PACKAGE_LIST_FILE" ]; then
-            if grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
-              echo "⚠️  ExpoModulesPackage still found, applying manual fix..."
-              # Manual fix as fallback
-              sed -i '/import.*ExpoModulesPackage/d' "$PACKAGE_LIST_FILE"
-              sed -i '/ExpoModulesPackage/d' "$PACKAGE_LIST_FILE"
-              sed -i 's/,\s*)/)/g' "$PACKAGE_LIST_FILE"
-              sed -i 's/,\s*$//' "$PACKAGE_LIST_FILE"
-              echo "✅ Manual fix applied"
-            else
-              echo "✅ PackageList.java verified - no ExpoModulesPackage references"
-            fi
-          fi
-
-          # Build release APK (fixAutolinking task will also run automatically before compilation)
-          echo "🔨 Building release APK..."
+          echo "Building release APK..."
           ./gradlew assembleRelease
 
-          # Safety check: Verify PackageList.java was fixed (in case Gradle task didn't run)
-          PACKAGE_LIST_FILE="app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java"
-          if [ -f "$PACKAGE_LIST_FILE" ] && grep -q "ExpoModulesPackage" "$PACKAGE_LIST_FILE"; then
-            echo "⚠️  WARNING: PackageList.java still contains ExpoModulesPackage after build!"
-            echo "This should not happen if the Gradle fixAutolinking task ran correctly."
-            echo "File contents:"
-            grep -n "ExpoModulesPackage" "$PACKAGE_LIST_FILE" || true
-          else
-            echo "✅ PackageList.java verified - no ExpoModulesPackage references found"
-          fi
-
-          # Find the generated APK
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
 
           if [ -z "$APK_PATH" ]; then
-            echo "❌ APK file not found after build"
-            echo "Build output directory contents:"
-            ls -la app/build/outputs/apk/release/ || true
+            echo "❌ APK not found!"
             exit 1
           fi
 
-          # Copy APK to a predictable location
           cp "$APK_PATH" ../app-release.apk
 
-          # Verify APK is a valid ZIP file (APKs are ZIP archives)
-          if ! unzip -t ../app-release.apk > /dev/null 2>&1; then
-            echo "❌ Generated file is not a valid APK (ZIP archive)"
-            exit 1
-          fi
+          echo "APK_PATH=$(pwd)/../app-release.apk" >> $GITHUB_OUTPUT
 
-          APK_SIZE=$(du -h ../app-release.apk | cut -f1)
-          APK_MD5=$(md5sum ../app-release.apk | cut -d' ' -f1)
-          echo "✅ APK built successfully"
-          echo "   Size: $APK_SIZE"
-          echo "   MD5: $APK_MD5"
-          echo "APK_PATH=$(pwd)/../app-release.apk" >> $GITHUB_ENV
-
+      # ----------------------------
+      # Login to API
+      # ----------------------------
       - name: Authenticate with API
         id: auth
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.appointer.hu' }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-          echo "🔐 Authenticating with API..."
+          API_BASE="${{ steps.api.outputs.API_URL }}"
 
-          # Login to get session cookie
-          RESPONSE=$(curl -s -c /tmp/cookies.txt -X POST "$API_BASE_URL/api/auth/sign-in/email" \
+          echo "Authenticating with API: $API_BASE"
+
+          RESPONSE=$(curl -s -c /tmp/cookies.txt -X POST \
+            "$API_BASE/api/auth/sign-in/email" \
             -H "Content-Type: application/json" \
             -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")
 
-          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
-            echo "❌ Authentication failed: $(echo $RESPONSE | jq -r '.message // .error')"
-            exit 1
-          fi
-
-          echo "✅ Authentication successful"
-          echo "COOKIE_FILE=/tmp/cookies.txt" >> $GITHUB_ENV
-
-      - name: Upload APK to S3 via API
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.appointer.hu' }}
-          ORG_ID: ${{ steps.org-id.outputs.org_id }}
-        run: |
-          echo "📤 Uploading APK to organization: $ORG_ID"
-
-          # Upload APK using multipart/form-data
-          RESPONSE=$(curl -s -b "$COOKIE_FILE" -X POST \
-            "$API_BASE_URL/api/admin/organizations/$ORG_ID/upload-apk" \
-            -F "file=@$APK_PATH" \
-            -H "Content-Type: multipart/form-data")
-
-          if echo "$RESPONSE" | jq -e '.error' > /dev/null 2>&1; then
-            echo "❌ Upload failed: $(echo $RESPONSE | jq -r '.message // .error')"
-            exit 1
-          fi
-
-          APK_KEY=$(echo "$RESPONSE" | jq -r '.data.key // empty')
-          if [ -z "$APK_KEY" ]; then
-            echo "❌ Upload response missing APK key"
-            echo "Response: $RESPONSE"
-            exit 1
-          fi
-
-          echo "✅ APK uploaded successfully"
-          echo "📦 S3 Key: $APK_KEY"
-          echo "🔗 Download URL: $API_BASE_URL/api/file/$APK_KEY"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f apps/mobile/app-release.apk
-          rm -f /tmp/cookies.txt
-          echo "🧹 Cleanup completed"
+          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
