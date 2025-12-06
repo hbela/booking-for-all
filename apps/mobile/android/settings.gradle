@@ -1,6 +1,44 @@
 pluginManagement {
-    includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()).getParentFile())
+    repositories {
+        google()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+
+    // Define potential locations for node_modules in a Turborepo
+    // 1. Root of Monorepo (../../..) from apps/mobile/android
+    def rootNodeModules = new File(rootDir, "../../../node_modules")
+    // 2. App Local (../) from apps/mobile/android
+    def appNodeModules = new File(rootDir, "../node_modules")
+
+    def reactNativeGradlePlugin = null
+
+    // Check Root Monorepo first (Most common for pnpm/turbo)
+    if (new File(rootNodeModules, "@react-native/gradle-plugin").exists()) {
+        reactNativeGradlePlugin = new File(rootNodeModules, "@react-native/gradle-plugin")
+    } 
+    // Check App Local second
+    else if (new File(appNodeModules, "@react-native/gradle-plugin").exists()) {
+        reactNativeGradlePlugin = new File(appNodeModules, "@react-native/gradle-plugin")
+    }
+
+    if (reactNativeGradlePlugin != null) {
+        includeBuild(reactNativeGradlePlugin)
+    } else {
+        // Fallback to the node command if manual pathing failed
+        try {
+            def path = ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()
+            if (path) {
+                includeBuild(new File(path).getParentFile())
+            } else {
+                throw new RuntimeException("Could not find @react-native/gradle-plugin. Checked relative paths and tried 'node --print'.")
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Could not find @react-native/gradle-plugin. Please run 'pnpm install' in your root.", e)
+        }
+    }
 }
+
 plugins {
     id("com.facebook.react.settings")
 }
@@ -9,7 +47,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     ex.autolinkLibrariesFromCommand()
 }
 
-rootProject.name = 'bookingforall' // CHANGE THIS to match your app.json "name" (sanitized)
+rootProject.name = 'bookingforall'
 
 include ':app'
-includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()).getParentFile())
+includeBuild(new File(rootDir, "../node_modules/@react-native/gradle-plugin")) // This might be redundant if pluginManagement works, but kept for safety in some Expo versions

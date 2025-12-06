@@ -1,4 +1,4 @@
-name: EAS Build Android APK
+name: Build Android APK (Gradle + R2)
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       organization_id:
-        description: "Organization ID to upload APK to"
-        required: true
+        description: "Organization ID (Optional - creates specific folder)"
+        required: false # Changed to false so main branch pushes don't fail
         type: string
       api_env:
         description: "API environment override (optional)"
@@ -20,14 +20,6 @@ on:
           - auto
           - production
           - development
-      build_profile:
-        description: "EAS Build Profile"
-        required: false
-        default: "production"
-        type: choice
-        options:
-          - production
-          - preview
 
 env:
   NODE_VERSION: "22"
@@ -36,7 +28,7 @@ env:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
-    name: Build APK and Upload to S3
+    name: Build APK and Upload to R2
 
     steps:
       - name: Checkout repository
@@ -49,7 +41,7 @@ jobs:
         id: api
         shell: bash
         run: |
-          INPUT_API="${{ github.event.inputs.api_env }}"
+          INPUT_API="${{ inputs.api_env }}" # simplified syntax
           BRANCH="${GITHUB_REF##*/}"
 
           if [ "$INPUT_API" = "production" ]; then
@@ -136,6 +128,8 @@ jobs:
       - name: Build Android APK with Gradle
         id: build_apk
         working-directory: apps/mobile/android
+        # IMPORTANT: Ensure your android/app/build.gradle has a signingConfig for 'release'
+        # or this step will fail (or produce an unsigned APK that won't install).
         run: |
           chmod +x ./gradlew
 
@@ -158,26 +152,58 @@ jobs:
             exit 1
           fi
 
-          cp "$APK_PATH" ../app-release.apk
-
-          echo "APK_PATH=$(pwd)/../app-release.apk" >> $GITHUB_OUTPUT
+          # Move to root for easier access in next step
+          cp "$APK_PATH" ../../../app-release.apk
+          echo "APK_PATH=$(pwd)/../../../app-release.apk" >> $GITHUB_OUTPUT
 
       # ----------------------------
-      # Login to API
+      # Upload Directly to Cloudflare R2
       # ----------------------------
-      - name: Authenticate with API
-        id: auth
+      - name: Upload APK to Cloudflare R2
         env:
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          ORG_ID: ${{ inputs.organization_id }}
         run: |
-          API_BASE="${{ steps.api.outputs.API_URL }}"
+          APK_PATH="${{ steps.build_apk.outputs.APK_PATH }}"
 
-          echo "Authenticating with API: $API_BASE"
+          # 1. Define R2 Endpoint
+          R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
-          RESPONSE=$(curl -s -c /tmp/cookies.txt -X POST \
-            "$API_BASE/api/auth/sign-in/email" \
-            -H "Content-Type: application/json" \
-            -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")
+          # 2. Determine Destination Path in Bucket
+          if [ -n "$ORG_ID" ]; then
+             # Case: Manual build for specific Organization
+             DEST_KEY="organizations/${ORG_ID}/app-release.apk"
+             echo "📂 Target: Organization Folder ($ORG_ID)"
+          else
+             # Case: Push to branch (Generic release)
+             BRANCH_NAME="${GITHUB_REF##*/}"
+             DEST_KEY="releases/${BRANCH_NAME}/app-release.apk"
+             echo "📂 Target: Generic Branch Folder ($BRANCH_NAME)"
+          fi
 
-          if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "🚀 Uploading to s3://${BUCKET_NAME}/${DEST_KEY}"
+
+          # 3. Upload command optimized for R2 (No ACLs, explicit Content-Type)
+          aws s3 cp "$APK_PATH" "s3://${BUCKET_NAME}/${DEST_KEY}" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type "application/vnd.android.package-archive"
+
+          echo "✅ Upload Complete"
+
+          # Optional: Print download link info
+          # If you have a custom domain mapped in Cloudflare R2 settings:
+          echo "Expected Download URL (if Custom Domain configured):"
+          echo "https://downloads.your-app.com/${DEST_KEY}"
+
+      # ----------------------------
+      # Cleanup
+      # ----------------------------
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f app-release.apk
+          echo "Cleanup done"
