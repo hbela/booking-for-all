@@ -8,8 +8,8 @@ pluginManagement {
 
 rootProject.name = "Booking for All"
 
-apply from: file("../../node_modules/react-native-gradle-plugin/settings.gradle")
-apply from: file("../../node_modules/expo-modules-autolinking/scripts/android/autolinking.gradle")
+apply from: file("../node_modules/react-native-gradle-plugin/settings.gradle")
+apply from: file("../node_modules/expo-modules-autolinking/scripts/android/autolinking.gradle")
 
 useExpoModules()
 
