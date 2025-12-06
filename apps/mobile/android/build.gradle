@@ -1,8 +1,4 @@
-// Root build.gradle for Expo projects
-
-plugins {
-    id("expo-root-project")
-}
+// Top-level build file
 
 buildscript {
     ext {
@@ -11,6 +7,7 @@ buildscript {
         compileSdkVersion = Integer.parseInt(findProperty("android.compileSdkVersion") ?: "35")
         targetSdkVersion = Integer.parseInt(findProperty("android.targetSdkVersion") ?: "34")
         kotlinVersion = findProperty("android.kotlinVersion") ?: "1.9.25"
+
         ndkVersion = "26.1.10909125"
     }
 
@@ -20,13 +17,34 @@ buildscript {
     }
 
     dependencies {
-        // Correct: Android Gradle plugin
-        classpath("com.android.tools.build:gradle")
-
-        // Correct: Kotlin plugin (needed by expo-modules)
+        classpath("com.android.tools.build:gradle:8.5.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+    }
+}
 
-        // ❌ DO NOT include react-native-gradle-plugin in Expo root
-        // Expo autolinking already handles RN modules
+allprojects {
+    repositories {
+        maven {
+            url(new File(
+                ["node", "--print", "require.resolve('react-native/package.json')"]
+                    .execute(null, rootDir)
+                    .text.trim(),
+                "../android"
+            ))
+        }
+        maven {
+            url(new File(
+                ["node", "--print",
+                    "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+                    .execute(null, rootDir)
+                    .text.trim(),
+                "../dist"
+            ))
+        }
+
+        google()
+        mavenCentral()
+        maven { url "https://www.jitpack.io" }
     }
 }

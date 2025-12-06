@@ -1,61 +1,69 @@
+rootProject.name = "Booking for All"
+
 pluginManagement {
     repositories {
         gradlePluginPortal()
         google()
         mavenCentral()
-        mavenLocal()
+        maven {
+            url(new File(
+                ["node", "--print", "require.resolve('react-native/package.json')"]
+                    .execute(null, rootDir)
+                    .text.trim(),
+                "../android"
+            ))
+        }
     }
+
+    includeBuild(
+        new File(
+            ["node", "--print",
+                "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+                .execute(null, rootDir)
+                .text.trim()
+        ).getParentFile()
+    )
 }
 
 plugins {
-    id("expo.settings")
+    id("com.facebook.react.settings")
 }
 
-extensions.configure(expo.settings.ExpoSettingsExtension) { ex ->
-    if (System.getenv("EXPO_USE_COMMUNITY_AUTOLINKING") == "1") {
-        ex.autolinkLibrariesFromCommand()
-    } else {
-        def command = [
-            "node",
-            "--no-warnings",
-            "--eval",
-            "require(require.resolve('expo-modules-autolinking', { paths: [require.resolve('expo/package.json')] }))(process.argv.slice(1))",
-            "react-native-config",
-            "--json",
-            "--platform",
-            "android"
-        ].toList()
-        ex.autolinkLibrariesFromCommand(command)
-    }
-}
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    // Expo autolinking
+    def command = [
+        "node",
+        "--no-warnings",
+        "--eval",
+        "require(require.resolve('expo-modules-autolinking', { paths: [require.resolve('expo/package.json')] }))(process.argv.slice(1))",
+        "react-native-config",
+        "--json",
+        "--platform",
+        "android",
+    ].toList()
 
-rootProject.name = "Booking for All"
+    ex.autolinkLibrariesFromCommand(command)
+}
 
 dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-    }
-
     versionCatalogs {
         reactAndroidLibs {
-            from(files(
-                new File(
-                    ["node", "--print", "require.resolve('react-native/package.json')"]
-                        .execute(null, rootDir).text.trim(),
-                    "../gradle/libs.versions.toml"
-                )
-            ))
+            from(files(new File(
+                ["node", "--print", "require.resolve('react-native/package.json')"]
+                    .execute(null, rootDir)
+                    .text.trim(),
+                "../gradle/libs.versions.toml"
+            )))
         }
     }
 }
 
 apply from: new File(
     ["node", "--print", "require.resolve('expo/package.json')"]
-        .execute(null, rootDir).text.trim(),
+        .execute(null, rootDir)
+        .text.trim(),
     "../scripts/autolinking.gradle"
 )
-
 useExpoModules()
 
 include(":app")
