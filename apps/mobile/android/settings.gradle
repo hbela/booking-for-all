@@ -1,47 +1,26 @@
-// Top of the file: pluginManagement
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
-
-    // Include the React Native Gradle plugin
-    includeBuild(
-        new File(
-            ["node", "--print",
-                "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"]
-                .execute(null, rootDir)
-                .text.trim()
-        ).getParentFile()
-    )
 }
 
-// Dependency resolution management
 dependencyResolutionManagement {
-    versionCatalogs {
-        reactAndroidLibs {
-            from(files(new File(
-                ["node", "--print", "require.resolve('react-native/package.json')"]
-                    .execute(null, rootDir)
-                    .text.trim(),
-                "../gradle/libs.versions.toml"
-            )))
-        }
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url("$rootDir/../node_modules/expo-modules-core/android/maven") }
+        maven { url("$rootDir/../node_modules/react-native/android") }
+        maven { url("$rootDir/../node_modules/jsc-android/dist") }
     }
 }
 
-// Apply Expo autolinking
-apply from: new File(
-    ["node", "--print", "require.resolve('expo/package.json')"]
-        .execute(null, rootDir)
-        .text.trim(),
-    "../scripts/autolinking.gradle"
-)
+rootProject.name = "my-better-t-app"
+
+// Expo autolinking
+apply from: file("../node_modules/expo-autolinking/scripts/autolinking.gradle")
 useExpoModules()
 
-// Include your app module
 include(":app")
-
-// ✅ Set the root project name
-rootProject.name = "Booking for All"
