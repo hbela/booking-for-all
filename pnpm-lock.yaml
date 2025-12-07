@@ -69,9 +69,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.85.5
         version: 5.90.2(react@18.3.1)
-      babel-plugin-module-resolver:
-        specifier: ^5.0.2
-        version: 5.0.2
       expo:
         specifier: ~52.0.0
         version: 52.0.47(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
@@ -96,12 +93,6 @@ importers:
       expo-linking:
         specifier: ~7.0.5
         version: 7.0.5(expo@52.0.47(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1))(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
-      expo-modules-autolinking:
-        specifier: ^3.0.23
-        version: 3.0.23
-      expo-modules-core:
-        specifier: ^3.0.28
-        version: 3.0.28(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
       expo-router:
         specifier: ~4.0.0
         version: 4.0.21(3851b259f539ec844b4d135361294ea8)
@@ -120,9 +111,6 @@ importers:
       react-native:
         specifier: 0.76.9
         version: 0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1)
-      react-native-gradle-plugin:
-        specifier: ^0.71.19
-        version: 0.71.19
       react-native-safe-area-context:
         specifier: 4.12.0
         version: 4.12.0(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
@@ -139,12 +127,12 @@ importers:
       '@babel/core':
         specifier: ^7.25.0
         version: 7.28.4
-      '@react-native-community/cli':
-        specifier: latest
-        version: 20.0.2(typescript@5.9.3)
       '@types/react':
         specifier: ~18.3.12
         version: 18.3.27
+      babel-plugin-module-resolver:
+        specifier: ^5.0.2
+        version: 5.0.2
       babel-preset-expo:
         specifier: ~12.0.11
         version: 12.0.11(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))
@@ -1581,7 +1569,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.26':
     resolution: {integrity: sha512-I689wc8Fn/AX7aUGiwrh3HnssiORMJtR2fpksX+JIe8Cj/EDleblYMSwRPd0025wrwOV9UN1KM/RuEt/QjCS3Q==}
@@ -5143,18 +5131,8 @@ packages:
     resolution: {integrity: sha512-DezgnEYFQYic8hKGhkbztBA3QUmSftjaNDIKNAtS2iGJmzCcNIkatjN2slFDSWjSTNo8gOvPQyMKfyHWFvLpOQ==}
     hasBin: true
 
-  expo-modules-autolinking@3.0.23:
-    resolution: {integrity: sha512-YZnaE0G+52xftjH5nsIRaWsoVBY38SQCECclpdgLisdbRY/6Mzo7ndokjauOv3mpFmzMZACHyJNu1YSAffQwTg==}
-    hasBin: true
-
   expo-modules-core@2.2.3:
     resolution: {integrity: sha512-01QqZzpP/wWlxnNly4G06MsOBUTbMDj02DQigZoXfDh80vd/rk3/uVXqnZgOdLSggTs6DnvOgAUy0H2q30XdUg==}
-
-  expo-modules-core@3.0.28:
-    resolution: {integrity: sha512-8EDpksNxnN4HXWE+yhYUYAZAWTEDRzK2VpZjPSp+UBF2LtWZicXKLOCODCvsjCkTCVVA2JKKcWtGxWiteV3ueA==}
-    peerDependencies:
-      react: '*'
-      react-native: '*'
 
   expo-router@4.0.21:
     resolution: {integrity: sha512-z1U9cGZbgL+ZSHp533VMobOqdkUpFBlDXBpd9/JH+Q0wW49is0G2PrJVUYMzdwr30HSUltdO/19W8rRwjfOnFw==}
@@ -6981,9 +6959,6 @@ packages:
 
   react-lifecycles-compat@3.0.4:
     resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
-
-  react-native-gradle-plugin@0.71.19:
-    resolution: {integrity: sha512-1dVk9NwhoyKHCSxcrM6vY6cxmojeATsBobDicX0ZKr7DgUF2cBQRTKsimQFvzH8XhOVXyH8p4HyDSZNIFI8OlQ==}
 
   react-native-helmet-async@2.0.4:
     resolution: {integrity: sha512-m3CkXWss6B1dd6mCMleLpzDCJJGGaHOLQsUzZv8kAASJmMfmVT4d2fx375iXKTRWT25ThBfae3dECuX5cq/8hg==}
@@ -10239,11 +10214,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@hapi/hoek@9.3.0': {}
+  '@hapi/hoek@9.3.0':
+    optional: true
 
   '@hapi/topo@5.1.0':
     dependencies:
       '@hapi/hoek': 9.3.0
+    optional: true
 
   '@hexagon/base64@1.1.28': {}
 
@@ -11598,6 +11575,7 @@ snapshots:
       chalk: 4.1.2
       execa: 5.1.1
       fast-glob: 3.3.3
+    optional: true
 
   '@react-native-community/cli-config-android@20.0.2':
     dependencies:
@@ -11605,6 +11583,7 @@ snapshots:
       chalk: 4.1.2
       fast-glob: 3.3.3
       fast-xml-parser: 4.5.3
+    optional: true
 
   '@react-native-community/cli-config-apple@20.0.2':
     dependencies:
@@ -11612,6 +11591,7 @@ snapshots:
       chalk: 4.1.2
       execa: 5.1.1
       fast-glob: 3.3.3
+    optional: true
 
   '@react-native-community/cli-config@20.0.2(typescript@5.9.3)':
     dependencies:
@@ -11623,6 +11603,7 @@ snapshots:
       joi: 17.13.3
     transitivePeerDependencies:
       - typescript
+    optional: true
 
   '@react-native-community/cli-doctor@20.0.2(typescript@5.9.3)':
     dependencies:
@@ -11643,6 +11624,7 @@ snapshots:
       yaml: 2.8.1
     transitivePeerDependencies:
       - typescript
+    optional: true
 
   '@react-native-community/cli-platform-android@20.0.2':
     dependencies:
@@ -11651,6 +11633,7 @@ snapshots:
       chalk: 4.1.2
       execa: 5.1.1
       logkitty: 0.7.1
+    optional: true
 
   '@react-native-community/cli-platform-apple@20.0.2':
     dependencies:
@@ -11659,10 +11642,12 @@ snapshots:
       chalk: 4.1.2
       execa: 5.1.1
       fast-xml-parser: 4.5.3
+    optional: true
 
   '@react-native-community/cli-platform-ios@20.0.2':
     dependencies:
       '@react-native-community/cli-platform-apple': 20.0.2
+    optional: true
 
   '@react-native-community/cli-server-api@20.0.2':
     dependencies:
@@ -11680,6 +11665,7 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+    optional: true
 
   '@react-native-community/cli-tools@20.0.2':
     dependencies:
@@ -11693,10 +11679,12 @@ snapshots:
       ora: 5.4.1
       prompts: 2.4.2
       semver: 7.7.3
+    optional: true
 
   '@react-native-community/cli-types@20.0.2':
     dependencies:
       joi: 17.13.3
+    optional: true
 
   '@react-native-community/cli@20.0.2(typescript@5.9.3)':
     dependencies:
@@ -11720,6 +11708,7 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+    optional: true
 
   '@react-native/assets-registry@0.76.9': {}
 
@@ -12231,10 +12220,13 @@ snapshots:
   '@sideway/address@4.1.5':
     dependencies:
       '@hapi/hoek': 9.3.0
+    optional: true
 
-  '@sideway/formula@3.0.1': {}
+  '@sideway/formula@3.0.1':
+    optional: true
 
-  '@sideway/pinpoint@2.0.0': {}
+  '@sideway/pinpoint@2.0.0':
+    optional: true
 
   '@simplewebauthn/browser@13.2.2': {}
 
@@ -13060,7 +13052,8 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vscode/sudo-prompt@9.3.1': {}
+  '@vscode/sudo-prompt@9.3.1':
+    optional: true
 
   '@wojtekmaj/date-utils@1.5.1': {}
 
@@ -13129,6 +13122,7 @@ snapshots:
       colorette: 1.4.0
       slice-ansi: 2.1.0
       strip-ansi: 5.2.0
+    optional: true
 
   ansi-regex@4.1.1: {}
 
@@ -13157,7 +13151,8 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  appdirsjs@1.2.7: {}
+  appdirsjs@1.2.7:
+    optional: true
 
   arg@5.0.2: {}
 
@@ -13202,7 +13197,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  astral-regex@1.0.0: {}
+  astral-regex@1.0.0:
+    optional: true
 
   async-limiter@1.0.1: {}
 
@@ -13446,6 +13442,7 @@ snapshots:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
+    optional: true
 
   body-parser@1.20.4:
     dependencies:
@@ -13694,6 +13691,7 @@ snapshots:
   cli-cursor@3.1.0:
     dependencies:
       restore-cursor: 3.1.0
+    optional: true
 
   cli-spinners@2.9.2: {}
 
@@ -13745,7 +13743,8 @@ snapshots:
       color-convert: 2.0.1
       color-string: 1.9.1
 
-  colorette@1.4.0: {}
+  colorette@1.4.0:
+    optional: true
 
   colorette@2.0.20: {}
 
@@ -13753,7 +13752,8 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
-  command-exists@1.2.9: {}
+  command-exists@1.2.9:
+    optional: true
 
   commander@12.1.0: {}
 
@@ -13763,7 +13763,8 @@ snapshots:
 
   commander@7.2.0: {}
 
-  commander@9.5.0: {}
+  commander@9.5.0:
+    optional: true
 
   commondir@1.0.1: {}
 
@@ -14049,7 +14050,8 @@ snapshots:
       dotenv: 17.2.3
       dotenv-expand: 10.0.0
 
-  envinfo@7.21.0: {}
+  envinfo@7.21.0:
+    optional: true
 
   error-ex@1.3.4:
     dependencies:
@@ -14063,6 +14065,7 @@ snapshots:
     dependencies:
       accepts: 1.3.8
       escape-html: 1.0.3
+    optional: true
 
   es-define-property@1.0.1: {}
 
@@ -14243,23 +14246,9 @@ snapshots:
       require-from-string: 2.0.2
       resolve-from: 5.0.0
 
-  expo-modules-autolinking@3.0.23:
-    dependencies:
-      '@expo/spawn-async': 1.7.2
-      chalk: 4.1.2
-      commander: 7.2.0
-      require-from-string: 2.0.2
-      resolve-from: 5.0.0
-
   expo-modules-core@2.2.3:
     dependencies:
       invariant: 2.2.4
-
-  expo-modules-core@3.0.28(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1):
-    dependencies:
-      invariant: 2.2.4
-      react: 18.3.1
-      react-native: 0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1)
 
   expo-router@4.0.21(3851b259f539ec844b4d135361294ea8):
     dependencies:
@@ -14428,6 +14417,7 @@ snapshots:
   fast-xml-parser@4.5.3:
     dependencies:
       strnum: 1.1.2
+    optional: true
 
   fast-xml-parser@5.2.5:
     dependencies:
@@ -14935,7 +14925,8 @@ snapshots:
 
   is-extglob@2.1.1: {}
 
-  is-fullwidth-code-point@2.0.0: {}
+  is-fullwidth-code-point@2.0.0:
+    optional: true
 
   is-fullwidth-code-point@3.0.0: {}
 
@@ -14943,7 +14934,8 @@ snapshots:
     dependencies:
       is-extglob: 2.1.1
 
-  is-interactive@1.0.0: {}
+  is-interactive@1.0.0:
+    optional: true
 
   is-number@7.0.0: {}
 
@@ -14961,9 +14953,11 @@ snapshots:
 
   is-stream@2.0.1: {}
 
-  is-unicode-supported@0.1.0: {}
+  is-unicode-supported@0.1.0:
+    optional: true
 
-  is-wsl@1.1.0: {}
+  is-wsl@1.1.0:
+    optional: true
 
   is-wsl@2.2.0:
     dependencies:
@@ -15076,6 +15070,7 @@ snapshots:
       '@sideway/address': 4.1.5
       '@sideway/formula': 3.0.1
       '@sideway/pinpoint': 2.0.0
+    optional: true
 
   join-component@1.1.0: {}
 
@@ -15167,6 +15162,7 @@ snapshots:
     dependencies:
       picocolors: 1.1.1
       shell-quote: 1.8.3
+    optional: true
 
   leven@3.1.0: {}
 
@@ -15304,12 +15300,14 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
+    optional: true
 
   logkitty@0.7.1:
     dependencies:
       ansi-fragments: 0.2.1
       dayjs: 1.11.18
       yargs: 15.4.1
+    optional: true
 
   loose-envify@1.4.0:
     dependencies:
@@ -15678,7 +15676,8 @@ snapshots:
 
   nice-try@1.0.5: {}
 
-  nocache@3.0.4: {}
+  nocache@3.0.4:
+    optional: true
 
   node-abi@3.80.0:
     dependencies:
@@ -15706,7 +15705,8 @@ snapshots:
 
   node-releases@2.0.27: {}
 
-  node-stream-zip@1.15.0: {}
+  node-stream-zip@1.15.0:
+    optional: true
 
   normalize-path@3.0.0: {}
 
@@ -15774,6 +15774,7 @@ snapshots:
   open@6.4.0:
     dependencies:
       is-wsl: 1.1.0
+    optional: true
 
   open@7.4.2:
     dependencies:
@@ -15808,6 +15809,7 @@ snapshots:
       log-symbols: 4.1.0
       strip-ansi: 6.0.1
       wcwidth: 1.0.1
+    optional: true
 
   p-defer@1.0.0: {}
 
@@ -16344,8 +16346,6 @@ snapshots:
 
   react-lifecycles-compat@3.0.4: {}
 
-  react-native-gradle-plugin@0.71.19: {}
-
   react-native-helmet-async@2.0.4(react@18.3.1):
     dependencies:
       invariant: 2.2.4
@@ -16492,6 +16492,7 @@ snapshots:
       inherits: 2.0.4
       string_decoder: 1.3.0
       util-deprecate: 1.0.2
+    optional: true
 
   readable-stream@4.7.0:
     dependencies:
@@ -16608,6 +16609,7 @@ snapshots:
     dependencies:
       onetime: 5.1.2
       signal-exit: 3.0.7
+    optional: true
 
   ret@0.5.0: {}
 
@@ -16880,6 +16882,7 @@ snapshots:
       ansi-styles: 3.2.1
       astral-regex: 1.0.0
       is-fullwidth-code-point: 2.0.0
+    optional: true
 
   slugify@1.6.6: {}
 
@@ -17014,7 +17017,8 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  strnum@1.1.2: {}
+  strnum@1.1.2:
+    optional: true
 
   strnum@2.1.1: {}
 
@@ -17404,7 +17408,8 @@ snapshots:
     dependencies:
       react: 19.1.0
 
-  util-deprecate@1.0.2: {}
+  util-deprecate@1.0.2:
+    optional: true
 
   utils-merge@1.0.1: {}
 
