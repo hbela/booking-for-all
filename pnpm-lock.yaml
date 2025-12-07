@@ -120,9 +120,6 @@ importers:
       react-native:
         specifier: 0.76.9
         version: 0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1)
-      react-native-gradle-plugin:
-        specifier: ^0.71.19
-        version: 0.71.19
       react-native-safe-area-context:
         specifier: 4.12.0
         version: 4.12.0(react-native@0.76.9(@babel/core@7.28.4)(@babel/preset-env@7.28.5(@babel/core@7.28.4))(@react-native-community/cli@20.0.2(typescript@5.9.3))(@types/react@18.3.27)(react@18.3.1))(react@18.3.1)
@@ -6981,9 +6978,6 @@ packages:
 
   react-lifecycles-compat@3.0.4:
     resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
-
-  react-native-gradle-plugin@0.71.19:
-    resolution: {integrity: sha512-1dVk9NwhoyKHCSxcrM6vY6cxmojeATsBobDicX0ZKr7DgUF2cBQRTKsimQFvzH8XhOVXyH8p4HyDSZNIFI8OlQ==}
 
   react-native-helmet-async@2.0.4:
     resolution: {integrity: sha512-m3CkXWss6B1dd6mCMleLpzDCJJGGaHOLQsUzZv8kAASJmMfmVT4d2fx375iXKTRWT25ThBfae3dECuX5cq/8hg==}
@@ -16343,8 +16337,6 @@ snapshots:
   react-is@19.2.0: {}
 
   react-lifecycles-compat@3.0.4: {}
-
-  react-native-gradle-plugin@0.71.19: {}
 
   react-native-helmet-async@2.0.4(react@18.3.1):
     dependencies:

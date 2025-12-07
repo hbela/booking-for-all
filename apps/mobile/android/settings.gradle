@@ -13,11 +13,19 @@ pluginManagement {
 
     def reactNativeGradlePlugin = null
 
+    // Check for @react-native/gradle-plugin (comes bundled with React Native 0.76.9+)
     // Check Root Monorepo first (Most common for pnpm/turbo)
-    if (new File(rootNodeModules, "react-native-gradle-plugin").exists()) {
-        reactNativeGradlePlugin = new File(rootNodeModules, "react-native-gradle-plugin")
+    if (new File(rootNodeModules, "@react-native/gradle-plugin").exists()) {
+        reactNativeGradlePlugin = new File(rootNodeModules, "@react-native/gradle-plugin")
     } 
     // Check App Local second
+    else if (new File(appNodeModules, "@react-native/gradle-plugin").exists()) {
+        reactNativeGradlePlugin = new File(appNodeModules, "@react-native/gradle-plugin")
+    }
+    // Fallback: Check for unscoped react-native-gradle-plugin (older versions)
+    else if (new File(rootNodeModules, "react-native-gradle-plugin").exists()) {
+        reactNativeGradlePlugin = new File(rootNodeModules, "react-native-gradle-plugin")
+    }
     else if (new File(appNodeModules, "react-native-gradle-plugin").exists()) {
         reactNativeGradlePlugin = new File(appNodeModules, "react-native-gradle-plugin")
     }
@@ -27,14 +35,14 @@ pluginManagement {
     } else {
         // Fallback to the node command if manual pathing failed
         try {
-            def path = ["node", "--print", "require.resolve('react-native-gradle-plugin/package.json')"].execute(null, rootDir).text.trim()
+            def path = ["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json')"].execute(null, rootDir).text.trim()
             if (path) {
                 includeBuild(new File(path).getParentFile())
             } else {
-                throw new RuntimeException("Could not find react-native-gradle-plugin. Checked relative paths and tried 'node --print'.")
+                throw new RuntimeException("Could not find @react-native/gradle-plugin. Checked relative paths and tried 'node --print'.")
             }
         } catch (Exception e) {
-            throw new RuntimeException("Could not find react-native-gradle-plugin. Please run 'pnpm install' in your root.", e)
+            throw new RuntimeException("Could not find @react-native/gradle-plugin. Please run 'pnpm install' in your root.", e)
         }
     }
 }
@@ -46,4 +54,12 @@ pluginManagement {
 rootProject.name = 'bookingforall'
 
 include ':app'
-includeBuild(new File(rootDir, "../node_modules/react-native-gradle-plugin")) // This might be redundant if pluginManagement works, but kept for safety in some Expo versions
+// Try to include @react-native/gradle-plugin as fallback (comes with React Native 0.76.9+)
+try {
+    def pluginPath = new File(rootDir, "../node_modules/@react-native/gradle-plugin")
+    if (pluginPath.exists()) {
+        includeBuild(pluginPath)
+    }
+} catch (Exception e) {
+    // Ignore if not found, pluginManagement should handle it
+}
