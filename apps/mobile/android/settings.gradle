@@ -39,13 +39,9 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("com.facebook.react.settings")
-}
-
-extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    ex.autolinkLibrariesFromCommand()
-}
+// Note: For Expo projects, autolinking is handled by expo-modules-autolinking
+// The com.facebook.react.settings plugin is not required when using react-native-gradle-plugin
+// Expo's autolinking will handle native module linking automatically
 
 rootProject.name = 'bookingforall'
 
