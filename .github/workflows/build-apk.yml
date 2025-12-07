@@ -1,4 +1,4 @@
-name: Build Android APK with Expo (Gradle + R2)
+name: Build Android APK with Expo and R2
 
 on:
   push:
