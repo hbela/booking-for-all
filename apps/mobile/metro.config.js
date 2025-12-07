@@ -9,15 +9,19 @@ const projectRoot = __dirname;
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(projectRoot);
 
-// Add workspace root to watchFolders and nodeModulesPaths for pnpm workspace support
-config.watchFolders = [workspaceRoot];
+// Add workspace root to watchFolders (merge with Expo's defaults)
+config.watchFolders = [...(config.watchFolders || []), workspaceRoot];
+
+// Add workspace node_modules to resolver paths for pnpm workspace support
 config.resolver.nodeModulesPaths = [
+  ...(config.resolver.nodeModulesPaths || []),
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
 // Configure path alias resolution for @/
 config.resolver.alias = {
+  ...(config.resolver.alias || {}),
   '@': path.resolve(projectRoot, 'src'),
 };
 

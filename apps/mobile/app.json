@@ -19,8 +19,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bookingforall.app",
       "associatedDomains": [
-        "applinks:app.booking-for-all.com"
-      ]
+          "applinks:app.booking-for-all.com"
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
