@@ -11,7 +11,7 @@
     "prerender": "node scripts/prerender.js",
     "install-chrome": "npx puppeteer browsers install chrome",
     "sentry:release": "sentry-cli releases files \"$SENTRY_RELEASE\" upload-sourcemaps ./dist --project booking-for-all-web --url-prefix '~/'",
-     "serve": "vite preview",
+    "serve": "vite preview",
     "start": "node server.js",
     "start:preview": "vite preview",
     "check-types": "tsc --noEmit"
@@ -36,10 +36,12 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "express": "^4.18.2",
     "i18next": "^23.15.1",
     "i18next-browser-languagedetector": "^8.0.2",
     "lucide-react": "^0.473.0",
     "next-themes": "^0.4.6",
+    "qrcode.react": "^3.2.0",
     "radix-ui": "^1.4.2",
     "react": "19.1.0",
     "react-big-calendar": "^1.19.4",
@@ -50,8 +52,7 @@
     "tailwind-merge": "^3.3.1",
     "tsr": "^1.3.4",
     "tw-animate-css": "^1.2.5",
-    "zod": "catalog:",
-    "express": "^4.18.2"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5.85.5",

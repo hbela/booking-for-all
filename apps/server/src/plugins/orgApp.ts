@@ -193,14 +193,35 @@ export default fp(async (fastify: FastifyInstance) => {
   // ------------------------
   fastify.get("/org/:id/app", async (req, reply) => {
     const { id } = req.params as { id: string };
+    const { orgId } = req.query as { orgId?: string };
 
-    const org = await prisma.organization.findUnique({ where: { id } });
+    // Use orgId from query param if provided, otherwise use path param
+    const finalOrgId = orgId || id;
+
+    const org = await prisma.organization.findUnique({
+      where: { id: finalOrgId },
+    });
     if (!org) {
       throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
     }
 
+    // Check if request is from mobile app (deep link detection)
+    const userAgent = req.headers["user-agent"] || "";
+    const isMobileApp =
+      userAgent.includes("BookingForAll") ||
+      userAgent.includes("bookingapp") ||
+      req.headers["x-app-request"] === "true";
+
+    // If mobile app is making the request, redirect to deep link
+    if (isMobileApp) {
+      const deepLink = `bookingapp://org?orgId=${finalOrgId}&orgSlug=${
+        org.slug || ""
+      }`;
+      return reply.redirect(302, deepLink);
+    }
+
     // Resolve APK URL from S3 or R2
-    const apkResult = await resolveApkUrl(id, org.apkKey);
+    const apkResult = await resolveApkUrl(finalOrgId, org.apkKey);
 
     // Get QR code URL
     let qrCodeUrl = "";
@@ -210,14 +231,15 @@ export default fp(async (fastify: FastifyInstance) => {
       // Generate QR code on-demand if it doesn't exist
       try {
         if (bucket && publicAppUrl) {
-          const qrData = `${publicAppUrl}/org/${id}/app`;
+          // Update QR code to include orgId in query param
+          const qrData = `${publicAppUrl}/org/${finalOrgId}/app?orgId=${finalOrgId}`;
           const pngBuffer = await QRCode.toBuffer(qrData, {
             errorCorrectionLevel: "H",
             type: "png",
             width: 600,
           });
 
-          const key = `orgs/${id}/qr.png`;
+          const key = `orgs/${finalOrgId}/qr.png`;
           await s3.send(
             new PutObjectCommand({
               Bucket: bucket,
@@ -228,12 +250,14 @@ export default fp(async (fastify: FastifyInstance) => {
           );
 
           await prisma.organization.update({
-            where: { id },
+            where: { id: finalOrgId },
             data: { qrCodeKey: key },
           });
 
           qrCodeUrl = `${publicAppUrl}/api/file/${key}`;
-          fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
+          fastify.log.info(
+            `✅ QR code generated on-demand for organization: ${finalOrgId}`
+          );
         }
       } catch (error: any) {
         fastify.log.error(error, "❌ Failed to generate QR code on-demand");
@@ -316,8 +340,18 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const apkUrl = apkResult.url;
     const apkSource = apkResult.source;
-    fastify.log.info(`📦 Serving APK from ${apkSource} for organization: ${id}`);
-    
+    fastify.log.info(
+      `📦 Serving APK from ${apkSource} for organization: ${finalOrgId}`
+    );
+
+    // Build deep link for post-install configuration
+    const deepLink = `bookingapp://org?orgId=${finalOrgId}&orgSlug=${
+      org.slug || ""
+    }`;
+    const universalLink = `https://app.booking-for-all.com/org?orgId=${finalOrgId}&orgSlug=${
+      org.slug || ""
+    }`;
+
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -360,7 +394,7 @@ export default fp(async (fastify: FastifyInstance) => {
       border-radius: 8px;
       font-weight: bold;
       font-size: 16px;
-      margin-top: 20px;
+      margin: 10px 5px;
       transition: background 0.3s;
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
       cursor: pointer;
@@ -368,11 +402,23 @@ export default fp(async (fastify: FastifyInstance) => {
     }
     .download-btn:hover { background: #5568d3; }
     .download-btn:active { transform: scale(0.98); }
-    .download-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .download-btn.secondary {
+      background: #28a745;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
     }
+    .download-btn.secondary:hover { background: #218838; }
     .info { color: #666; margin-top: 20px; font-size: 14px; line-height: 1.6; }
+    .info-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .info-section p {
+      margin: 10px 0;
+      font-size: 14px;
+    }
     @media (max-width: 480px) {
       .container { padding: 30px 20px; }
       h1 { font-size: 20px; }
@@ -380,72 +426,73 @@ export default fp(async (fastify: FastifyInstance) => {
       .qr-code { width: 180px; height: 180px; }
     }
   </style>
+  <script>
+    // Try to open app if installed (universal link)
+    function tryOpenApp() {
+      const deepLink = '${deepLink}';
+      const universalLink = '${universalLink}';
+      
+      // Try universal link first (works for both installed and not installed)
+      if (universalLink && universalLink !== 'https://app.booking-for-all.com/org?orgId=undefined&orgSlug=undefined') {
+        window.location.href = universalLink;
+      } else {
+        // Fallback: Try deep link
+        window.location.href = deepLink;
+      }
+    }
+    
+    // Auto-detect if app is installed on mobile devices
+    window.addEventListener('load', () => {
+      // Check if we're on mobile
+      if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        // Small delay to let page render, then try to open app
+        setTimeout(() => {
+          // Only auto-open if user hasn't interacted yet
+          // This prevents interrupting manual downloads
+        }, 1000);
+      }
+    });
+  </script>
 </head>
 <body>
   <div class="container">
     <h1>📱 Mobile App Download</h1>
     <div class="org-name">${org.name}</div>
+    
+    ${apkUrl ? `
+    <a href="${apkUrl}" class="download-btn" download>
+      📥 Download APK
+    </a>
+    ` : ""}
+    
+    <div class="info-section">
+      <p><strong>After installing the app:</strong></p>
+      <p>Tap the button below to configure the app with your organization (${org.name}):</p>
+      <button onclick="tryOpenApp()" class="download-btn secondary">
+        🔗 Open App & Configure
+      </button>
+      <p style="margin-top: 10px; font-size: 12px; text-align: center;">
+        Or scan the QR code again after installation.
+      </p>
+    </div>
+    
     ${qrCodeUrl ? `
     <div class="qr-container">
       <img src="${qrCodeUrl}" alt="QR Code" class="qr-code" />
       <p class="qr-label">Scan to download on another device</p>
     </div>
     ` : ""}
-    <button onclick="downloadApk()" class="download-btn" id="download-btn">
-      📥 Download APK
-    </button>
-    <p class="info">
-      Tap the button above to download and install the mobile app for ${org.name}.
-      ${qrCodeUrl ? "You can also scan the QR code with another device." : ""}
-    </p>
-    <script>
-      function downloadApk() {
-        const apkUrl = "${apkUrl}";
-        const btn = document.getElementById("download-btn");
-        
-        // Show loading state
-        btn.disabled = true;
-        btn.textContent = "⏳ Downloading...";
-        
-        // Create a temporary link and trigger download
-        const link = document.createElement("a");
-        link.href = apkUrl;
-        link.download = "app-release.apk";
-        link.style.display = "none";
-        document.body.appendChild(link);
-        
-        // Try to trigger download
-        link.click();
-        
-        // For mobile browsers, directly navigate to the APK URL
-        // This will trigger the download/install prompt
-        if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-          // On mobile, directly navigate to trigger download
-          window.location.href = apkUrl;
-        } else {
-          // On desktop, fallback after a short delay
-          setTimeout(() => {
-            window.location.href = apkUrl;
-          }, 500);
-        }
-        
-        // Clean up
-        setTimeout(() => {
-          document.body.removeChild(link);
-          btn.disabled = false;
-          btn.textContent = "📥 Download APK";
-        }, 2000);
-      }
-      
-      // Auto-download on mobile devices (optional - can be removed if not desired)
-      if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // Don't auto-download, let user click the button
-        // But ensure the link works properly
-      }
-    </script>
+    
+    <div class="info">
+      <p><strong>Note:</strong> Enable "Install unknown apps" in your phone settings if needed.</p>
+      <p style="font-size: 12px; margin-top: 10px;">
+        Settings → Apps → Special app access → Install unknown apps
+      </p>
+    </div>
   </div>
 </body>
 </html>`;
+
     reply.type("text/html").send(html);
   });
 
