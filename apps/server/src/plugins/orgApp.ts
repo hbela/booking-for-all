@@ -331,15 +331,22 @@ export default fp(async (fastify: FastifyInstance) => {
       color: white;
       padding: 16px 32px;
       text-decoration: none;
+      border: none;
       border-radius: 8px;
       font-weight: bold;
       font-size: 16px;
       margin-top: 20px;
       transition: background 0.3s;
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      cursor: pointer;
+      min-width: 200px;
     }
     .download-btn:hover { background: #5568d3; }
     .download-btn:active { transform: scale(0.98); }
+    .download-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     .info { color: #666; margin-top: 20px; font-size: 14px; line-height: 1.6; }
     @media (max-width: 480px) {
       .container { padding: 30px 20px; }
@@ -359,13 +366,58 @@ export default fp(async (fastify: FastifyInstance) => {
       <p class="qr-label">Scan to download on another device</p>
     </div>
     ` : ""}
-    <a href="${apkUrl}" class="download-btn" download>
+    <button onclick="downloadApk()" class="download-btn" id="download-btn">
       📥 Download APK
-    </a>
+    </button>
     <p class="info">
       Tap the button above to download and install the mobile app for ${org.name}.
       ${qrCodeUrl ? "You can also scan the QR code with another device." : ""}
     </p>
+    <script>
+      function downloadApk() {
+        const apkUrl = "${apkUrl}";
+        const btn = document.getElementById("download-btn");
+        
+        // Show loading state
+        btn.disabled = true;
+        btn.textContent = "⏳ Downloading...";
+        
+        // Create a temporary link and trigger download
+        const link = document.createElement("a");
+        link.href = apkUrl;
+        link.download = "app-release.apk";
+        link.style.display = "none";
+        document.body.appendChild(link);
+        
+        // Try to trigger download
+        link.click();
+        
+        // For mobile browsers, directly navigate to the APK URL
+        // This will trigger the download/install prompt
+        if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+          // On mobile, directly navigate to trigger download
+          window.location.href = apkUrl;
+        } else {
+          // On desktop, fallback after a short delay
+          setTimeout(() => {
+            window.location.href = apkUrl;
+          }, 500);
+        }
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+          btn.disabled = false;
+          btn.textContent = "📥 Download APK";
+        }, 2000);
+      }
+      
+      // Auto-download on mobile devices (optional - can be removed if not desired)
+      if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Don't auto-download, let user click the button
+        // But ensure the link works properly
+      }
+    </script>
   </div>
 </body>
 </html>`;
@@ -391,10 +443,20 @@ export default fp(async (fastify: FastifyInstance) => {
       }
 
       const buffer = await data.Body.transformToByteArray();
-      const contentType = data.ContentType || "application/octet-stream";
+      const filename = key.split("/").pop() || "file";
+      // Ensure APK files have the correct content type for mobile browsers
+      let contentType = data.ContentType || "application/octet-stream";
+      if (filename.endsWith(".apk")) {
+        contentType = "application/vnd.android.package-archive";
+      }
 
       reply.header("Content-Type", contentType);
-      reply.header("Content-Disposition", `attachment; filename="${key.split("/").pop()}"`);
+      reply.header("Content-Disposition", `attachment; filename="${filename}"`);
+      reply.header("Content-Length", buffer.length.toString());
+      // Add cache control for APK files
+      if (filename.endsWith(".apk")) {
+        reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
       if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
@@ -428,10 +490,18 @@ export default fp(async (fastify: FastifyInstance) => {
       }
 
       const buffer = await data.Body.transformToByteArray();
-      const contentType = data.ContentType || "application/vnd.android.package-archive";
+      const filename = key.split("/").pop() || "app-release.apk";
+      // Ensure APK files have the correct content type for mobile browsers
+      let contentType = data.ContentType || "application/vnd.android.package-archive";
+      if (filename.endsWith(".apk")) {
+        contentType = "application/vnd.android.package-archive";
+      }
 
       reply.header("Content-Type", contentType);
-      reply.header("Content-Disposition", `attachment; filename="${key.split("/").pop()}"`);
+      reply.header("Content-Disposition", `attachment; filename="${filename}"`);
+      reply.header("Content-Length", buffer.length.toString());
+      // Add cache control for APK files
+      reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
       fastify.log.info(`✅ Served file from R2: ${key}`);
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
