@@ -180,14 +180,23 @@
         <h3>🏥 Connect to MediCare</h3>
         <p>Connect to the MediCare booking system:</p>
 
-        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div style="display: flex; flex-direction: column; gap: 16px; align-items: stretch;">
           <button
             id="connect-btn"
             class="button primary"
             onclick="connectToOrganization()"
-            style="flex: 1; min-width: 200px;"
+            style="width: 100%;"
           >
-            🔗 Connect to MediCare
+            🔗 Connect to the Web
+          </button>
+
+          <button
+            id="download-app-btn"
+            class="button"
+            onclick="downloadMobileApp()"
+            style="width: 100%; background: #dc3545;"
+          >
+            📱 Download the Mobile App
           </button>
           
           <div id="qr-code-container" style="display: none; text-align: center;">
@@ -290,8 +299,6 @@
           // Store the organization info
           if (orgData.organizationId) {
             sessionStorage.setItem("selectedOrganization", orgData.organizationId);
-            // Load QR code for this organization
-            loadQRCode(orgData.organizationId);
           }
           if (orgData.organizationName) {
             sessionStorage.setItem("organizationName", orgData.organizationName);
@@ -325,6 +332,76 @@
           console.error("Error connecting to organization:", error);
           alert(
             `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. Backend API is reachable\n2. Domain is registered in the database\n3. CORS is properly configured for ${window.location.origin}`
+          );
+        }
+      }
+
+      // Download mobile app - loads QR code and shows download options
+      async function downloadMobileApp() {
+        try {
+          // First, get organization ID if not already stored
+          let orgId = sessionStorage.getItem("selectedOrganization");
+          
+          if (!orgId) {
+            // Extract domain from current location
+            const domain = window.location.hostname;
+            console.log("Detected domain:", domain);
+
+            // Determine API URL based on environment
+            let apiBaseUrl;
+            if (window.location.origin.includes("localhost")) {
+              apiBaseUrl = "http://localhost:3000";
+            } else if (
+              window.location.hostname.includes("dev") ||
+              window.location.hostname.includes("wellnessdev") ||
+              window.location.hostname.includes("medicaredev")
+            ) {
+              // Dev environment - use dev API
+              apiBaseUrl = "https://apidev.appointer.hu";
+            } else {
+              // Production environment
+              apiBaseUrl =
+                window.location.protocol === "https:"
+                  ? "https://api.appointer.hu"
+                  : "http://localhost:3000";
+            }
+
+            const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(
+              domain
+            )}`;
+            console.log("Fetching organization:", url);
+
+            const response = await fetch(url, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (!response.ok) {
+              const errorData = await response
+                .json()
+                .catch(() => ({ message: "Unknown error" }));
+              throw new Error(
+                errorData.message || `Organization lookup failed: ${response.status}`
+              );
+            }
+
+            const data = await response.json();
+            if (!data.success || !data.data.organizationId) {
+              throw new Error(data.message || "Organization not found");
+            }
+
+            orgId = data.data.organizationId;
+            sessionStorage.setItem("selectedOrganization", orgId);
+          }
+
+          // Load QR code for this organization
+          await loadQRCode(orgId);
+        } catch (error) {
+          console.error("Error downloading mobile app:", error);
+          alert(
+            `Failed to load mobile app download:\n\n${error.message}\n\nPlease try connecting to the web app first.`
           );
         }
       }
