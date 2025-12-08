@@ -1,6 +1,6 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import QRCode from "qrcode";
 import prisma from "@booking-for-all/db";
 import { AppError } from "../errors/AppError";
@@ -9,7 +9,7 @@ import { requireAuthHook, requireAdminHook } from "./authz";
 export default fp(async (fastify: FastifyInstance) => {
   const cfg = (fastify as any).config as any;
 
-  // Initialize S3 client
+  // Initialize S3 client (Hetzner S3)
   const s3 = new S3Client({
     region: cfg.S3_REGION || process.env.S3_REGION || "us-east-1",
     endpoint: cfg.S3_ENDPOINT || process.env.S3_ENDPOINT,
@@ -20,8 +20,71 @@ export default fp(async (fastify: FastifyInstance) => {
     },
   });
 
+  // Initialize R2 client (Cloudflare R2) - fallback for APK files
+  const r2AccessKeyId = cfg.R2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID;
+  const r2SecretAccessKey = cfg.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY;
+  const r2AccountId = cfg.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID;
+  const r2BucketName = cfg.R2_BUCKET_NAME || process.env.R2_BUCKET_NAME;
+  const r2Endpoint = cfg.R2_ENDPOINT || process.env.R2_ENDPOINT || (r2AccountId ? `https://${r2AccountId}.r2.cloudflarestorage.com` : undefined);
+
+  const r2 = r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2Endpoint
+    ? new S3Client({
+        region: "auto",
+        endpoint: r2Endpoint,
+        forcePathStyle: false,
+        credentials: {
+          accessKeyId: r2AccessKeyId,
+          secretAccessKey: r2SecretAccessKey,
+        },
+      })
+    : null;
+
   const bucket = cfg.S3_BUCKET || process.env.S3_BUCKET || "";
   const publicAppUrl = cfg.PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || cfg.CORS_ORIGIN || process.env.CORS_ORIGIN || "";
+
+  // Helper function to resolve APK URL from either S3 or R2
+  async function resolveApkUrl(orgId: string, apkKey: string | null): Promise<{ url: string; source: "s3" | "r2" | null }> {
+    // Priority 1: Check S3 if apkKey exists
+    if (apkKey) {
+      try {
+        await s3.send(
+          new HeadObjectCommand({
+            Bucket: bucket,
+            Key: apkKey,
+          })
+        );
+        fastify.log.info(`✅ APK found in S3: ${apkKey}`);
+        return { url: `${publicAppUrl}/api/file/${apkKey}`, source: "s3" };
+      } catch (error: any) {
+        if (error.name !== "NotFound" && error.$metadata?.httpStatusCode !== 404) {
+          fastify.log.warn(error, `⚠️ Error checking S3 for APK: ${apkKey}`);
+        }
+        // Fall through to R2 check
+      }
+    }
+
+    // Priority 2: Check R2 fallback
+    if (r2 && r2BucketName) {
+      const r2Key = `organizations/${orgId}/app-release.apk`;
+      try {
+        await r2.send(
+          new HeadObjectCommand({
+            Bucket: r2BucketName,
+            Key: r2Key,
+          })
+        );
+        fastify.log.info(`✅ APK found in R2: ${r2Key}`);
+        // Return R2 URL - we'll need to proxy it through our server
+        return { url: `${publicAppUrl}/api/r2-file/${r2Key}`, source: "r2" };
+      } catch (error: any) {
+        if (error.name !== "NotFound" && error.$metadata?.httpStatusCode !== 404) {
+          fastify.log.warn(error, `⚠️ Error checking R2 for APK: ${r2Key}`);
+        }
+      }
+    }
+
+    return { url: "", source: null };
+  }
 
   // ------------------------
   // Generate QR Code + Upload to S3
@@ -120,8 +183,49 @@ export default fp(async (fastify: FastifyInstance) => {
       throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
     }
 
-    if (!org.apkKey) {
-      // Return HTML page with error message
+    // Resolve APK URL from S3 or R2
+    const apkResult = await resolveApkUrl(id, org.apkKey);
+
+    // Get QR code URL
+    let qrCodeUrl = "";
+    if (org.qrCodeKey) {
+      qrCodeUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
+    } else {
+      // Generate QR code on-demand if it doesn't exist
+      try {
+        if (bucket && publicAppUrl) {
+          const qrData = `${publicAppUrl}/org/${id}/app`;
+          const pngBuffer = await QRCode.toBuffer(qrData, {
+            errorCorrectionLevel: "H",
+            type: "png",
+            width: 600,
+          });
+
+          const key = `orgs/${id}/qr.png`;
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: bucket,
+              Key: key,
+              Body: pngBuffer,
+              ContentType: "image/png",
+            })
+          );
+
+          await prisma.organization.update({
+            where: { id },
+            data: { qrCodeKey: key },
+          });
+
+          qrCodeUrl = `${publicAppUrl}/api/file/${key}`;
+          fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
+        }
+      } catch (error: any) {
+        fastify.log.error(error, "❌ Failed to generate QR code on-demand");
+      }
+    }
+
+    // If no APK found in either location, show error page
+    if (!apkResult.url) {
       const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -185,45 +289,10 @@ export default fp(async (fastify: FastifyInstance) => {
       return;
     }
 
-    // Get QR code URL
-    let qrCodeUrl = "";
-    if (org.qrCodeKey) {
-      qrCodeUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
-    } else {
-      // Generate QR code on-demand if it doesn't exist
-      try {
-        if (bucket && publicAppUrl) {
-          const qrData = `${publicAppUrl}/org/${id}/app`;
-          const pngBuffer = await QRCode.toBuffer(qrData, {
-            errorCorrectionLevel: "H",
-            type: "png",
-            width: 600,
-          });
-
-          const key = `orgs/${id}/qr.png`;
-          await s3.send(
-            new PutObjectCommand({
-              Bucket: bucket,
-              Key: key,
-              Body: pngBuffer,
-              ContentType: "image/png",
-            })
-          );
-
-          await prisma.organization.update({
-            where: { id },
-            data: { qrCodeKey: key },
-          });
-
-          qrCodeUrl = `${publicAppUrl}/api/file/${key}`;
-          fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
-        }
-      } catch (error: any) {
-        fastify.log.error(error, "❌ Failed to generate QR code on-demand");
-      }
-    }
-
-    const apkUrl = `${publicAppUrl}/api/file/${org.apkKey}`;
+    const apkUrl = apkResult.url;
+    const apkSource = apkResult.source;
+    fastify.log.info(`📦 Serving APK from ${apkSource} for organization: ${id}`);
+    
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -332,6 +401,44 @@ export default fp(async (fastify: FastifyInstance) => {
         throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
       fastify.log.error(error, "Error serving file from S3");
+      throw new AppError("Failed to serve file", "FILE_SERVE_ERROR", 500);
+    }
+  });
+
+  // ------------------------
+  // Serve File from R2 (Public Route) - Proxy for R2 files
+  // ------------------------
+  fastify.get("/api/r2-file/:key", async (req, reply) => {
+    const { key } = req.params as { key: string };
+
+    if (!r2 || !r2BucketName) {
+      throw new AppError("R2 not configured", "R2_NOT_CONFIGURED", 503);
+    }
+
+    try {
+      const data = await r2.send(
+        new GetObjectCommand({
+          Bucket: r2BucketName,
+          Key: key,
+        })
+      );
+
+      if (!data.Body) {
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
+      }
+
+      const buffer = await data.Body.transformToByteArray();
+      const contentType = data.ContentType || "application/vnd.android.package-archive";
+
+      reply.header("Content-Type", contentType);
+      reply.header("Content-Disposition", `attachment; filename="${key.split("/").pop()}"`);
+      fastify.log.info(`✅ Served file from R2: ${key}`);
+      return reply.send(Buffer.from(buffer));
+    } catch (error: any) {
+      if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
+      }
+      fastify.log.error(error, "Error serving file from R2");
       throw new AppError("Failed to serve file", "FILE_SERVE_ERROR", 500);
     }
   });

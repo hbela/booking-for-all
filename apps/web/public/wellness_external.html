@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MediCare - External App</title>
+    <title>Wellness Center - External App</title>
     <style>
       * {
         box-sizing: border-box;
@@ -84,7 +84,7 @@
       }
 
       .button.primary {
-        background: #dc3545;
+        background: #28a745;
         font-size: 16px;
         padding: 16px 32px;
         width: 100%;
@@ -95,7 +95,7 @@
       }
 
       .button.primary:hover {
-        background: #c82333;
+        background: #218838;
       }
 
       .organization-card {
@@ -163,35 +163,37 @@
   </head>
   <body>
     <div class="container">
-      <h1>🏥 MediCare - External Integration</h1>
+      <h1>🌿 Wellness Center - External Integration</h1>
 
-      <div class="success">✅ Welcome to the MediCare External App!</div>
+      <div class="success">✅ Welcome to the Wellness Center External App!</div>
 
       <div class="info">
         <h3>About This Integration</h3>
         <p>
-          This is MediCare's external application that securely integrates with
-          the booking system. Your API keys are protected and never exposed to
-          the browser.
+          This is the Wellness Center's external application that securely
+          integrates with the booking system. Your API keys are protected and
+          never exposed to the browser.
         </p>
       </div>
 
       <div class="organization-card">
-        <h3>🏥 Connect to MediCare</h3>
-        <p>Connect to the MediCare booking system:</p>
+        <h3>🌿 Connect to Wellness Center</h3>
+        <p>Connect to the Wellness Center booking system:</p>
 
-        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div
+          style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap"
+        >
           <button
             id="connect-btn"
             class="button primary"
             onclick="connectToOrganization()"
-            style="flex: 1; min-width: 200px;"
+            style="flex: 1; min-width: 200px"
           >
-            🔗 Connect to MediCare
+            🔗 Connect to Wellness Center
           </button>
-          
-          <div id="qr-code-container" style="display: none; text-align: center;">
-            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">
+
+          <div id="qr-code-container" style="display: none; text-align: center">
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666">
               Scan to download mobile app
             </p>
             <a
@@ -215,13 +217,13 @@
                 style="
                   width: 150px;
                   height: 150px;
-                  border: 2px solid #dc3545;
+                  border: 2px solid #007bff;
                   border-radius: 4px;
                   display: block;
                 "
               />
             </a>
-            <p style="margin: 8px 0 0 0; font-size: 11px; color: #dc3545">
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #007bff">
               Click QR code to download
             </p>
           </div>
@@ -230,13 +232,13 @@
     </div>
 
     <script>
-
       async function connectToOrganization() {
         try {
           // Extract domain from current location
           const domain = window.location.hostname;
           console.log("Detected domain:", domain);
 
+          // Call backend API directly (no PHP proxy needed)
           // Determine API URL based on environment
           let apiBaseUrl;
           if (window.location.origin.includes("localhost")) {
@@ -269,10 +271,17 @@
           });
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-            console.error("Organization lookup failed:", response.status, errorData);
+            const errorData = await response
+              .json()
+              .catch(() => ({ message: "Unknown error" }));
+            console.error(
+              "Organization lookup failed:",
+              response.status,
+              errorData
+            );
             throw new Error(
-              errorData.message || `Organization lookup failed: ${response.status}`
+              errorData.message ||
+                `Organization lookup failed: ${response.status}`
             );
           }
 
@@ -289,20 +298,31 @@
 
           // Store the organization info
           if (orgData.organizationId) {
-            sessionStorage.setItem("selectedOrganization", orgData.organizationId);
+            sessionStorage.setItem(
+              "selectedOrganization",
+              orgData.organizationId
+            );
             // Load QR code for this organization
             loadQRCode(orgData.organizationId);
           }
           if (orgData.organizationName) {
-            sessionStorage.setItem("organizationName", orgData.organizationName);
+            sessionStorage.setItem(
+              "organizationName",
+              orgData.organizationName
+            );
           }
           if (orgData.organizationSlug) {
-            sessionStorage.setItem("sourceOrganization", orgData.organizationSlug);
+            sessionStorage.setItem(
+              "sourceOrganization",
+              orgData.organizationSlug
+            );
           }
           sessionStorage.setItem("externalAppOrigin", window.location.origin);
 
           console.log("✅ Stored in sessionStorage:", {
-            selectedOrganization: sessionStorage.getItem("selectedOrganization"),
+            selectedOrganization: sessionStorage.getItem(
+              "selectedOrganization"
+            ),
             organizationName: sessionStorage.getItem("organizationName"),
             sourceOrganization: sessionStorage.getItem("sourceOrganization"),
             externalAppOrigin: sessionStorage.getItem("externalAppOrigin"),
@@ -315,8 +335,14 @@
 
           // Append organization slug and origin as URL parameters
           const redirectUrl = new URL(orgData.redirectUrl);
-          redirectUrl.searchParams.set("orgSlug", orgData.organizationSlug || "");
-          redirectUrl.searchParams.set("externalOrigin", window.location.origin);
+          redirectUrl.searchParams.set(
+            "orgSlug",
+            orgData.organizationSlug || ""
+          );
+          redirectUrl.searchParams.set(
+            "externalOrigin",
+            window.location.origin
+          );
 
           console.log("🔄 Redirecting to:", redirectUrl.toString());
           // Redirect to the booking system login with organization context
@@ -332,7 +358,7 @@
       // Load QR code for organization
       async function loadQRCode(orgId) {
         if (!orgId) return;
-        
+
         try {
           // Get API base URL from environment or use default
           let apiBaseUrl;
@@ -352,15 +378,15 @@
                 ? "https://api.appointer.hu"
                 : "http://localhost:3000";
           }
-          
+
           const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode`;
-          const qrImage = document.getElementById('qr-code-image');
-          const qrContainer = document.getElementById('qr-code-container');
-          const qrLink = document.getElementById('qr-code-link');
-          
+          const qrImage = document.getElementById("qr-code-image");
+          const qrContainer = document.getElementById("qr-code-container");
+          const qrLink = document.getElementById("qr-code-link");
+
           if (qrImage && qrContainer) {
             qrImage.src = qrCodeUrl;
-            qrContainer.style.display = 'block';
+            qrContainer.style.display = "block";
             
             // Set the download page URL for the QR code link
             if (qrLink) {
@@ -368,7 +394,7 @@
             }
           }
         } catch (error) {
-          console.error('Failed to load QR code:', error);
+          console.error("Failed to load QR code:", error);
           // Silently fail - QR code is optional
         }
       }

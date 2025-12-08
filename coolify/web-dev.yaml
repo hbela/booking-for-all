@@ -24,6 +24,8 @@ start:
   command: pnpm --filter web run start
 domains:
   - webdev.appointer.hu
+  - wellnessdev.appointer.hu
+  - medicaredev.appointer.hu
 environment:
   NODE_ENV: development
   HOST: 0.0.0.0
