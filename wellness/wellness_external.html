@@ -178,7 +178,7 @@
 
       <div class="organization-card">
         <h3>🌿 Connect to Wellness Center</h3>
-        <p>Connect to the Wellness Center booking system:</p>
+        <p>Connect to the booking system:</p>
 
         <div
           style="
@@ -194,53 +194,8 @@
             onclick="connectToOrganization()"
             style="width: 100%"
           >
-            🔗 Connect to the Web
+            Connect to the app
           </button>
-
-          <button
-            id="download-app-btn"
-            class="button"
-            onclick="downloadMobileApp()"
-            style="width: 100%; background: #28a745"
-          >
-            📱 Download the Mobile App
-          </button>
-
-          <div id="qr-code-container" style="display: none; text-align: center">
-            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666">
-              Scan to download mobile app
-            </p>
-            <a
-              id="qr-code-link"
-              href=""
-              target="_blank"
-              style="
-                display: inline-block;
-                cursor: pointer;
-                text-decoration: none;
-                transition: transform 0.2s;
-              "
-              onmouseover="this.style.transform='scale(1.05)'"
-              onmouseout="this.style.transform='scale(1)'"
-              onclick="return true;"
-            >
-              <img
-                id="qr-code-image"
-                src=""
-                alt="QR Code - Click to download"
-                style="
-                  width: 150px;
-                  height: 150px;
-                  border: 2px solid #007bff;
-                  border-radius: 4px;
-                  display: block;
-                "
-              />
-            </a>
-            <p style="margin: 8px 0 0 0; font-size: 11px; color: #007bff">
-              Click QR code to download
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -340,191 +295,37 @@
             externalAppOrigin: sessionStorage.getItem("externalAppOrigin"),
           });
 
-          if (!orgData.redirectUrl) {
-            console.error("❌ No redirectUrl in response!");
-            throw new Error("No redirect URL received from server");
-          }
-
-          // Append organization slug and origin as URL parameters
-          const redirectUrl = new URL(orgData.redirectUrl);
-          redirectUrl.searchParams.set(
-            "orgSlug",
-            orgData.organizationSlug || ""
-          );
-          redirectUrl.searchParams.set(
-            "externalOrigin",
-            window.location.origin
-          );
-
-          console.log("🔄 Redirecting to:", redirectUrl.toString());
-          // Redirect to the booking system login with organization context
-          window.location.href = redirectUrl.toString();
-        } catch (error) {
-          console.error("Error connecting to organization:", error);
-          alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. Backend API is reachable\n2. Domain is registered in the database\n3. CORS is properly configured for ${window.location.origin}`
-          );
-        }
-      }
-
-      // Download mobile app - loads QR code and shows download options
-      async function downloadMobileApp() {
-        try {
-          // First, get organization ID if not already stored
-          let orgId = sessionStorage.getItem("selectedOrganization");
-
-          if (!orgId) {
-            // Extract domain from current location
-            const domain = window.location.hostname;
-            console.log("Detected domain:", domain);
-
-            // Determine API URL based on environment
-            let apiBaseUrl;
-            if (window.location.origin.includes("localhost")) {
-              apiBaseUrl = "http://localhost:3000";
-            } else if (
-              window.location.hostname.includes("dev") ||
-              window.location.hostname.includes("wellnessdev") ||
-              window.location.hostname.includes("medicaredev")
-            ) {
-              // Dev environment - use dev API
-              apiBaseUrl = "https://apidev.appointer.hu";
-            } else {
-              // Production environment
-              apiBaseUrl =
-                window.location.protocol === "https:"
-                  ? "https://api.appointer.hu"
-                  : "http://localhost:3000";
-            }
-
-            const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(
-              domain
-            )}`;
-            console.log("Fetching organization:", url);
-
-            const response = await fetch(url, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-
-            if (!response.ok) {
-              const errorData = await response
-                .json()
-                .catch(() => ({ message: "Unknown error" }));
-              throw new Error(
-                errorData.message ||
-                  `Organization lookup failed: ${response.status}`
-              );
-            }
-
-            const data = await response.json();
-            if (!data.success || !data.data.organizationId) {
-              throw new Error(data.message || "Organization not found");
-            }
-
-            orgId = data.data.organizationId;
-            sessionStorage.setItem("selectedOrganization", orgId);
-          }
-
-          // Load QR code for this organization
-          await loadQRCode(orgId);
-        } catch (error) {
-          console.error("Error downloading mobile app:", error);
-          alert(
-            `Failed to load mobile app download:\n\n${error.message}\n\nPlease try connecting to the web app first.`
-          );
-        }
-      }
-
-      // Load QR code for organization
-      async function loadQRCode(orgId) {
-        if (!orgId) {
-          console.error("No organization ID provided");
-          return;
-        }
-
-        try {
-          // Get API base URL from environment or use default
-          let apiBaseUrl;
+          // Redirect to the React connect page
+          // Determine frontend URL based on environment
+          let frontendUrl;
           if (window.location.origin.includes("localhost")) {
-            apiBaseUrl = "http://localhost:3000";
+            frontendUrl = "http://localhost:3001";
           } else if (
             window.location.hostname.includes("dev") ||
             window.location.hostname.includes("wellnessdev") ||
             window.location.hostname.includes("medicaredev")
           ) {
-            // Dev environment - use dev API
-            apiBaseUrl = "https://apidev.appointer.hu";
+            frontendUrl = "https://webdev.appointer.hu";
           } else {
-            // Production environment
-            apiBaseUrl =
+            frontendUrl =
               window.location.protocol === "https:"
-                ? "https://api.appointer.hu"
-                : "http://localhost:3000";
+                ? "https://app.booking-for-all.com"
+                : "http://localhost:3001";
           }
 
-          const qrImage = document.getElementById("qr-code-image");
-          const qrContainer = document.getElementById("qr-code-container");
-          const qrLink = document.getElementById("qr-code-link");
-
-          if (!qrImage || !qrContainer) {
-            console.error("QR code elements not found");
-            return;
+          // Build connect URL with domain parameter
+          const connectUrl = new URL("/connect", frontendUrl);
+          if (window.location.hostname) {
+            connectUrl.searchParams.set("domain", window.location.hostname);
           }
 
-          // Show container first
-          qrContainer.style.display = "block";
-          
-          // Set the download page URL for the QR code link
-          if (qrLink) {
-            qrLink.href = `${apiBaseUrl}/org/${orgId}/app`;
-          }
-
-          // The QR code endpoint redirects to the image, so we can use it directly
-          // Add timestamp to prevent caching issues
-          const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode?t=${Date.now()}`;
-          
-          console.log("Loading QR code from:", qrCodeUrl);
-          
-          // Set image source - browser will follow redirect
-          qrImage.src = qrCodeUrl;
-          
-          // Handle image load errors
-          qrImage.onerror = function() {
-            console.error("Failed to load QR code image");
-            qrImage.alt = "QR code failed to load";
-            // Try to fetch the QR code endpoint to see what's happening
-            fetch(qrCodeUrl, { method: "GET", redirect: "follow" })
-              .then(response => {
-                console.log("QR code endpoint response:", response.status, response.statusText);
-                if (!response.ok) {
-                  throw new Error(`QR code endpoint returned ${response.status}`);
-                }
-                return response.blob();
-              })
-              .then(blob => {
-                const imageUrl = URL.createObjectURL(blob);
-                qrImage.src = imageUrl;
-                console.log("QR code loaded successfully via blob");
-              })
-              .catch(error => {
-                console.error("Error loading QR code:", error);
-                qrContainer.innerHTML = `<p style="color: #e74c3c; font-size: 14px;">QR code unavailable. <a href="${apiBaseUrl}/org/${orgId}/app" target="_blank" style="color: #007bff;">Click here to download the app</a></p>`;
-              });
-          };
-          
-          // Handle successful load
-          qrImage.onload = function() {
-            console.log("QR code image loaded successfully");
-          };
+          console.log("🔄 Redirecting to connect page:", connectUrl.toString());
+          window.location.href = connectUrl.toString();
         } catch (error) {
-          console.error("Failed to load QR code:", error);
-          const qrContainer = document.getElementById("qr-code-container");
-          if (qrContainer) {
-            qrContainer.innerHTML = `<p style="color: #e74c3c; font-size: 14px;">Failed to load QR code. Please try again or <a href="${apiBaseUrl}/org/${orgId}/app" target="_blank" style="color: #007bff;">click here to download the app</a></p>`;
-          }
+          console.error("Error connecting to organization:", error);
+          alert(
+            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. Backend API is reachable\n2. Domain is registered in the database\n3. CORS is properly configured for ${window.location.origin}`
+          );
         }
       }
     </script>
