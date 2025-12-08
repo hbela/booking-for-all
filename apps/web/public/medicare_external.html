@@ -408,7 +408,10 @@
 
       // Load QR code for organization
       async function loadQRCode(orgId) {
-        if (!orgId) return;
+        if (!orgId) {
+          console.error("No organization ID provided");
+          return;
+        }
         
         try {
           // Get API base URL from environment or use default
@@ -430,23 +433,66 @@
                 : "http://localhost:3000";
           }
           
-          const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode`;
           const qrImage = document.getElementById('qr-code-image');
           const qrContainer = document.getElementById('qr-code-container');
           const qrLink = document.getElementById('qr-code-link');
           
-          if (qrImage && qrContainer) {
-            qrImage.src = qrCodeUrl;
-            qrContainer.style.display = 'block';
-            
-            // Set the download page URL for the QR code link
-            if (qrLink) {
-              qrLink.href = `${apiBaseUrl}/org/${orgId}/app`;
-            }
+          if (!qrImage || !qrContainer) {
+            console.error("QR code elements not found");
+            return;
           }
+
+          // Show container first
+          qrContainer.style.display = 'block';
+          
+          // Set the download page URL for the QR code link
+          if (qrLink) {
+            qrLink.href = `${apiBaseUrl}/org/${orgId}/app`;
+          }
+
+          // The QR code endpoint redirects to the image, so we can use it directly
+          // Add timestamp to prevent caching issues
+          const qrCodeUrl = `${apiBaseUrl}/api/org/${orgId}/qrcode?t=${Date.now()}`;
+          
+          console.log("Loading QR code from:", qrCodeUrl);
+          
+          // Set image source - browser will follow redirect
+          qrImage.src = qrCodeUrl;
+          
+          // Handle image load errors
+          qrImage.onerror = function() {
+            console.error("Failed to load QR code image");
+            qrImage.alt = "QR code failed to load";
+            // Try to fetch the QR code endpoint to see what's happening
+            fetch(qrCodeUrl, { method: "GET", redirect: "follow" })
+              .then(response => {
+                console.log("QR code endpoint response:", response.status, response.statusText);
+                if (!response.ok) {
+                  throw new Error(`QR code endpoint returned ${response.status}`);
+                }
+                return response.blob();
+              })
+              .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                qrImage.src = imageUrl;
+                console.log("QR code loaded successfully via blob");
+              })
+              .catch(error => {
+                console.error("Error loading QR code:", error);
+                qrContainer.innerHTML = `<p style="color: #e74c3c; font-size: 14px;">QR code unavailable. <a href="${apiBaseUrl}/org/${orgId}/app" target="_blank" style="color: #dc3545;">Click here to download the app</a></p>`;
+              });
+          };
+          
+          // Handle successful load
+          qrImage.onload = function() {
+            console.log("QR code image loaded successfully");
+          };
         } catch (error) {
           console.error('Failed to load QR code:', error);
-          // Silently fail - QR code is optional
+          const qrContainer = document.getElementById('qr-code-container');
+          if (qrContainer) {
+            qrContainer.innerHTML = `<p style="color: #e74c3c; font-size: 14px;">Failed to load QR code. Please try again or <a href="${apiBaseUrl}/org/${orgId}/app" target="_blank" style="color: #dc3545;">click here to download the app</a></p>`;
+          }
         }
       }
     </script>

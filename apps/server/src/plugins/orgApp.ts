@@ -491,8 +491,30 @@ export default fp(async (fastify: FastifyInstance) => {
       }
     }
 
-    const qrUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
-    return reply.redirect(qrUrl);
+    // Return the QR code image directly instead of redirecting
+    try {
+      const data = await s3.send(
+        new GetObjectCommand({
+          Bucket: bucket,
+          Key: org.qrCodeKey,
+        })
+      );
+
+      if (!data.Body) {
+        throw new AppError("QR code file not found", "FILE_NOT_FOUND", 404);
+      }
+
+      const buffer = await data.Body.transformToByteArray();
+      reply.header("Content-Type", "image/png");
+      reply.header("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+      return reply.send(Buffer.from(buffer));
+    } catch (error: any) {
+      if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+        throw new AppError("QR code file not found", "FILE_NOT_FOUND", 404);
+      }
+      fastify.log.error(error, "Error serving QR code from S3");
+      throw new AppError("Failed to serve QR code", "QR_SERVE_ERROR", 500);
+    }
   });
 });
 
