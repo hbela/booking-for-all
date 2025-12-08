@@ -313,10 +313,18 @@
                 : "http://localhost:3001";
           }
 
-          // Build connect URL with domain parameter
+          // Build connect URL with orgId parameter (more reliable than domain lookup)
           const connectUrl = new URL("/connect", frontendUrl);
+          if (orgData.organizationId) {
+            connectUrl.searchParams.set("orgId", orgData.organizationId);
+          }
+          // Also pass domain as fallback
           if (window.location.hostname) {
             connectUrl.searchParams.set("domain", window.location.hostname);
+          }
+          // Pass orgSlug for context
+          if (orgData.organizationSlug) {
+            connectUrl.searchParams.set("orgSlug", orgData.organizationSlug);
           }
 
           console.log("🔄 Redirecting to connect page:", connectUrl.toString());

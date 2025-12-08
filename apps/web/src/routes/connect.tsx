@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,10 @@ export const Route = createFileRoute("/connect")({
   component: ConnectLandingPage,
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      // Optional: allow domain override, but default to auto-detect
+      // Allow orgId directly (from wellness_external.html) or domain for lookup
+      orgId: (search.orgId as string) || undefined,
       domain: (search.domain as string) || undefined,
+      orgSlug: (search.orgSlug as string) || undefined,
     };
   },
   head: () => ({
@@ -56,10 +58,13 @@ interface OrganizationResponse {
 
 function ConnectLandingPage() {
   const navigate = useNavigate();
-  const { domain: urlDomain } = Route.useSearch();
+  const search = Route.useSearch();
+  const urlOrgId = search.orgId as string | undefined;
+  const urlDomain = search.domain as string | undefined;
+  const urlOrgSlug = search.orgSlug as string | undefined;
   const [showQRModal, setShowQRModal] = useState(false);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(urlOrgId || null);
+  const [organizationSlug, setOrganizationSlug] = useState<string | null>(urlOrgSlug || null);
 
   // Determine API base URL based on environment (same logic as wellness_external.html)
   const getApiBaseUrl = () => {
@@ -79,23 +84,56 @@ function ConnectLandingPage() {
       : "http://localhost:3000";
   };
 
-  // Auto-detect domain from current hostname (primary method)
-  const detectedDomain =
-    urlDomain || (typeof window !== "undefined" ? window.location.hostname : "");
+  // Use domain from URL parameter first, then fallback to current hostname
+  const detectedDomain = urlDomain || (typeof window !== "undefined" ? window.location.hostname : "");
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("🔍 ConnectLandingPage - Organization detection:", {
+      urlOrgId,
+      urlDomain,
+      urlOrgSlug,
+      currentHostname: typeof window !== "undefined" ? window.location.hostname : "N/A",
+      detectedDomain,
+      organizationId,
+      organizationSlug,
+    });
+  }, [urlOrgId, urlDomain, urlOrgSlug, detectedDomain, organizationId, organizationSlug]);
 
-  // Fetch organization by domain (same as wellness_external.html)
+  // Fetch organization - prefer orgId if provided, otherwise lookup by domain
   const {
     data: orgData,
     isLoading,
     error: orgError,
   } = useQuery<OrganizationResponse>({
-    queryKey: ["organization-by-domain", detectedDomain],
+    queryKey: urlOrgId 
+      ? ["organization-by-id", urlOrgId]
+      : ["organization-by-domain", detectedDomain],
     queryFn: async () => {
-      if (!detectedDomain) {
-        throw new Error("No domain provided");
+      const apiBaseUrl = getApiBaseUrl();
+
+      // If orgId is provided, fetch by ID
+      if (urlOrgId) {
+        try {
+          const url = `${apiBaseUrl}/api/external/organization/${urlOrgId}`;
+          console.log("🔍 Fetching organization by ID:", urlOrgId);
+          const response = await apiFetch<OrganizationData>(url);
+          
+          return {
+            success: true,
+            data: response,
+          };
+        } catch (error) {
+          console.error("Failed to fetch by ID, trying domain lookup:", error);
+          // Fall through to domain lookup
+        }
       }
 
-      const apiBaseUrl = getApiBaseUrl();
+      // Fallback to domain lookup
+      if (!detectedDomain) {
+        throw new Error("No domain or organization ID provided");
+      }
+
       const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(
         detectedDomain
       )}`;
@@ -121,9 +159,21 @@ function ConnectLandingPage() {
 
       return response;
     },
-    enabled: !!detectedDomain,
+    enabled: !!(urlOrgId || detectedDomain),
     retry: 1,
   });
+
+  // Update state when orgData is loaded
+  useEffect(() => {
+    if (orgData?.data) {
+      if (orgData.data.organizationId && !organizationId) {
+        setOrganizationId(orgData.data.organizationId);
+      }
+      if (orgData.data.organizationSlug && !organizationSlug) {
+        setOrganizationSlug(orgData.data.organizationSlug);
+      }
+    }
+  }, [orgData, organizationId, organizationSlug]);
 
   const handleContinueWithWeb = () => {
     const orgId = organizationId || orgData?.data?.organizationId;
