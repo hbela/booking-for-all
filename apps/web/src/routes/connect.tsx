@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,16 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/apiFetch";
 import { toast } from "sonner";
-import { Loader2, Globe, Smartphone } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/connect")({
   component: ConnectLandingPage,
@@ -36,7 +28,7 @@ export const Route = createFileRoute("/connect")({
       },
       {
         name: "description",
-        content: "Connect to the booking system via web or mobile app",
+        content: "Connect to the booking system",
       },
     ],
   }),
@@ -57,7 +49,6 @@ interface OrganizationResponse {
 function ConnectLandingPage() {
   const navigate = useNavigate();
   const { domain: urlDomain } = Route.useSearch();
-  const [showQRModal, setShowQRModal] = useState(false);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
 
@@ -125,7 +116,7 @@ function ConnectLandingPage() {
     retry: 1,
   });
 
-  const handleContinueWithWeb = () => {
+  const handleConnectToApp = () => {
     const orgId = organizationId || orgData?.data?.organizationId;
     const orgSlug = organizationSlug || orgData?.data?.organizationSlug;
     const externalOrigin =
@@ -163,26 +154,6 @@ function ConnectLandingPage() {
     });
   };
 
-  const handleInstallMobile = () => {
-    const orgId = organizationId || orgData?.data?.organizationId;
-    if (!orgId) {
-      toast.error("Organization not found. Please try again.");
-      return;
-    }
-    setShowQRModal(true);
-  };
-
-  // Generate QR code URL with organizationId
-  const getQRCodeValue = () => {
-    const apiBaseUrl = getApiBaseUrl();
-    const orgId = organizationId || orgData?.data?.organizationId;
-    if (!orgId) return "";
-
-    // Use download page that handles deep linking with orgId in query param
-    return `${apiBaseUrl}/org/${orgId}/app?orgId=${orgId}`;
-  };
-
-  const finalOrgId = organizationId || orgData?.data?.organizationId;
   const orgName = orgData?.data?.organizationName || "Organization";
 
   if (isLoading) {
@@ -236,80 +207,20 @@ function ConnectLandingPage() {
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-3xl">🌿 Connect to {orgName}</CardTitle>
           <CardDescription className="text-base">
-            Choose how you'd like to access the booking system
+            Connect to the booking system
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
-            onClick={handleContinueWithWeb}
+            onClick={handleConnectToApp}
             className="w-full h-14 text-lg"
             size="lg"
           >
-            <Globe className="mr-2 h-5 w-5" />
-            Continue with Web
+            Connect to the app
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-
-          <Button
-            onClick={handleInstallMobile}
-            variant="outline"
-            className="w-full h-14 text-lg border-2"
-            size="lg"
-            disabled={!finalOrgId}
-          >
-            <Smartphone className="mr-2 h-5 w-5" />
-            Install Mobile App
-          </Button>
-
-          {!finalOrgId && (
-            <p className="text-xs text-center text-muted-foreground">
-              Organization ID is required to install the mobile app
-            </p>
-          )}
         </CardContent>
       </Card>
-
-      {/* QR Code Modal */}
-      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Scan to Install Mobile App</DialogTitle>
-            <DialogDescription>
-              Point your Android camera at this QR code to download and install
-              the app for {orgName}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 p-4">
-            {finalOrgId && getQRCodeValue() ? (
-              <>
-                <div className="p-4 bg-white rounded-lg border-2 border-primary">
-                  <QRCodeSVG
-                    value={getQRCodeValue()}
-                    size={256}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-                <p className="text-xs text-center text-muted-foreground">
-                  Note: Enable "Install unknown apps" in your phone settings
-                  (Settings → Apps → Special app access).
-                </p>
-                <a
-                  href={getQRCodeValue()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Or click for direct download
-                </a>
-              </>
-            ) : (
-              <p className="text-sm text-destructive">
-                Unable to generate QR code. Please try again.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
