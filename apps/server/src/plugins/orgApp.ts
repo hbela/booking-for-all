@@ -65,6 +65,7 @@ export default fp(async (fastify: FastifyInstance) => {
 
     // Priority 2: Check R2 fallback
     if (r2 && r2BucketName) {
+      // Try organization-specific path first
       const r2Key = `organizations/${orgId}/app-release.apk`;
       try {
         await r2.send(
@@ -74,11 +75,26 @@ export default fp(async (fastify: FastifyInstance) => {
           })
         );
         fastify.log.info(`✅ APK found in R2: ${r2Key}`);
-        // Return R2 URL - we'll need to proxy it through our server
         return { url: `${publicAppUrl}/api/r2-file/${r2Key}`, source: "r2" };
       } catch (error: any) {
         if (error.name !== "NotFound" && error.$metadata?.httpStatusCode !== 404) {
           fastify.log.warn(error, `⚠️ Error checking R2 for APK: ${r2Key}`);
+        }
+        // Try dev branch fallback if organization-specific not found
+        const devR2Key = `releases/dev/app-release.apk`;
+        try {
+          await r2.send(
+            new HeadObjectCommand({
+              Bucket: r2BucketName,
+              Key: devR2Key,
+            })
+          );
+          fastify.log.info(`✅ APK found in R2 (dev fallback): ${devR2Key}`);
+          return { url: `${publicAppUrl}/api/r2-file/${devR2Key}`, source: "r2" };
+        } catch (devError: any) {
+          if (devError.name !== "NotFound" && devError.$metadata?.httpStatusCode !== 404) {
+            fastify.log.warn(devError, `⚠️ Error checking R2 for dev APK: ${devR2Key}`);
+          }
         }
       }
     }
@@ -280,8 +296,17 @@ export default fp(async (fastify: FastifyInstance) => {
     <div class="org-name">${org.name}</div>
     <div class="error">
       <strong>APK not available</strong><br>
-      The mobile app APK has not been uploaded for this organization yet.
+      The mobile app APK has not been uploaded for this organization yet.<br><br>
+      <small style="color: #666;">
+        Please contact the administrator to upload the APK file or build it using the GitHub Actions workflow.
+      </small>
     </div>
+    ${qrCodeUrl ? `
+    <div class="qr-container">
+      <img src="${qrCodeUrl}" alt="QR Code" class="qr-code" />
+      <p class="qr-label">Scan to share this page</p>
+    </div>
+    ` : ""}
   </div>
 </body>
 </html>`;
