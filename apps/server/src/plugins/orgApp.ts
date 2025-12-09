@@ -618,13 +618,28 @@ export default fp(async (fastify: FastifyInstance) => {
     }
   });
 
+  // Helper function to detect mobile browser
+  function isMobileBrowser(userAgent: string): boolean {
+    const mobilePatterns = [
+      /Android/i,
+      /webOS/i,
+      /iPhone/i,
+      /iPad/i,
+      /iPod/i,
+      /BlackBerry/i,
+      /Windows Phone/i,
+      /Mobile/i,
+    ];
+    return mobilePatterns.some((pattern) => pattern.test(userAgent));
+  }
+
   // ------------------------
   // Serve File from R2 (Public Route) - Proxy for R2 files
   // ------------------------
   // Use catch-all route pattern to handle paths with slashes like "releases/dev/app-release.apk"
   fastify.get("/api/r2-file/*", async (req, reply) => {
     // Extract the key from the URL (everything after /api/r2-file/)
-    const urlPath = req.url.split("?")[0]; // Remove query params
+    const urlPath = req.url?.split("?")[0] || req.url || ""; // Remove query params
     const key = urlPath.replace("/api/r2-file/", "");
 
     if (!r2 || !r2BucketName) {
@@ -635,17 +650,209 @@ export default fp(async (fastify: FastifyInstance) => {
       throw new AppError("File key is required", "KEY_REQUIRED", 400);
     }
 
+    const filename = key.split("/").pop() || "app-release.apk";
+    const isApkFile = filename.endsWith(".apk");
+    const userAgent = req.headers["user-agent"] || "";
+    const isMobile = isMobileBrowser(userAgent);
+
     fastify.log.info(
       {
         key,
         bucket: r2BucketName,
-        url: req.url,
-        urlPath,
+        url: req.url || "",
+        urlPath: urlPath || "",
+        filename,
+        isApkFile,
+        isMobile,
+        userAgent: userAgent.substring(0, 50),
       },
       "📥 Serving R2 file"
     );
 
     try {
+      // Verify file exists first
+      await r2.send(
+        new HeadObjectCommand({
+          Bucket: r2BucketName,
+          Key: key,
+        })
+      );
+
+      // For APK files on mobile browsers, serve an HTML page that auto-triggers download
+      if (isApkFile && isMobile) {
+        const directDownloadUrl = `${publicAppUrl}/api/r2-file/${key}?download=true`;
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Downloading ${filename}...</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 30px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #666;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .filename {
+      font-weight: bold;
+      color: #667eea;
+      word-break: break-all;
+    }
+    .download-btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 14px 28px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+    .download-btn:hover {
+      background: #5568d3;
+    }
+    .instructions {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .instructions h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .instructions ol {
+      margin-left: 20px;
+      color: #666;
+      line-height: 1.8;
+    }
+    .error {
+      color: #e74c3c;
+      background: #fee;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>📱 Downloading App</h1>
+    <p>Your download should start automatically...</p>
+    <p class="filename">${filename}</p>
+    
+    <a href="${directDownloadUrl}" id="downloadLink" class="download-btn" download>
+      Click here if download doesn't start
+    </a>
+
+    <div class="instructions">
+      <h2>After Download:</h2>
+      <ol>
+        <li>Open your Downloads folder</li>
+        <li>Tap on ${filename}</li>
+        <li>If prompted, enable "Install from Unknown Sources" in Settings</li>
+        <li>Tap "Install" to complete installation</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // Auto-trigger download immediately
+    const downloadUrl = "${directDownloadUrl}";
+    
+    // Method 1: Create invisible link and click it
+    function triggerDownload() {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = "${filename}";
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Method 2: Use window.location (fallback)
+    function redirectToDownload() {
+      window.location.href = downloadUrl;
+    }
+
+    // Try to trigger download immediately
+    try {
+      triggerDownload();
+      
+      // Fallback: if download hasn't started after 2 seconds, redirect
+      setTimeout(() => {
+        console.log('Fallback: redirecting to download URL');
+        redirectToDownload();
+      }, 2000);
+    } catch (error) {
+      console.error('Error triggering download:', error);
+      // If JavaScript fails, redirect directly
+      setTimeout(() => {
+        redirectToDownload();
+      }, 500);
+    }
+
+    // If user clicks the manual download button, use direct download
+    document.getElementById('downloadLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      triggerDownload();
+    });
+  </script>
+</body>
+</html>`;
+
+        reply.type("text/html").send(html);
+        return;
+      }
+
+      // For direct download requests (with ?download=true) or non-mobile browsers
+      // Or for non-APK files, serve the file directly
       const data = await r2.send(
         new GetObjectCommand({
           Bucket: r2BucketName,
@@ -658,7 +865,6 @@ export default fp(async (fastify: FastifyInstance) => {
       }
 
       const buffer = await data.Body.transformToByteArray();
-      const filename = key.split("/").pop() || "app-release.apk";
       // Ensure APK files have the correct content type for mobile browsers
       let contentType =
         data.ContentType || "application/vnd.android.package-archive";
@@ -671,12 +877,19 @@ export default fp(async (fastify: FastifyInstance) => {
       reply.header("Content-Length", buffer.length.toString());
       // Add cache control for APK files
       reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
+
+      // Add additional headers for better mobile browser support
+      if (isApkFile) {
+        reply.header("X-Content-Type-Options", "nosniff");
+      }
+
       fastify.log.info(
         {
           key,
           bucket: r2BucketName,
           size: buffer.length,
           contentType,
+          isMobile,
         },
         `✅ Served file from R2: ${key}`
       );
@@ -697,6 +910,47 @@ export default fp(async (fastify: FastifyInstance) => {
         error.name === "NoSuchKey" ||
         error.$metadata?.httpStatusCode === 404
       ) {
+        // Return user-friendly error page for mobile
+        if (isMobile) {
+          const errorHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Not Found</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 30px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    h1 { color: #e74c3c; margin-bottom: 15px; }
+    p { color: #666; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>❌ File Not Found</h1>
+    <p>The APK file could not be found. Please contact support.</p>
+  </div>
+</body>
+</html>`;
+          reply.type("text/html").code(404).send(errorHtml);
+          return;
+        }
         throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
       throw new AppError("Failed to serve file", "FILE_SERVE_ERROR", 500);
