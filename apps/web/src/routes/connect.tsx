@@ -284,10 +284,14 @@ function ConnectLandingPage() {
 
   // Get direct APK download URL - only return if we have it
   const getQRCodeValue = (): string | null => {
-    if (installData?.apk?.downloadUrl) {
-      return installData.apk.downloadUrl;
-    }
-    return null;
+    const url = installData?.apk?.downloadUrl || null;
+    console.log("🔍 getQRCodeValue:", { 
+      hasInstallData: !!installData,
+      hasApk: !!installData?.apk,
+      hasDownloadUrl: !!installData?.apk?.downloadUrl,
+      url 
+    });
+    return url;
   };
 
   const orgName = orgData?.data?.organizationName || "Organization";
@@ -386,6 +390,17 @@ function ConnectLandingPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center space-y-4 p-4">
+            {(() => {
+              console.log("🔍 QR Modal render check:", {
+                finalOrgId,
+                installLoading,
+                hasInstallError: !!installError,
+                installData,
+                qrCodeValue: getQRCodeValue(),
+                apkAvailable: installData?.apk?.available,
+              });
+              return null;
+            })()}
             {!finalOrgId ? (
               <p className="text-sm text-destructive">
                 Organization ID is required. Please try again.
