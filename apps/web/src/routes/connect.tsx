@@ -228,6 +228,7 @@ function ConnectLandingPage() {
   const {
     data: installData,
     isLoading: installLoading,
+    error: installError,
   } = useQuery<{
     success: boolean;
     data: {
@@ -242,19 +243,26 @@ function ConnectLandingPage() {
     queryFn: async () => {
       if (!finalOrgId) throw new Error("Organization ID required");
       const apiBaseUrl = getApiBaseUrl();
-      const response = await apiFetch<{
-        success: boolean;
-        data: {
-          apk: {
-            available: boolean;
-            downloadUrl: string | null;
-            source: string | null;
+      console.log("🔍 Fetching install info for org:", finalOrgId);
+      try {
+        const response = await apiFetch<{
+          success: boolean;
+          data: {
+            apk: {
+              available: boolean;
+              downloadUrl: string | null;
+              source: string | null;
+            };
           };
-        };
-      }>(`${apiBaseUrl}/api/install/${finalOrgId}`);
-      return response;
+        }>(`${apiBaseUrl}/api/install/${finalOrgId}`);
+        console.log("✅ Install info loaded:", response);
+        return response;
+      } catch (error) {
+        console.error("❌ Failed to fetch install info:", error);
+        throw error;
+      }
     },
-    enabled: !!finalOrgId,
+    enabled: !!finalOrgId && showQRModal, // Only fetch when modal is open
     retry: 1,
   });
 
@@ -374,37 +382,48 @@ function ConnectLandingPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Loading APK download link...</p>
               </div>
-            ) : finalOrgId && getQRCodeValue() && installData?.data?.apk?.available ? (
-              <>
-                <div className="p-4 bg-white rounded-lg border-2 border-primary">
-                  <QRCodeSVG
-                    value={getQRCodeValue()}
-                    size={256}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-                <p className="text-xs text-center text-muted-foreground">
-                  Scan this QR code to directly download the APK file.
+            ) : finalOrgId && getQRCodeValue() ? (
+              installData?.data?.apk?.available === false ? (
+                <p className="text-sm text-destructive">
+                  APK is not available for this organization. Please contact support.
                 </p>
-                <p className="text-xs text-center text-muted-foreground">
-                  Note: Enable "Install unknown apps" in your phone settings
-                  (Settings → Apps → Special app access).
-                </p>
-                <a
-                  href={getQRCodeValue()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Or click for direct download
-                </a>
-              </>
+              ) : (
+                <>
+                  <div className="p-4 bg-white rounded-lg border-2 border-primary">
+                    <QRCodeSVG
+                      value={getQRCodeValue()}
+                      size={256}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground">
+                    {installData?.data?.apk?.downloadUrl
+                      ? "Scan this QR code to directly download the APK file."
+                      : "Scan this QR code to open the download page."}
+                  </p>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Note: Enable "Install unknown apps" in your phone settings
+                    (Settings → Apps → Special app access).
+                  </p>
+                  <a
+                    href={getQRCodeValue()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline font-medium"
+                  >
+                    Or click for direct download
+                  </a>
+                  {installError && (
+                    <p className="text-xs text-center text-muted-foreground text-yellow-600">
+                      Note: Using fallback URL (APK URL could not be loaded)
+                    </p>
+                  )}
+                </>
+              )
             ) : (
               <p className="text-sm text-destructive">
-                {installData?.data?.apk?.available === false
-                  ? "APK is not available for this organization. Please contact support."
-                  : "Unable to generate QR code. Please try again."}
+                Unable to generate QR code. {installError ? `Error: ${installError instanceof Error ? installError.message : 'Unknown error'}` : 'Please try again.'}
               </p>
             )}
           </div>
