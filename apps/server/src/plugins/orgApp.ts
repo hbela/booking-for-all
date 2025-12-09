@@ -106,29 +106,57 @@ export default fp(async (fastify: FastifyInstance) => {
         ) {
           fastify.log.warn(error, `⚠️ Error checking R2 for APK: ${r2Key}`);
         }
-        // Try dev branch fallback if organization-specific not found
-        const devR2Key = `releases/dev/app-release.apk`;
+        // Try releases fallback if organization-specific not found
+        // First try: releases/app-release.apk (main releases path)
+        const releasesR2Key = `releases/app-release.apk`;
         try {
           await r2.send(
             new HeadObjectCommand({
               Bucket: r2BucketName,
-              Key: devR2Key,
+              Key: releasesR2Key,
             })
           );
-          fastify.log.info(`✅ APK found in R2 (dev fallback): ${devR2Key}`);
+          fastify.log.info(
+            `✅ APK found in R2 (releases fallback): ${releasesR2Key}`
+          );
           return {
-            url: `${publicAppUrl}/api/r2-file/${devR2Key}`,
+            url: `${publicAppUrl}/api/r2-file/${releasesR2Key}`,
             source: "r2",
           };
-        } catch (devError: any) {
+        } catch (releasesError: any) {
           if (
-            devError.name !== "NotFound" &&
-            devError.$metadata?.httpStatusCode !== 404
+            releasesError.name !== "NotFound" &&
+            releasesError.$metadata?.httpStatusCode !== 404
           ) {
             fastify.log.warn(
-              devError,
-              `⚠️ Error checking R2 for dev APK: ${devR2Key}`
+              releasesError,
+              `⚠️ Error checking R2 for releases APK: ${releasesR2Key}`
             );
+          }
+          // Try dev branch fallback if main releases path not found
+          const devR2Key = `releases/dev/app-release.apk`;
+          try {
+            await r2.send(
+              new HeadObjectCommand({
+                Bucket: r2BucketName,
+                Key: devR2Key,
+              })
+            );
+            fastify.log.info(`✅ APK found in R2 (dev fallback): ${devR2Key}`);
+            return {
+              url: `${publicAppUrl}/api/r2-file/${devR2Key}`,
+              source: "r2",
+            };
+          } catch (devError: any) {
+            if (
+              devError.name !== "NotFound" &&
+              devError.$metadata?.httpStatusCode !== 404
+            ) {
+              fastify.log.warn(
+                devError,
+                `⚠️ Error checking R2 for dev APK: ${devR2Key}`
+              );
+            }
           }
         }
       }
