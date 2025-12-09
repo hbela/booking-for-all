@@ -654,6 +654,10 @@ export default fp(async (fastify: FastifyInstance) => {
     const isApkFile = filename.endsWith(".apk");
     const userAgent = req.headers["user-agent"] || "";
     const isMobile = isMobileBrowser(userAgent);
+    // Check if this is a direct download request (has ?download=true query param)
+    const queryParams = req.query as { download?: string } | undefined;
+    const isDirectDownload =
+      queryParams?.download === "true" || queryParams?.download === "";
 
     fastify.log.info(
       {
@@ -664,6 +668,7 @@ export default fp(async (fastify: FastifyInstance) => {
         filename,
         isApkFile,
         isMobile,
+        isDirectDownload,
         userAgent: userAgent.substring(0, 50),
       },
       "📥 Serving R2 file"
@@ -679,7 +684,8 @@ export default fp(async (fastify: FastifyInstance) => {
       );
 
       // For APK files on mobile browsers, serve an HTML page with download button
-      if (isApkFile && isMobile) {
+      // BUT skip HTML if this is a direct download request (?download=true)
+      if (isApkFile && isMobile && !isDirectDownload) {
         const directDownloadUrl = `${publicAppUrl}/api/r2-file/${key}?download=true`;
 
         const html = `<!DOCTYPE html>
