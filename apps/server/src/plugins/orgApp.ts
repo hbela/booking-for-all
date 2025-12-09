@@ -678,7 +678,7 @@ export default fp(async (fastify: FastifyInstance) => {
         })
       );
 
-      // For APK files on mobile browsers, serve an HTML page that auto-triggers download
+      // For APK files on mobile browsers, serve an HTML page with download button
       if (isApkFile && isMobile) {
         const directDownloadUrl = `${publicAppUrl}/api/r2-file/${key}?download=true`;
 
@@ -688,7 +688,7 @@ export default fp(async (fastify: FastifyInstance) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Downloading ${filename}...</title>
+  <title>Download ${filename}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -709,46 +709,50 @@ export default fp(async (fastify: FastifyInstance) => {
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       text-align: center;
     }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
     }
     h1 {
       color: #333;
       font-size: 24px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
     p {
       color: #666;
       font-size: 16px;
       line-height: 1.6;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
     }
-    .filename {
-      font-weight: bold;
-      color: #667eea;
+    .url-display {
+      background: #f8f9fa;
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
       word-break: break-all;
+      font-size: 12px;
+      color: #333;
+      text-align: left;
     }
     .download-btn {
       display: inline-block;
       background: #667eea;
       color: white;
-      padding: 14px 28px;
+      padding: 16px 32px;
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
-      font-size: 16px;
-      margin-top: 10px;
+      font-size: 18px;
+      margin: 15px 0;
       transition: background 0.3s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      width: 100%;
+      max-width: 300px;
+    }
+    .download-btn:active {
+      background: #5568d3;
+      transform: scale(0.98);
     }
     .download-btn:hover {
       background: #5568d3;
@@ -757,93 +761,49 @@ export default fp(async (fastify: FastifyInstance) => {
       background: #f8f9fa;
       padding: 20px;
       border-radius: 8px;
-      margin-top: 20px;
+      margin-top: 25px;
       text-align: left;
     }
     .instructions h2 {
       font-size: 18px;
       color: #333;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .instructions ol {
       margin-left: 20px;
       color: #666;
       line-height: 1.8;
+      font-size: 14px;
     }
-    .error {
-      color: #e74c3c;
-      background: #fee;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
+    .instructions li {
+      margin-bottom: 8px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="spinner"></div>
-    <h1>📱 Downloading App</h1>
-    <p>Your download should start automatically...</p>
-    <p class="filename">${filename}</p>
+    <div class="icon">📱</div>
+    <h1>Download Mobile App</h1>
+    <p>Click the button below to start downloading the app:</p>
     
-    <a href="${directDownloadUrl}" id="downloadLink" class="download-btn" download>
-      Click here if download doesn't start
+    <div class="url-display">
+      ${directDownloadUrl}
+    </div>
+    
+    <a href="${directDownloadUrl}" class="download-btn" download>
+      Click here to start downloading the app
     </a>
 
     <div class="instructions">
-      <h2>After Download:</h2>
+      <h2>📋 After Download:</h2>
       <ol>
         <li>Open your Downloads folder</li>
-        <li>Tap on ${filename}</li>
+        <li>Tap on <strong>${filename}</strong></li>
         <li>If prompted, enable "Install from Unknown Sources" in Settings</li>
         <li>Tap "Install" to complete installation</li>
       </ol>
     </div>
   </div>
-
-  <script>
-    // Auto-trigger download immediately
-    const downloadUrl = "${directDownloadUrl}";
-    
-    // Method 1: Create invisible link and click it
-    function triggerDownload() {
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = "${filename}";
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    // Method 2: Use window.location (fallback)
-    function redirectToDownload() {
-      window.location.href = downloadUrl;
-    }
-
-    // Try to trigger download immediately
-    try {
-      triggerDownload();
-      
-      // Fallback: if download hasn't started after 2 seconds, redirect
-      setTimeout(() => {
-        console.log('Fallback: redirecting to download URL');
-        redirectToDownload();
-      }, 2000);
-    } catch (error) {
-      console.error('Error triggering download:', error);
-      // If JavaScript fails, redirect directly
-      setTimeout(() => {
-        redirectToDownload();
-      }, 500);
-    }
-
-    // If user clicks the manual download button, use direct download
-    document.getElementById('downloadLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      triggerDownload();
-    });
-  </script>
 </body>
 </html>`;
 
