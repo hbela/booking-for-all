@@ -621,12 +621,29 @@ export default fp(async (fastify: FastifyInstance) => {
   // ------------------------
   // Serve File from R2 (Public Route) - Proxy for R2 files
   // ------------------------
-  fastify.get("/api/r2-file/:key", async (req, reply) => {
-    const { key } = req.params as { key: string };
+  // Use catch-all route pattern to handle paths with slashes like "releases/dev/app-release.apk"
+  fastify.get("/api/r2-file/*", async (req, reply) => {
+    // Extract the key from the URL (everything after /api/r2-file/)
+    const urlPath = req.url.split("?")[0]; // Remove query params
+    const key = urlPath.replace("/api/r2-file/", "");
 
     if (!r2 || !r2BucketName) {
       throw new AppError("R2 not configured", "R2_NOT_CONFIGURED", 503);
     }
+
+    if (!key || key.length === 0) {
+      throw new AppError("File key is required", "KEY_REQUIRED", 400);
+    }
+
+    fastify.log.info(
+      {
+        key,
+        bucket: r2BucketName,
+        url: req.url,
+        urlPath,
+      },
+      "📥 Serving R2 file"
+    );
 
     try {
       const data = await r2.send(
@@ -654,16 +671,34 @@ export default fp(async (fastify: FastifyInstance) => {
       reply.header("Content-Length", buffer.length.toString());
       // Add cache control for APK files
       reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
-      fastify.log.info(`✅ Served file from R2: ${key}`);
+      fastify.log.info(
+        {
+          key,
+          bucket: r2BucketName,
+          size: buffer.length,
+          contentType,
+        },
+        `✅ Served file from R2: ${key}`
+      );
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
+      fastify.log.error(
+        {
+          error: error.message,
+          errorName: error.name,
+          httpStatusCode: error.$metadata?.httpStatusCode,
+          key,
+          bucket: r2BucketName,
+        },
+        "❌ Error serving file from R2"
+      );
+
       if (
         error.name === "NoSuchKey" ||
         error.$metadata?.httpStatusCode === 404
       ) {
         throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
-      fastify.log.error(error, "Error serving file from R2");
       throw new AppError("Failed to serve file", "FILE_SERVE_ERROR", 500);
     }
   });
