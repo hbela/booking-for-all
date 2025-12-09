@@ -230,14 +230,21 @@ function ConnectLandingPage() {
     isLoading: installLoading,
     error: installError,
   } = useQuery<{
-    success: boolean;
-    data: {
-      apk: {
-        available: boolean;
-        downloadUrl: string | null;
-        source: string | null;
-      };
+    organizationId: string;
+    organizationName: string;
+    organizationSlug: string | null;
+    apk: {
+      available: boolean;
+      downloadUrl: string | null;
+      source: string | null;
     };
+    qrCode: {
+      available: boolean;
+      imageUrl: string | null;
+    };
+    deepLink: string;
+    universalLink: string;
+    installPageUrl: string;
   }>({
     queryKey: ["install-info", finalOrgId],
     queryFn: async () => {
@@ -245,15 +252,23 @@ function ConnectLandingPage() {
       const apiBaseUrl = getApiBaseUrl();
       console.log("🔍 Fetching install info for org:", finalOrgId);
       try {
+        // apiFetch extracts data.data, so we get just the data object
         const response = await apiFetch<{
-          success: boolean;
-          data: {
-            apk: {
-              available: boolean;
-              downloadUrl: string | null;
-              source: string | null;
-            };
+          organizationId: string;
+          organizationName: string;
+          organizationSlug: string | null;
+          apk: {
+            available: boolean;
+            downloadUrl: string | null;
+            source: string | null;
           };
+          qrCode: {
+            available: boolean;
+            imageUrl: string | null;
+          };
+          deepLink: string;
+          universalLink: string;
+          installPageUrl: string;
         }>(`${apiBaseUrl}/api/install/${finalOrgId}`);
         console.log("✅ Install info loaded:", response);
         return response;
@@ -269,8 +284,8 @@ function ConnectLandingPage() {
 
   // Get direct APK download URL - only return if we have it
   const getQRCodeValue = (): string | null => {
-    if (installData?.data?.apk?.downloadUrl) {
-      return installData.data.apk.downloadUrl;
+    if (installData?.apk?.downloadUrl) {
+      return installData.apk.downloadUrl;
     }
     return null;
   };
@@ -386,7 +401,7 @@ function ConnectLandingPage() {
                 <br />
                 <span className="text-xs text-muted-foreground">Please refresh the page and try again.</span>
               </p>
-            ) : installData?.data?.apk?.available === false ? (
+            ) : installData?.apk?.available === false ? (
               <p className="text-sm text-destructive">
                 APK is not available for this organization. Please contact support.
               </p>
