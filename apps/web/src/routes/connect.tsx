@@ -222,17 +222,57 @@ function ConnectLandingPage() {
     setShowQRModal(true);
   };
 
-  // Generate QR code URL with organizationId
+  const finalOrgId = organizationId || orgData?.data?.organizationId;
+
+  // Fetch install info (APK URL) for QR code
+  const {
+    data: installData,
+    isLoading: installLoading,
+  } = useQuery<{
+    success: boolean;
+    data: {
+      apk: {
+        available: boolean;
+        downloadUrl: string | null;
+        source: string | null;
+      };
+    };
+  }>({
+    queryKey: ["install-info", finalOrgId],
+    queryFn: async () => {
+      if (!finalOrgId) throw new Error("Organization ID required");
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await apiFetch<{
+        success: boolean;
+        data: {
+          apk: {
+            available: boolean;
+            downloadUrl: string | null;
+            source: string | null;
+          };
+        };
+      }>(`${apiBaseUrl}/api/install/${finalOrgId}`);
+      return response;
+    },
+    enabled: !!finalOrgId,
+    retry: 1,
+  });
+
+  // Generate QR code URL with direct APK download URL
   const getQRCodeValue = () => {
-    const apiBaseUrl = getApiBaseUrl();
     const orgId = organizationId || orgData?.data?.organizationId;
     if (!orgId) return "";
 
-    // Use download page that handles deep linking with orgId in query param
+    // Use direct APK download URL if available, otherwise fallback to install page
+    if (installData?.data?.apk?.downloadUrl) {
+      return installData.data.apk.downloadUrl;
+    }
+
+    // Fallback to install page if APK URL not loaded yet
+    const apiBaseUrl = getApiBaseUrl();
     return `${apiBaseUrl}/org/${orgId}/app?orgId=${orgId}`;
   };
 
-  const finalOrgId = organizationId || orgData?.data?.organizationId;
   const orgName = orgData?.data?.organizationName || "Organization";
 
   if (isLoading) {
@@ -329,7 +369,12 @@ function ConnectLandingPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center space-y-4 p-4">
-            {finalOrgId && getQRCodeValue() ? (
+            {installLoading ? (
+              <div className="flex flex-col items-center space-y-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading APK download link...</p>
+              </div>
+            ) : finalOrgId && getQRCodeValue() && installData?.data?.apk?.available ? (
               <>
                 <div className="p-4 bg-white rounded-lg border-2 border-primary">
                   <QRCodeSVG
@@ -339,6 +384,9 @@ function ConnectLandingPage() {
                     includeMargin={true}
                   />
                 </div>
+                <p className="text-xs text-center text-muted-foreground">
+                  Scan this QR code to directly download the APK file.
+                </p>
                 <p className="text-xs text-center text-muted-foreground">
                   Note: Enable "Install unknown apps" in your phone settings
                   (Settings → Apps → Special app access).
@@ -354,7 +402,9 @@ function ConnectLandingPage() {
               </>
             ) : (
               <p className="text-sm text-destructive">
-                Unable to generate QR code. Please try again.
+                {installData?.data?.apk?.available === false
+                  ? "APK is not available for this organization. Please contact support."
+                  : "Unable to generate QR code. Please try again."}
               </p>
             )}
           </div>
