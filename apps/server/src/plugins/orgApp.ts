@@ -1,6 +1,11 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
-import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import QRCode from "qrcode";
 import prisma from "@booking-for-all/db";
 import { AppError } from "../errors/AppError";
@@ -22,28 +27,43 @@ export default fp(async (fastify: FastifyInstance) => {
 
   // Initialize R2 client (Cloudflare R2) - fallback for APK files
   const r2AccessKeyId = cfg.R2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID;
-  const r2SecretAccessKey = cfg.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY;
+  const r2SecretAccessKey =
+    cfg.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY;
   const r2AccountId = cfg.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID;
   const r2BucketName = cfg.R2_BUCKET_NAME || process.env.R2_BUCKET_NAME;
-  const r2Endpoint = cfg.R2_ENDPOINT || process.env.R2_ENDPOINT || (r2AccountId ? `https://${r2AccountId}.r2.cloudflarestorage.com` : undefined);
+  const r2Endpoint =
+    cfg.R2_ENDPOINT ||
+    process.env.R2_ENDPOINT ||
+    (r2AccountId
+      ? `https://${r2AccountId}.r2.cloudflarestorage.com`
+      : undefined);
 
-  const r2 = r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2Endpoint
-    ? new S3Client({
-        region: "auto",
-        endpoint: r2Endpoint,
-        forcePathStyle: false,
-        credentials: {
-          accessKeyId: r2AccessKeyId,
-          secretAccessKey: r2SecretAccessKey,
-        },
-      })
-    : null;
+  const r2 =
+    r2AccessKeyId && r2SecretAccessKey && r2BucketName && r2Endpoint
+      ? new S3Client({
+          region: "auto",
+          endpoint: r2Endpoint,
+          forcePathStyle: false,
+          credentials: {
+            accessKeyId: r2AccessKeyId,
+            secretAccessKey: r2SecretAccessKey,
+          },
+        })
+      : null;
 
   const bucket = cfg.S3_BUCKET || process.env.S3_BUCKET || "";
-  const publicAppUrl = cfg.PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || cfg.CORS_ORIGIN || process.env.CORS_ORIGIN || "";
+  const publicAppUrl =
+    cfg.PUBLIC_APP_URL ||
+    process.env.PUBLIC_APP_URL ||
+    cfg.CORS_ORIGIN ||
+    process.env.CORS_ORIGIN ||
+    "";
 
   // Helper function to resolve APK URL from either S3 or R2
-  async function resolveApkUrl(orgId: string, apkKey: string | null): Promise<{ url: string; source: "s3" | "r2" | null }> {
+  async function resolveApkUrl(
+    orgId: string,
+    apkKey: string | null
+  ): Promise<{ url: string; source: "s3" | "r2" | null }> {
     // Priority 1: Check S3 if apkKey exists
     if (apkKey) {
       try {
@@ -56,7 +76,10 @@ export default fp(async (fastify: FastifyInstance) => {
         fastify.log.info(`✅ APK found in S3: ${apkKey}`);
         return { url: `${publicAppUrl}/api/file/${apkKey}`, source: "s3" };
       } catch (error: any) {
-        if (error.name !== "NotFound" && error.$metadata?.httpStatusCode !== 404) {
+        if (
+          error.name !== "NotFound" &&
+          error.$metadata?.httpStatusCode !== 404
+        ) {
           fastify.log.warn(error, `⚠️ Error checking S3 for APK: ${apkKey}`);
         }
         // Fall through to R2 check
@@ -77,7 +100,10 @@ export default fp(async (fastify: FastifyInstance) => {
         fastify.log.info(`✅ APK found in R2: ${r2Key}`);
         return { url: `${publicAppUrl}/api/r2-file/${r2Key}`, source: "r2" };
       } catch (error: any) {
-        if (error.name !== "NotFound" && error.$metadata?.httpStatusCode !== 404) {
+        if (
+          error.name !== "NotFound" &&
+          error.$metadata?.httpStatusCode !== 404
+        ) {
           fastify.log.warn(error, `⚠️ Error checking R2 for APK: ${r2Key}`);
         }
         // Try dev branch fallback if organization-specific not found
@@ -90,10 +116,19 @@ export default fp(async (fastify: FastifyInstance) => {
             })
           );
           fastify.log.info(`✅ APK found in R2 (dev fallback): ${devR2Key}`);
-          return { url: `${publicAppUrl}/api/r2-file/${devR2Key}`, source: "r2" };
+          return {
+            url: `${publicAppUrl}/api/r2-file/${devR2Key}`,
+            source: "r2",
+          };
         } catch (devError: any) {
-          if (devError.name !== "NotFound" && devError.$metadata?.httpStatusCode !== 404) {
-            fastify.log.warn(devError, `⚠️ Error checking R2 for dev APK: ${devR2Key}`);
+          if (
+            devError.name !== "NotFound" &&
+            devError.$metadata?.httpStatusCode !== 404
+          ) {
+            fastify.log.warn(
+              devError,
+              `⚠️ Error checking R2 for dev APK: ${devR2Key}`
+            );
           }
         }
       }
@@ -175,7 +210,8 @@ export default fp(async (fastify: FastifyInstance) => {
           Bucket: bucket,
           Key: key,
           Body: buffer,
-          ContentType: data.mimetype || "application/vnd.android.package-archive",
+          ContentType:
+            data.mimetype || "application/vnd.android.package-archive",
         })
       );
 
@@ -325,12 +361,16 @@ export default fp(async (fastify: FastifyInstance) => {
         Please contact the administrator to upload the APK file or build it using the GitHub Actions workflow.
       </small>
     </div>
-    ${qrCodeUrl ? `
+    ${
+      qrCodeUrl
+        ? `
     <div class="qr-container">
       <img src="${qrCodeUrl}" alt="QR Code" class="qr-code" />
       <p class="qr-label">Scan to share this page</p>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
   </div>
 </body>
 </html>`;
@@ -459,11 +499,15 @@ export default fp(async (fastify: FastifyInstance) => {
     <h1>📱 Mobile App Download</h1>
     <div class="org-name">${org.name}</div>
     
-    ${apkUrl ? `
+    ${
+      apkUrl
+        ? `
     <a href="${apkUrl}" class="download-btn" download>
       📥 Download APK
     </a>
-    ` : ""}
+    `
+        : ""
+    }
     
     <div class="info-section">
       <p><strong>After installing the app:</strong></p>
@@ -476,12 +520,16 @@ export default fp(async (fastify: FastifyInstance) => {
       </p>
     </div>
     
-    ${qrCodeUrl ? `
+    ${
+      qrCodeUrl
+        ? `
     <div class="qr-container">
       <img src="${qrCodeUrl}" alt="QR Code" class="qr-code" />
       <p class="qr-label">Scan to download on another device</p>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
     
     <div class="info">
       <p><strong>Note:</strong> Enable "Install unknown apps" in your phone settings if needed.</p>
@@ -531,7 +579,10 @@ export default fp(async (fastify: FastifyInstance) => {
       }
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
-      if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === "NoSuchKey" ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
       fastify.log.error(error, "Error serving file from S3");
@@ -564,7 +615,8 @@ export default fp(async (fastify: FastifyInstance) => {
       const buffer = await data.Body.transformToByteArray();
       const filename = key.split("/").pop() || "app-release.apk";
       // Ensure APK files have the correct content type for mobile browsers
-      let contentType = data.ContentType || "application/vnd.android.package-archive";
+      let contentType =
+        data.ContentType || "application/vnd.android.package-archive";
       if (filename.endsWith(".apk")) {
         contentType = "application/vnd.android.package-archive";
       }
@@ -577,12 +629,78 @@ export default fp(async (fastify: FastifyInstance) => {
       fastify.log.info(`✅ Served file from R2: ${key}`);
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
-      if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === "NoSuchKey" ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
       fastify.log.error(error, "Error serving file from R2");
       throw new AppError("Failed to serve file", "FILE_SERVE_ERROR", 500);
     }
+  });
+
+  // ------------------------
+  // Install Endpoint (Public API Route) - Returns JSON with install information
+  // ------------------------
+  fastify.get("/api/install/:orgId", async (req, reply) => {
+    const { orgId } = req.params as { orgId: string };
+    const queryOrgId = (req.query as { orgId?: string }).orgId;
+
+    // Use orgId from query param if provided, otherwise use path param
+    const finalOrgId = queryOrgId || orgId;
+
+    const org = await prisma.organization.findUnique({
+      where: { id: finalOrgId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        apkKey: true,
+        qrCodeKey: true,
+      },
+    });
+
+    if (!org) {
+      throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+    }
+
+    // Resolve APK URL from S3 or R2
+    const apkResult = await resolveApkUrl(finalOrgId, org.apkKey);
+
+    // Build QR code URL if available
+    let qrCodeUrl = "";
+    if (org.qrCodeKey) {
+      qrCodeUrl = `${publicAppUrl}/api/file/${org.qrCodeKey}`;
+    }
+
+    // Build deep link and universal link
+    const deepLink = `bookingapp://org?orgId=${finalOrgId}&orgSlug=${org.slug || ""}`;
+    const universalLink = `https://app.booking-for-all.com/org?orgId=${finalOrgId}&orgSlug=${org.slug || ""}`;
+
+    // Build install page URL
+    const installPageUrl = `${publicAppUrl}/org/${finalOrgId}/app?orgId=${finalOrgId}`;
+
+    reply.send({
+      success: true,
+      data: {
+        organizationId: org.id,
+        organizationName: org.name,
+        organizationSlug: org.slug,
+        apk: {
+          available: !!apkResult.url,
+          downloadUrl: apkResult.url || null,
+          source: apkResult.source || null,
+        },
+        qrCode: {
+          available: !!qrCodeUrl,
+          imageUrl: qrCodeUrl || null,
+        },
+        deepLink,
+        universalLink,
+        installPageUrl,
+      },
+    });
   });
 
   // ------------------------
@@ -600,7 +718,11 @@ export default fp(async (fastify: FastifyInstance) => {
     if (!org.qrCodeKey) {
       try {
         if (!bucket || !publicAppUrl) {
-          throw new AppError("S3 configuration missing, cannot generate QR code", "S3_CONFIG_MISSING", 500);
+          throw new AppError(
+            "S3 configuration missing, cannot generate QR code",
+            "S3_CONFIG_MISSING",
+            500
+          );
         }
 
         const qrData = `${publicAppUrl}/org/${id}/app`;
@@ -626,10 +748,16 @@ export default fp(async (fastify: FastifyInstance) => {
           data: { qrCodeKey: key },
         });
 
-        fastify.log.info(`✅ QR code generated on-demand for organization: ${id}`);
+        fastify.log.info(
+          `✅ QR code generated on-demand for organization: ${id}`
+        );
       } catch (error: any) {
         fastify.log.error(error, "❌ Failed to generate QR code on-demand");
-        throw new AppError("Failed to generate QR code", "QR_GENERATION_ERROR", 500);
+        throw new AppError(
+          "Failed to generate QR code",
+          "QR_GENERATION_ERROR",
+          500
+        );
       }
     }
 
@@ -651,7 +779,10 @@ export default fp(async (fastify: FastifyInstance) => {
       reply.header("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
       return reply.send(Buffer.from(buffer));
     } catch (error: any) {
-      if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === "NoSuchKey" ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         throw new AppError("QR code file not found", "FILE_NOT_FOUND", 404);
       }
       fastify.log.error(error, "Error serving QR code from S3");
@@ -659,4 +790,3 @@ export default fp(async (fastify: FastifyInstance) => {
     }
   });
 });
-
