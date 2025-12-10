@@ -1,5 +1,7 @@
 // @ts-ignore - env variables
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+// For local testing with ngrok, set API_BASE_URL to your ngrok URL
+// Example: API_BASE_URL=https://21508d1a3c38.ngrok-free.app
+const API_BASE_URL = process.env.API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://21508d1a3c38.ngrok-free.app';
 
 export interface VoiceAgentRequest {
   audio: Blob | File;

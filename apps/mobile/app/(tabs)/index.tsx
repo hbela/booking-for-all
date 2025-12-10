@@ -17,6 +17,11 @@ export default function HomeScreen() {
         console.log('🏠 HomeScreen: Organization context loaded:', context);
         setOrgContext(context);
         setLoadingContext(false);
+        
+        // Log API base URL for debugging
+        // @ts-ignore - env variables
+        const apiBaseUrl = process.env.API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://21508d1a3c38.ngrok-free.app';
+        console.log('🌐 HomeScreen: API Base URL:', apiBaseUrl);
       })
       .catch((error) => {
         console.error('🏠 HomeScreen: Error loading organization context:', error);
@@ -36,17 +41,42 @@ export default function HomeScreen() {
   });
 
   const handleConfigureApp = () => {
-    // Get organization ID from context or show instructions
+    // Get organization ID from context or use default
     const orgId = orgContext?.orgId || '8f79bdba-7095-4a47-90c7-a2e839cc413b'; // Default to Wellness for now
-    const deepLink = `bookingapp://org?orgId=${orgId}&orgSlug=wellness`;
-    const installPageUrl = `https://apidev.appointer.hu/org/${orgId}/app?orgId=${orgId}`;
+    const orgSlug = orgContext?.orgSlug || 'wellness';
+    const deepLink = `bookingapp://org?orgId=${orgId}&orgSlug=${orgSlug}`;
+    
+    // Use the same API base URL as the API calls (from environment or default to ngrok)
+    // @ts-ignore - env variables
+    const apiBaseUrl = process.env.API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL || 'https://21508d1a3c38.ngrok-free.app';
+    const installPageUrl = `${apiBaseUrl}/org/${orgId}/app?orgId=${orgId}`;
+    
+    console.log('🔧 handleConfigureApp:', { orgId, orgSlug, installPageUrl, deepLink });
     
     Alert.alert(
       'Configure App',
-      'To configure the app, you can:\n\n1. Scan the QR code from the install page\n2. Or use the deep link',
+      `To configure the app with your organization:\n\n1. Open the install page and click "Open App & Configure"\n2. Or scan the QR code from the install page\n3. Or use the deep link directly`,
       [
-        { text: 'Open Install Page', onPress: () => Linking.openURL(installPageUrl) },
-        { text: 'Use Deep Link', onPress: () => Linking.openURL(deepLink) },
+        { 
+          text: 'Open Install Page', 
+          onPress: () => {
+            console.log('Opening install page:', installPageUrl);
+            Linking.openURL(installPageUrl).catch(err => {
+              console.error('Failed to open install page:', err);
+              Alert.alert('Error', 'Failed to open install page. Please check your internet connection.');
+            });
+          } 
+        },
+        { 
+          text: 'Use Deep Link', 
+          onPress: () => {
+            console.log('Opening deep link:', deepLink);
+            Linking.openURL(deepLink).catch(err => {
+              console.error('Failed to open deep link:', err);
+              Alert.alert('Error', 'Failed to open deep link.');
+            });
+          } 
+        },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -103,18 +133,20 @@ export default function HomeScreen() {
             <Text style={styles.welcomeText}>Welcome to Booking for All</Text>
             <Text style={styles.orgDescription}>
               No organization configured yet.{'\n\n'}
-              To get started:
+              To get started, tap the button below to configure the app with your organization.
             </Text>
+            <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleConfigureApp}>
+              <Text style={styles.buttonText}>🔗 Configure App</Text>
+            </TouchableOpacity>
             <View style={styles.instructionsContainer}>
               <Text style={styles.instructionText}>
-                1. Go to the install page{'\n'}
-                2. Click "Open App & Configure"{'\n'}
-                3. Or scan the QR code again
+                <Text style={styles.instructionTitle}>How to configure:{'\n\n'}</Text>
+                1. Tap "Configure App" above{'\n'}
+                2. Choose "Open Install Page"{'\n'}
+                3. Click "Open App & Configure" on the page{'\n'}
+                4. Or scan the QR code from the install page
               </Text>
             </View>
-            <TouchableOpacity style={styles.button} onPress={handleConfigureApp}>
-              <Text style={styles.buttonText}>Configure App</Text>
-            </TouchableOpacity>
           </>
         )}
       </View>
@@ -179,6 +211,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'left',
   },
+  instructionTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#667eea',
+  },
   button: {
     backgroundColor: '#667eea',
     paddingVertical: 14,
@@ -187,6 +224,20 @@ const styles = StyleSheet.create({
     marginTop: 20,
     minWidth: 200,
     alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#667eea',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginTop: 30,
+    marginBottom: 20,
+    minWidth: 250,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
