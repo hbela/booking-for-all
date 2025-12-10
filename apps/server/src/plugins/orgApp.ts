@@ -52,12 +52,23 @@ export default fp(async (fastify: FastifyInstance) => {
       : null;
 
   const bucket = cfg.S3_BUCKET || process.env.S3_BUCKET || "";
+  // IMPORTANT: PUBLIC_APP_URL should be used for public-facing URLs (APK downloads, QR codes)
+  // CORS_ORIGIN is for CORS configuration and should NOT be used for public URLs
   const publicAppUrl =
     cfg.PUBLIC_APP_URL ||
     process.env.PUBLIC_APP_URL ||
     cfg.CORS_ORIGIN ||
     process.env.CORS_ORIGIN ||
     "";
+
+  // Log the publicAppUrl being used (helpful for debugging)
+  if (publicAppUrl) {
+    fastify.log.info(`🌐 Using PUBLIC_APP_URL: ${publicAppUrl}`);
+  } else {
+    fastify.log.warn(
+      "⚠️ PUBLIC_APP_URL is not set! APK downloads and QR codes may not work correctly."
+    );
+  }
 
   // Helper function to resolve APK URL from either S3 or R2
   async function resolveApkUrl(
@@ -495,31 +506,58 @@ export default fp(async (fastify: FastifyInstance) => {
     }
   </style>
   <script>
-    // Try to open app if installed (universal link)
+    // Check if app is installed by trying to open deep link
+    let appInstalled = false;
+    
+    function checkAppInstalled() {
+      const deepLink = '${deepLink}';
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = deepLink;
+      document.body.appendChild(iframe);
+      
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        // If we're still here after timeout, app might not be installed
+        // But we can't be 100% sure, so we'll show the button anyway
+      }, 2000);
+    }
+    
+    // Try to open app if installed (universal link or deep link)
     function tryOpenApp() {
       const deepLink = '${deepLink}';
       const universalLink = '${universalLink}';
       
-      // Try universal link first (works for both installed and not installed)
-      if (universalLink && universalLink !== 'https://app.booking-for-all.com/org?orgId=undefined&orgSlug=undefined') {
-        window.location.href = universalLink;
-      } else {
-        // Fallback: Try deep link
+      // On Android, try deep link first (more reliable)
+      if (/Android/i.test(navigator.userAgent)) {
+        // Try deep link first
         window.location.href = deepLink;
+        // Fallback: if deep link doesn't work, try universal link after a delay
+        setTimeout(() => {
+          if (universalLink && universalLink !== 'https://app.booking-for-all.com/org?orgId=undefined&orgSlug=undefined') {
+            window.location.href = universalLink;
+          }
+        }, 500);
+      } else {
+        // On iOS, try universal link first
+        if (universalLink && universalLink !== 'https://app.booking-for-all.com/org?orgId=undefined&orgSlug=undefined') {
+          window.location.href = universalLink;
+        } else {
+          window.location.href = deepLink;
+        }
       }
     }
     
-    // Auto-detect if app is installed on mobile devices
-    window.addEventListener('load', () => {
-      // Check if we're on mobile
-      if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-        // Small delay to let page render, then try to open app
-        setTimeout(() => {
-          // Only auto-open if user hasn't interacted yet
-          // This prevents interrupting manual downloads
-        }, 1000);
+    // Check if we're being opened from the app (to prevent redirect loop)
+    if (window.location.search.includes('fromApp=true')) {
+      // App opened this page, don't redirect back
+      console.log('Opened from app, showing success message');
+    } else {
+      // Check if app is installed on page load (for Android)
+      if (/Android/i.test(navigator.userAgent)) {
+        checkAppInstalled();
       }
-    });
+    }
   </script>
 </head>
 <body>
@@ -1071,5 +1109,24 @@ export default fp(async (fastify: FastifyInstance) => {
       fastify.log.error(error, "Error serving QR code from S3");
       throw new AppError("Failed to serve QR code", "QR_SERVE_ERROR", 500);
     }
+  });
+
+  // ------------------------
+  // Debug endpoint to check PUBLIC_APP_URL (for troubleshooting)
+  // ------------------------
+  fastify.get("/api/debug/public-app-url", async (req, reply) => {
+    return reply.send({
+      success: true,
+      data: {
+        publicAppUrl,
+        sources: {
+          cfg_PUBLIC_APP_URL: cfg.PUBLIC_APP_URL || null,
+          env_PUBLIC_APP_URL: process.env.PUBLIC_APP_URL || null,
+          cfg_CORS_ORIGIN: cfg.CORS_ORIGIN || null,
+          env_CORS_ORIGIN: process.env.CORS_ORIGIN || null,
+        },
+        note: "This endpoint shows what PUBLIC_APP_URL is being used for APK downloads and QR codes",
+      },
+    });
   });
 });

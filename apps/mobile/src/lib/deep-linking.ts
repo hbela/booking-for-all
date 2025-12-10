@@ -10,21 +10,40 @@ export interface OrganizationContext {
 
 export async function handleDeepLink(url: string): Promise<OrganizationContext | null> {
   try {
+    console.log('🔗 handleDeepLink: Processing URL:', url);
+    
     const parsed = Linking.parse(url);
     const queryParams = parsed.queryParams || {};
     
+    // Handle both deep link scheme (bookingapp://) and HTTP/HTTPS URLs
+    let orgId: string | undefined = queryParams.orgId as string | undefined;
+    let orgSlug: string | undefined = queryParams.orgSlug as string | undefined;
+    
+    // If URL is HTTP/HTTPS and matches install page pattern, extract orgId from path
+    if ((url.startsWith('http://') || url.startsWith('https://')) && !orgId) {
+      // Pattern: https://domain/org/:orgId/app?orgId=...
+      const orgIdMatch = url.match(/\/org\/([^\/\?]+)/);
+      if (orgIdMatch && orgIdMatch[1]) {
+        orgId = orgIdMatch[1];
+        console.log('🔗 handleDeepLink: Extracted orgId from URL path:', orgId);
+      }
+    }
+    
     const orgContext: OrganizationContext = {
-      orgId: queryParams.orgId as string | undefined,
-      orgSlug: queryParams.orgSlug as string | undefined,
+      orgId: orgId,
+      orgSlug: orgSlug,
     };
 
     if (orgContext.orgId || orgContext.orgSlug) {
       // Store organization context
       await AsyncStorage.setItem(ORG_CONTEXT_KEY, JSON.stringify(orgContext));
+      console.log('✅ handleDeepLink: Stored organization context:', orgContext);
       return orgContext;
+    } else {
+      console.log('⚠️ handleDeepLink: No orgId or orgSlug found in URL');
     }
   } catch (error) {
-    console.error('Error handling deep link:', error);
+    console.error('❌ handleDeepLink: Error handling deep link:', error);
   }
   
   return null;

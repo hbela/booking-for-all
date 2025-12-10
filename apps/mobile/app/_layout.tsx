@@ -24,7 +24,19 @@ export default function RootLayout() {
         const initialUrl = await Linking.getInitialURL();
         console.log('🔗 RootLayout: Initial URL:', initialUrl);
         if (initialUrl) {
-          await handleDeepLink(initialUrl);
+          // Check if this is an install page URL that we should handle
+          const isInstallPageUrl = initialUrl.includes('/org/') && initialUrl.includes('/app');
+          if (isInstallPageUrl) {
+            console.log('📱 RootLayout: Detected install page URL, handling as deep link');
+          }
+          const context = await handleDeepLink(initialUrl);
+          if (context) {
+            console.log('✅ RootLayout: Successfully processed deep link, orgId:', context.orgId);
+          } else {
+            console.log('⚠️ RootLayout: Deep link processed but no context returned');
+          }
+        } else {
+          console.log('ℹ️ RootLayout: No initial URL found');
         }
       } catch (error) {
         console.error('❌ RootLayout: Error handling initial URL:', error);
@@ -34,8 +46,17 @@ export default function RootLayout() {
     // Handle deep links while app is running
     const subscription = Linking.addEventListener('url', async (event) => {
       try {
-        console.log('🔗 RootLayout: Deep link received:', event.url);
-        await handleDeepLink(event.url);
+        console.log('🔗 RootLayout: Deep link received while running:', event.url);
+        const isInstallPageUrl = event.url.includes('/org/') && event.url.includes('/app');
+        if (isInstallPageUrl) {
+          console.log('📱 RootLayout: Detected install page URL, handling as deep link');
+        }
+        const context = await handleDeepLink(event.url);
+        if (context) {
+          console.log('✅ RootLayout: Successfully processed deep link, orgId:', context.orgId);
+        } else {
+          console.log('⚠️ RootLayout: Deep link processed but no context returned');
+        }
       } catch (error) {
         console.error('❌ RootLayout: Error handling deep link:', error);
       }
