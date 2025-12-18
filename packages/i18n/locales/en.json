@@ -386,7 +386,15 @@
     "time": "Time",
     "deleting": "Deleting...",
     "client": "Client",
-    "nA": "N/A"
+    "nA": "N/A",
+    "canceled": "Canceled",
+    "cancellationDetails": "Cancellation Details",
+    "cancellationDetailsDescription": "Details about the cancelled booking",
+    "userName": "User Name",
+    "eventTitle": "Event Title",
+    "eventDate": "Event Date",
+    "cancellationDate": "Cancellation Date",
+    "notAvailable": "Not Available"
   },
   "client": {
     "clientDashboard": "Client Dashboard",
@@ -423,6 +431,8 @@
     "organization": "Organization",
     "department": "Department",
     "price": "Price",
+    "startDate": "Start Date",
+    "timeSlot": "Time Slot",
     "backToOrganizations": "Back to Organizations",
     "selectDepartmentToViewProviders": "Select a department to view available providers",
     "loadingDepartments": "Loading departments...",
@@ -461,7 +471,13 @@
     "noAvailableTimeSlots": "No available time slots for this date.",
     "trySelectingDifferentDate": "Try selecting a different date.",
     "booked": "Booked",
-    "available": "Available"
+    "available": "Available",
+    "cancelBooking": "Cancel Booking",
+    "cancelling": "Cancelling...",
+    "bookingCancelledSuccessfully": "Booking cancelled successfully",
+    "failedToCancelBooking": "Failed to cancel booking",
+    "cannotCancelPastEvent": "Cannot cancel a past event",
+    "userEmail": "User Email"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

@@ -24,6 +24,11 @@ export async function initI18n() {
       interpolation: { escapeValue: false }
     });
 
+  // Only preload the fallback language (en) during initialization
+  // Other languages will be loaded on-demand when first used
+  // This is more memory-efficient when supporting many languages (e.g., 20+)
+  await i18next.loadLanguages(["en"]);
+
   return i18next;
 }
 

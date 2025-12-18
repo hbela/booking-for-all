@@ -8,10 +8,103 @@ const debugRoutes: FastifyPluginAsync = async (app) => {
       const userCount = await prisma.user.count();
       const orgCount = await prisma.organization.count();
       const deptCount = await prisma.department.count();
+      const eventCount = await prisma.event.count();
+      const bookingCount = await prisma.booking.count();
+      
+      // Get recent events (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentEventsCount = await prisma.event.count({
+        where: {
+          start: { gte: thirtyDaysAgo }
+        }
+      });
+      
+      // Get recent bookings
+      const recentBookingsCount = await prisma.booking.count({
+        where: {
+          createdAt: { gte: thirtyDaysAgo }
+        }
+      });
+      
+      // Get sample recent events
+      const recentEvents = await prisma.event.findMany({
+        where: {
+          start: { gte: thirtyDaysAgo }
+        },
+        orderBy: { start: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          start: true,
+          end: true,
+          isBooked: true,
+          createdAt: true
+        }
+      });
+      
+      // Get sample recent bookings
+      const recentBookings = await prisma.booking.findMany({
+        where: {
+          createdAt: { gte: thirtyDaysAgo }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          event: {
+            select: {
+              title: true,
+              start: true
+            }
+          }
+        }
+      });
+      
       const users = await prisma.user.findMany({ select: { email: true, name: true }, take: 5 });
-      reply.send({ databaseUrl: process.env.DATABASE_URL, tables: { users: userCount, organizations: orgCount, departments: deptCount }, sampleUsers: users, prismaConnected: true });
+      
+      // Mask database URL for security
+      const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || 'NOT SET';
+      const maskedUrl = dbUrl !== 'NOT SET' 
+        ? dbUrl.replace(/(:\/\/)([^:]+):([^@]+)@/, '$1***:***@')
+        : 'NOT SET';
+      
+      reply.send({ 
+        databaseUrl: maskedUrl,
+        usingDirectUrl: !!process.env.DIRECT_URL,
+        usingDatabaseUrl: !!process.env.DATABASE_URL,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        tables: { 
+          users: userCount, 
+          organizations: orgCount, 
+          departments: deptCount,
+          events: eventCount,
+          bookings: bookingCount,
+          recentEvents: recentEventsCount,
+          recentBookings: recentBookingsCount
+        }, 
+        sampleUsers: users,
+        sampleRecentEvents: recentEvents,
+        sampleRecentBookings: recentBookings,
+        prismaConnected: true 
+      });
     } catch (error: any) {
-      reply.status(500).send({ databaseUrl: process.env.DATABASE_URL, error: error?.message || 'Unknown error', prismaConnected: false });
+      const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || 'NOT SET';
+      const maskedUrl = dbUrl !== 'NOT SET' 
+        ? dbUrl.replace(/(:\/\/)([^:]+):([^@]+)@/, '$1***:***@')
+        : 'NOT SET';
+      reply.status(500).send({ 
+        databaseUrl: maskedUrl,
+        usingDirectUrl: !!process.env.DIRECT_URL,
+        usingDatabaseUrl: !!process.env.DATABASE_URL,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        error: error?.message || 'Unknown error', 
+        prismaConnected: false 
+      });
     }
   });
 

@@ -4,10 +4,32 @@
 	admin off
 }
 
-# Expose Live Server/Five Server (running on 127.0.0.1:5501) at http://wellness.hu
+# Expose Live Server/Five Server (running on 127.0.0.1:5502) at http://wellness.hu
+# Proxy API requests to the backend server on port 3000
 # Note: On Windows, binding to port 80 may require administrator privileges
 http://wellness.hu {
 	encode gzip
-	reverse_proxy 127.0.0.1:5501
+	
+	# Proxy API requests to backend server
+	# Fastify server is configured with trustProxy: true and requestTimeout: 30000
+	# Caddy automatically forwards X-Forwarded-* headers, but we set explicit timeouts
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000 {
+			# Match server's requestTimeout setting (30 seconds)
+			transport http {
+				read_timeout 30s
+				write_timeout 30s
+			}
+			# Health check to detect backend availability
+			health_uri /health
+			health_interval 10s
+			health_timeout 5s
+		}
+	}
+	
+	# All other requests go to Live Server
+	handle {
+		reverse_proxy 127.0.0.1:5502
+	}
 }
 

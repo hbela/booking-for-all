@@ -128,6 +128,7 @@ interface Provider {
 interface CreateBookingData {
   eventId: string;
   providerId: string;
+  language?: string; // Optional language code for email translations
 }
 
 // API functions
@@ -158,6 +159,7 @@ const createBooking = async (data: CreateBookingData): Promise<any> => {
       body: JSON.stringify({
         eventId: data.eventId,
         providerId: data.providerId,
+        language: data.language, // Include current language in request body
       }),
     }
   );
@@ -282,6 +284,7 @@ function ClientCalendar() {
     await bookingMutation.mutateAsync({
       eventId: selectedEvent.id,
       providerId,
+      language: langCode, // Pass current language to ensure email is sent in correct language
     });
   };
 

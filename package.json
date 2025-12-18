@@ -2,6 +2,9 @@
   "name": "booking-for-all",
   "private": true,
   "type": "module",
+  "prisma": {
+    "schema": "packages/db/prisma/schema/schema.prisma"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,8 +15,6 @@
     "deploy:sentry": "dotenv -- node scripts/sentry-release.mjs",
     "deploy": "pnpm build && pnpm deploy:sentry",
     "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
-    "dev:mobile": "turbo -F mobile dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "sentry:release": "node ./scripts/sentry-upload.mjs",

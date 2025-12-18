@@ -25,6 +25,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -130,7 +137,15 @@ interface CalendarEvent {
   start: Date;
   end: Date;
   isBooked: boolean;
-  booking?: any;
+  booking?: {
+    id?: string;
+    status?: string;
+    updatedAt?: string;
+    member?: {
+      name?: string;
+      email?: string;
+    };
+  };
 }
 
 // API functions
@@ -240,6 +255,7 @@ function ProviderCalendarComponent() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCancellationDialog, setShowCancellationDialog] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(
     null
   );
@@ -284,21 +300,39 @@ function ProviderCalendarComponent() {
     pastCutoff.setDate(pastCutoff.getDate() - 30);
 
     return rawEvents
-      .map((event: any) => ({
-        id: event.id,
-        title: event.isBooked
-          ? `${event.title} - ${t("provider.bookedBy")} ${
+      .map((event: any) => {
+        const isCancelled = event.booking?.status === "CANCELLED";
+        let title = event.title;
+        
+        if (event.isBooked) {
+          if (isCancelled) {
+            title = `${event.title} - ${t("provider.canceled")} - ${t("provider.bookedBy")} ${
               event.booking?.member?.name || t("provider.client")
-            }`
-          : event.title,
-        description: event.description,
-        start: new Date(event.start),
-        end: new Date(event.end),
-        isBooked: event.isBooked,
-        booking: event.booking,
-      }))
+            }`;
+          } else {
+            title = `${event.title} - ${t("provider.bookedBy")} ${
+              event.booking?.member?.name || t("provider.client")
+            }`;
+          }
+        }
+        
+        return {
+          id: event.id,
+          title,
+          description: event.description,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          isBooked: event.isBooked,
+          booking: event.booking ? {
+            id: event.booking.id,
+            status: event.booking.status,
+            updatedAt: event.booking.updatedAt,
+            member: event.booking.member,
+          } : undefined,
+        };
+      })
       .filter((event: CalendarEvent) => event.start >= pastCutoff);
-  }, [rawEvents]);
+  }, [rawEvents, t]);
 
   // Mutations
   const createEventMutation = useMutation({
@@ -423,15 +457,25 @@ function ProviderCalendarComponent() {
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setSelectedSlot(null); // Clear selected slot when editing an event
-    // Calculate duration from event start/end times
-    const durationMs = event.end.getTime() - event.start.getTime();
-    const durationMinutes = Math.round(durationMs / (1000 * 60));
-    form.setFieldValue("title", event.title);
-    form.setFieldValue("description", event.description || "");
-    form.setFieldValue("duration", durationMinutes);
-    setShowModal(true);
+    // Check if event is cancelled
+    const isCancelled = event.booking?.status === "CANCELLED";
+    
+    if (isCancelled) {
+      // Show cancellation details dialog instead of edit modal
+      setSelectedEvent(event);
+      setShowCancellationDialog(true);
+    } else {
+      // Normal flow: show edit modal
+      setSelectedEvent(event);
+      setSelectedSlot(null); // Clear selected slot when editing an event
+      // Calculate duration from event start/end times
+      const durationMs = event.end.getTime() - event.start.getTime();
+      const durationMinutes = Math.round(durationMs / (1000 * 60));
+      form.setFieldValue("title", event.title);
+      form.setFieldValue("description", event.description || "");
+      form.setFieldValue("duration", durationMinutes);
+      setShowModal(true);
+    }
   };
 
   const handleDeleteClick = (event: CalendarEvent) => {
@@ -454,8 +498,17 @@ function ProviderCalendarComponent() {
 
   // Event styling based on booking status
   const eventStyleGetter = (event: CalendarEvent) => {
+    const isCancelled = event.booking?.status === "CANCELLED";
+    let backgroundColor = "#10b981"; // Default green for available
+    
+    if (isCancelled) {
+      backgroundColor = "#dc2626"; // Red for cancelled
+    } else if (event.isBooked) {
+      backgroundColor = "#eab308"; // Yellow for booked (not cancelled)
+    }
+    
     const style = {
-      backgroundColor: event.isBooked ? "#ef4444" : "#10b981",
+      backgroundColor,
       borderRadius: "5px",
       opacity: 0.8,
       color: "white",
@@ -806,6 +859,65 @@ function ProviderCalendarComponent() {
           </Card>
         </div>
       )}
+
+      {/* Cancellation Details Dialog */}
+      <Dialog open={showCancellationDialog} onOpenChange={setShowCancellationDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-green-400">
+              {t("provider.cancellationDetails")}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedEvent && selectedEvent.booking && (
+            <div className="space-y-4 py-4">
+              <div>
+                <span className="text-sm font-medium">{t("provider.userName")}: </span>
+                <span className="text-sm">{selectedEvent.booking.member?.name || t("provider.notAvailable")}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">{t("provider.emailLabel")}: </span>
+                <span className="text-sm">{selectedEvent.booking.member?.email || t("provider.notAvailable")}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">{t("provider.eventTitle")}: </span>
+                <span className="text-sm">{selectedEvent.title}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">{t("provider.eventDate")}: </span>
+                <span className="text-sm">
+                  {format(selectedEvent.start, "PPP 'at' p", { locale: dateFnsLocale })} -{" "}
+                  {format(selectedEvent.end, "p", { locale: dateFnsLocale })}
+                </span>
+              </div>
+              {selectedEvent.description && (
+                <div>
+                  <span className="text-sm font-medium">{t("provider.description")}: </span>
+                  <span className="text-sm">{selectedEvent.description}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-sm font-medium">{t("provider.cancellationDate")}: </span>
+                <span className="text-sm">
+                  {selectedEvent.booking.updatedAt
+                    ? format(new Date(selectedEvent.booking.updatedAt), "PPP 'at' p", { locale: dateFnsLocale })
+                    : t("provider.notAvailable")}
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCancellationDialog(false);
+                setSelectedEvent(null);
+              }}
+            >
+              {t("common.close")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

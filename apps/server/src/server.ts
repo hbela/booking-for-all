@@ -6,9 +6,12 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load env from monorepo root and from apps/server/.env explicitly
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Load env files in priority order:
+// 1. apps/server/.env FIRST (highest priority) - server-specific config with override enabled
+// 2. packages/.env or root .env (lower priority) - shared config
+// This ensures apps/server/.env DATABASE_URL (Accelerate) overrides packages/.env DATABASE_URL (direct postgres)
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: false });
 
 import { buildApp } from './app';
 

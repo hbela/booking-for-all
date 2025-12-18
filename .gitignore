@@ -50,7 +50,3 @@ tmp
 temp
 testsprite_tests
 docs
-
-# Expo/React Native - Generated native folders (use EAS prebuild)
-apps/mobile/android/
-apps/mobile/ios/

@@ -28,22 +28,23 @@ console.log("✅ Router created:", {
 });
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+const isDev = import.meta.env.DEV;
 
 // Debug logging
 console.log("🚀 App Initialization:", {
   env: import.meta.env.MODE,
-  dev: import.meta.env.DEV,
+  dev: isDev,
   sentryDsn: sentryDsn ? "✅ Set" : "❌ Not set",
   serverUrl: import.meta.env.VITE_SERVER_URL || "❌ Not set",
   environment: import.meta.env.VITE_ENVIRONMENT || "not set",
   release: import.meta.env.VITE_SENTRY_RELEASE || "not set",
   currentUrl: window.location.href,
   pathname: window.location.pathname,
+  sentryEnabled: !isDev && !!sentryDsn,
 });
 
-if (sentryDsn) {
-  const isDev = import.meta.env.DEV;
-
+// Only initialize Sentry in production
+if (sentryDsn && !isDev) {
   // Add breadcrumb for app initialization
   Sentry.addBreadcrumb({
     category: "app",
@@ -185,7 +186,7 @@ const rootElement = document.getElementById("app");
 if (!rootElement) {
   const error = new Error("Root element '#app' not found in DOM");
   console.error("❌", error);
-  if (sentryDsn) {
+  if (sentryDsn && !isDev) {
     Sentry.captureException(error);
   }
   throw error;
@@ -198,7 +199,7 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
 
   // Track route changes with Sentry (using periodic check instead of subscribe)
-  if (sentryDsn) {
+  if (sentryDsn && !isDev) {
     let lastPathname = router.state.location?.pathname;
     setInterval(() => {
       const currentPathname = router.state.location?.pathname;
@@ -216,89 +217,38 @@ if (!rootElement.innerHTML) {
     }, 1000);
   }
 
-  const content = sentryDsn ? (
-    <Sentry.ErrorBoundary
-      fallback={({ error }) => (
-        <div className="p-6 text-center">
-          <h1 className="text-2xl font-semibold">Something went wrong</h1>
-          <p className="mt-2 text-muted-foreground">
-            Our team has been notified. Please refresh the page.
-          </p>
-          {import.meta.env.DEV && (
-            <pre className="mt-4 overflow-x-auto rounded bg-muted p-4 text-left text-sm">
-              {error && typeof error === "object" && "message" in error
-                ? (error as { message: string }).message
-                : String(error)}
-            </pre>
-          )}
-        </div>
-      )}
-    >
+  const content =
+    sentryDsn && !isDev ? (
+      <Sentry.ErrorBoundary
+        fallback={({ error }) => (
+          <div className="p-6 text-center">
+            <h1 className="text-2xl font-semibold">Something went wrong</h1>
+            <p className="mt-2 text-muted-foreground">
+              Our team has been notified. Please refresh the page.
+            </p>
+            {import.meta.env.DEV && (
+              <pre className="mt-4 overflow-x-auto rounded bg-muted p-4 text-left text-sm">
+                {error && typeof error === "object" && "message" in error
+                  ? (error as { message: string }).message
+                  : String(error)}
+              </pre>
+            )}
+          </div>
+        )}
+      >
+        <AppRoot />
+      </Sentry.ErrorBoundary>
+    ) : (
       <AppRoot />
-    </Sentry.ErrorBoundary>
-  ) : (
-    <AppRoot />
-  );
+    );
 
   // Wrap render in try-catch to catch any errors
   try {
     root.render(content);
     console.log("✅ React app rendered successfully");
-
-    // Check if anything was actually rendered after a delay
-    setTimeout(() => {
-      const appEl = document.getElementById("app");
-      console.log("🔍 Post-render check:", {
-        appInnerHTML: appEl?.innerHTML?.length || 0,
-        appChildren: appEl?.children?.length || 0,
-        hasReactRoot: appEl?.hasAttribute("data-reactroot") || false,
-      });
-
-      // If still empty after 500ms, something is wrong
-      if (!appEl?.innerHTML || appEl.innerHTML.trim().length === 0) {
-        console.error("❌ CRITICAL: React rendered but DOM is empty!");
-        console.error(
-          "   This means React mounted but RouterProvider didn't render anything"
-        );
-
-        // Try to render RouterProvider with error handling
-        console.log("🧪 Testing: Trying RouterProvider with error boundary...");
-        try {
-          root.render(
-            <div
-              style={{
-                padding: "20px",
-                backgroundColor: "yellow",
-                color: "black",
-              }}
-            >
-              <h2>Testing RouterProvider...</h2>
-              <QueryClientProvider client={queryClient}>
-                <RouterProvider router={router} />
-              </QueryClientProvider>
-            </div>
-          );
-          console.log("✅ RouterProvider render attempted");
-        } catch (routerError) {
-          console.error("❌ RouterProvider threw error:", routerError);
-          root.render(
-            <div
-              style={{
-                padding: "20px",
-                backgroundColor: "red",
-                color: "white",
-              }}
-            >
-              <h2>RouterProvider Error:</h2>
-              <pre>{String(routerError)}</pre>
-            </div>
-          );
-        }
-      }
-    }, 500);
   } catch (error) {
     console.error("❌ CRITICAL ERROR during render:", error);
-    if (sentryDsn) {
+    if (sentryDsn && !isDev) {
       Sentry.captureException(error);
     }
   }

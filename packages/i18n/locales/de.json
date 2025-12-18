@@ -386,7 +386,15 @@
     "time": "Zeit",
     "deleting": "Löschen...",
     "client": "Kunde",
-    "nA": "N/A"
+    "nA": "N/A",
+    "canceled": "Storniert",
+    "cancellationDetails": "Stornierungsdetails",
+    "cancellationDetailsDescription": "Details zur stornierten Buchung",
+    "userName": "Benutzername",
+    "eventTitle": "Ereignistitel",
+    "eventDate": "Ereignisdatum",
+    "cancellationDate": "Stornierungsdatum",
+    "notAvailable": "Nicht verfügbar"
   },
   "client": {
     "clientDashboard": "Kunden-Dashboard",
@@ -423,6 +431,8 @@
     "organization": "Organisation",
     "department": "Abteilung",
     "price": "Preis",
+    "startDate": "Startdatum",
+    "timeSlot": "Zeitslot",
     "backToOrganizations": "Zurück zu Organisationen",
     "selectDepartmentToViewProviders": "Wähle eine Abteilung aus, um verfügbare Dienstleister anzuzeigen",
     "loadingDepartments": "Abteilungen werden geladen...",
@@ -461,7 +471,13 @@
     "noAvailableTimeSlots": "Keine verfügbaren Zeitslots für dieses Datum.",
     "trySelectingDifferentDate": "Versuche ein anderes Datum auszuwählen.",
     "booked": "Gebucht",
-    "available": "Verfügbar"
+    "available": "Verfügbar",
+    "cancelBooking": "Buchung stornieren",
+    "cancelling": "Wird storniert...",
+    "bookingCancelledSuccessfully": "Buchung erfolgreich storniert",
+    "failedToCancelBooking": "Buchung konnte nicht storniert werden",
+    "cannotCancelPastEvent": "Eine vergangene Veranstaltung kann nicht storniert werden",
+    "userEmail": "Benutzer-E-Mail"
   },
   "errors": {
     "somethingWentWrong": "Etwas ist schief gelaufen",

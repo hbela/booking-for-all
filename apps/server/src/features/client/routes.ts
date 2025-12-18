@@ -3,6 +3,7 @@ import prisma from "@booking-for-all/db";
 import crypto from "crypto";
 import { requireAuthHook } from "../../plugins/authz";
 import { AppError } from "../../errors/AppError";
+import { sendBookingConfirmationEmails } from "../../utils/booking-email-utils";
 
 const clientRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -199,6 +200,7 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
       try {
         const user = req.user;
         const { eventId } = (req.body as any) || {};
+        let eventIdForError: string | undefined = eventId; // Store for error handling
 
         if (!eventId) {
           throw new AppError("eventId is required", "VALIDATION_ERROR", 400);
@@ -225,14 +227,6 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           throw new AppError("Event not found", "EVENT_NOT_FOUND", 404);
         }
 
-        if (event.isBooked) {
-          throw new AppError(
-            "Event is already booked",
-            "EVENT_ALREADY_BOOKED",
-            400
-          );
-        }
-
         // Check if event is in the past
         if (new Date(event.start) < new Date()) {
           throw new AppError(
@@ -242,149 +236,150 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           );
         }
 
-        // Create booking
-        const booking = await prisma.booking.create({
-          data: {
-            id: crypto.randomUUID(),
-            eventId: event.id,
-            memberId: user.id,
-            status: "CONFIRMED",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
+        // Check if booking already exists (handles Prisma Accelerate cache issues)
+        // This is important because event.isBooked might be stale with caching
+        const existingBooking = await prisma.booking.findUnique({
+          where: { eventId: event.id },
         });
 
-        // Mark event as booked
-        await prisma.event.update({
-          where: { id: eventId },
-          data: { isBooked: true },
+        if (existingBooking) {
+          throw new AppError(
+            "Event is already booked",
+            "EVENT_ALREADY_BOOKED",
+            400
+          );
+        }
+
+        // Double-check event.isBooked flag (additional safety check)
+        if (event.isBooked) {
+          throw new AppError(
+            "Event is already booked",
+            "EVENT_ALREADY_BOOKED",
+            400
+          );
+        }
+
+        // Create booking using transaction to ensure atomicity
+        const booking = await prisma.$transaction(async (tx) => {
+          // Re-check within transaction to prevent race conditions
+          const bookingExists = await tx.booking.findUnique({
+            where: { eventId: event.id },
+          });
+
+          if (bookingExists) {
+            throw new AppError(
+              "Event is already booked",
+              "EVENT_ALREADY_BOOKED",
+              400
+            );
+          }
+
+          // Create booking
+          const newBooking = await tx.booking.create({
+            data: {
+              id: crypto.randomUUID(),
+              eventId: event.id,
+              memberId: user.id,
+              status: "CONFIRMED",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Mark event as booked atomically
+          await tx.event.update({
+            where: { id: eventId },
+            data: { isBooked: true },
+          });
+
+          return newBooking;
         });
+
 
         // Send confirmation emails (graceful degradation - booking succeeds even if email fails)
         try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const fromEmail =
-            process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+          // Language detection priority for /api/client/bookings:
+          // 1. body.language (from request body - highest priority for explicit language preference)
+          // 2. Accept-Language header (from mobile app or web app)
+          // 3. req.language (from i18n plugin - set from cookie or Accept-Language header)
+          // 4. Default to "en"
+          const supportedLanguages = ["en", "hu", "de"] as const;
+          let lang: "en" | "hu" | "de" | undefined;
 
-          // Get language preference (default to "en", can be enhanced with user preference)
-          const lang = req.language || "en";
-          
-          // Map language to locale for date formatting
-          const localeMap: Record<string, string> = {
-            en: "en-US",
-            hu: "hu-HU",
-            de: "de-DE",
-          };
-          const locale = localeMap[lang] || "en-US";
-
-          // Format date and time
-          const startDate = new Date(event.start);
-          const endDate = new Date(event.end);
-          const dateStr = startDate.toLocaleDateString(locale, {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
-          const startTime = startDate.toLocaleTimeString(locale, {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-          const endTime = endDate.toLocaleTimeString(locale, {
-            hour: "numeric",
-            minute: "2-digit",
-          });
-
-          // Send email to client
-          console.log("📧 Sending confirmation email to client:", user.email);
-          await resend.emails.send({
-            from: fromEmail,
-            to: user.email,
-            subject: app.t("emails.bookingConfirmation.subject", {
-              lng: lang,
-              providerName: event.provider.user.name,
-            }),
-            html: `
-            <h2>${app.t("emails.bookingConfirmation.title", { lng: lang })}</h2>
-            <p>${app.t("emails.bookingConfirmation.dear", { lng: lang, clientName: user.name })}</p>
-            <p>${app.t("emails.bookingConfirmation.appointmentBooked", { lng: lang })}</p>
-            <h3>${app.t("emails.bookingConfirmation.appointmentDetails", { lng: lang })}</h3>
-            <ul>
-              <li><strong>${app.t("emails.bookingConfirmation.provider", { lng: lang })}</strong> ${event.provider.user.name}</li>
-              <li><strong>${app.t("emails.bookingConfirmation.eventTitle", { lng: lang })}</strong> ${event.title}</li>
-              ${
-                event.description
-                  ? `<li><strong>${app.t("emails.bookingConfirmation.description", { lng: lang })}</strong> ${event.description}</li>`
-                  : ""
-              }
-              <li><strong>${app.t("emails.bookingConfirmation.date", { lng: lang })}</strong> ${dateStr}</li>
-              <li><strong>${app.t("emails.bookingConfirmation.time", { lng: lang })}</strong> ${startTime} - ${endTime}</li>
-              ${
-                event.duration
-                  ? `<li><strong>${app.t("emails.bookingConfirmation.duration", { lng: lang })}</strong> ${app.t("emails.bookingConfirmation.minutes", { lng: lang, duration: event.duration })}</li>`
-                  : ""
-              }
-              ${
-                event.price
-                  ? `<li><strong>${app.t("emails.bookingConfirmation.price", { lng: lang })}</strong> $${event.price}</li>`
-                  : ""
-              }
-              <li><strong>${app.t("emails.bookingConfirmation.organization", { lng: lang })}</strong> ${
-                event.provider.department.organization.name
-              }</li>
-              <li><strong>${app.t("emails.bookingConfirmation.department", { lng: lang })}</strong> ${
-                event.provider.department.name
-              }</li>
-            </ul>
-            <p>${app.t("emails.bookingConfirmation.cancelReschedule", { lng: lang })}</p>
-            <p>${app.t("emails.bookingConfirmation.bestRegards", { lng: lang })}<br>${app.t("emails.bookingConfirmation.fromOrganization", {
-              lng: lang,
-              organizationName: event.provider.department.organization.name,
-            })}</p>
-          `,
-          });
-          console.log("✅ Client email sent successfully");
-
-          // Send notification email to provider
-          if (event.provider.user.email) {
-            console.log(
-              "📧 Sending notification email to provider:",
-              event.provider.user.email
-            );
-            await resend.emails.send({
-              from: fromEmail,
-              to: event.provider.user.email,
-              subject: app.t("emails.bookingNotification.subject", {
-                lng: lang,
-                eventTitle: event.title,
-              }),
-              html: `
-              <h2>${app.t("emails.bookingNotification.title", { lng: lang })}</h2>
-              <p>${app.t("emails.bookingNotification.dear", { lng: lang, providerName: event.provider.user.name })}</p>
-              <p>${app.t("emails.bookingNotification.newBooking", { lng: lang })}</p>
-              <h3>${app.t("emails.bookingNotification.bookingDetails", { lng: lang })}</h3>
-              <ul>
-                <li><strong>${app.t("emails.bookingNotification.client", { lng: lang })}</strong> ${user.name} (${user.email})</li>
-                <li><strong>${app.t("emails.bookingNotification.eventTitle", { lng: lang })}</strong> ${event.title}</li>
-                ${
-                  event.description
-                    ? `<li><strong>${app.t("emails.bookingNotification.description", { lng: lang })}</strong> ${event.description}</li>`
-                    : ""
-                }
-                <li><strong>${app.t("emails.bookingNotification.date", { lng: lang })}</strong> ${dateStr}</li>
-                <li><strong>${app.t("emails.bookingNotification.time", { lng: lang })}</strong> ${startTime} - ${endTime}</li>
-                ${
-                  event.duration
-                    ? `<li><strong>${app.t("emails.bookingNotification.duration", { lng: lang })}</strong> ${app.t("emails.bookingNotification.minutes", { lng: lang, duration: event.duration })}</li>`
-                    : ""
-                }
-              </ul>
-              <p>${app.t("emails.bookingNotification.bestRegards", { lng: lang })}<br>${app.t("emails.bookingNotification.bookingSystem", { lng: lang })}</p>
-            `,
-            });
-            console.log("✅ Provider email sent successfully");
+          // Priority 1: body.language (explicit language from request body)
+          const bodyLanguage = (req.body as any)?.language;
+          if (
+            bodyLanguage &&
+            supportedLanguages.includes(bodyLanguage as any)
+          ) {
+            lang = bodyLanguage as "en" | "hu" | "de";
           }
+
+          // Priority 2: Accept-Language header
+          if (!lang) {
+            const acceptLanguageRaw =
+              req.headers["accept-language"] || req.headers["Accept-Language"];
+            const acceptLanguage = Array.isArray(acceptLanguageRaw)
+              ? acceptLanguageRaw[0]
+              : acceptLanguageRaw;
+
+            if (acceptLanguage) {
+              const extractedLang = acceptLanguage
+                .split(",")[0]
+                ?.split("-")[0]
+                ?.toLowerCase();
+              // Validate against supported languages
+              if (
+                extractedLang &&
+                supportedLanguages.includes(extractedLang as any)
+              ) {
+                lang = extractedLang as "en" | "hu" | "de";
+              }
+            }
+          }
+
+          // Priority 3: req.language (from i18n plugin)
+          if (!lang) {
+            lang = req.language;
+          }
+
+          // Priority 4: Final fallback to "en"
+          if (!lang) {
+            lang = "en";
+          }
+          await sendBookingConfirmationEmails(
+            app,
+            {
+              event: {
+                id: event.id,
+                title: event.title,
+                description: event.description,
+                start: event.start,
+                end: event.end,
+                duration: event.duration,
+                price: event.price,
+                provider: {
+                  user: {
+                    id: event.provider.user.id,
+                    name: event.provider.user.name,
+                    email: event.provider.user.email,
+                  },
+                  department: {
+                    name: event.provider.department.name,
+                    organization: {
+                      name: event.provider.department.organization.name,
+                    },
+                  },
+                },
+              },
+              client: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              },
+            },
+            lang
+          );
         } catch (emailError) {
           console.error("❌ Failed to send booking emails:", emailError);
           // Continue - booking is still successful
@@ -417,10 +412,36 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
           data: bookingWithDetails,
         });
       } catch (error) {
-        if (error.isAppError) {
+        if (error instanceof AppError) {
           throw error;
         }
-        app.log.error(error, "Error creating booking");
+
+        // Handle Prisma unique constraint errors (P2002)
+        // This can happen with Prisma Accelerate caching or race conditions
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "P2002" &&
+          "meta" in error &&
+          error.meta &&
+          typeof error.meta === "object" &&
+          "target" in error.meta &&
+          Array.isArray(error.meta.target) &&
+          error.meta.target.includes("eventId")
+        ) {
+          app.log.warn(
+            { eventId: eventIdForError, error },
+            "Booking creation failed due to unique constraint (event already booked)"
+          );
+          throw new AppError(
+            "Event is already booked",
+            "EVENT_ALREADY_BOOKED",
+            400
+          );
+        }
+
+        app.log.error(error as Error, "Error creating booking");
         throw new AppError(
           "Failed to create booking",
           "CREATE_BOOKING_FAILED",

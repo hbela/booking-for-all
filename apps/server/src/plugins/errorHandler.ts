@@ -5,6 +5,9 @@ import { ZodError } from "zod";
 
 export function errorHandler(app: FastifyInstance) {
   app.setErrorHandler((error, request: FastifyRequest, reply: FastifyReply) => {
+    // Ensure Content-Type header is set for all error responses (required for ngrok)
+    reply.header('Content-Type', 'application/json; charset=utf-8');
+
     // Zod validation error
     if (error instanceof ZodError) {
       return reply.status(422).send({

@@ -166,7 +166,7 @@ npx prisma migrate reset --schema=./prisma/schema/schema.prisma
 ### Development Environment
 
 ```powershell
-# 1. Make schema changes in auth.prisma or schema.prisma
+# 1. Make schema changes in schema.prisma
 # 2. Create and apply migration
 npx prisma migrate dev --name descriptive_name --schema=./prisma/schema/schema.prisma
 

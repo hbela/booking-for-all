@@ -194,7 +194,10 @@
             onclick="connectToOrganization()"
             style="width: 100%"
           >
-            Connect to the app
+            <span id="connect-btn-text">Connect to the app</span>
+            <span id="connect-btn-loading" style="display: none"
+              >Connecting...</span
+            >
           </button>
         </div>
       </div>
@@ -202,15 +205,39 @@
 
     <script>
       async function connectToOrganization() {
+        const connectBtn = document.getElementById("connect-btn");
+        const connectBtnText = document.getElementById("connect-btn-text");
+        const connectBtnLoading = document.getElementById(
+          "connect-btn-loading"
+        );
+
         try {
+          // Show loading state
+          if (connectBtn) {
+            connectBtn.disabled = true;
+            if (connectBtnText) connectBtnText.style.display = "none";
+            if (connectBtnLoading) connectBtnLoading.style.display = "inline";
+          }
+
           // Extract domain from current location
           const domain = window.location.hostname;
-          console.log("Detected domain:", domain);
+          console.log("🔍 Detected domain:", domain);
+          console.log("🔍 Full URL:", window.location.href);
 
           // Call backend API directly (no PHP proxy needed)
           // Determine API URL based on environment
           let apiBaseUrl;
-          if (window.location.origin.includes("localhost")) {
+
+          // FOR TESTING: Use localhost in development, ngrok only if needed
+          // TODO: Remove this when deploying to production
+          if (window.location.hostname === "wellness.hu") {
+            // For local development, use localhost:3000 directly to avoid Caddy/ngrok issues
+            // This works because both browser and server are on the same machine
+            apiBaseUrl = "http://localhost:3000";
+            console.log(
+              "🔗 Using direct localhost API (bypassing Caddy/ngrok)"
+            );
+          } else if (window.location.origin.includes("localhost")) {
             apiBaseUrl = "http://localhost:3000";
           } else if (
             window.location.hostname.includes("dev") ||
@@ -230,32 +257,368 @@
           const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(
             domain
           )}`;
-          console.log("Connecting to:", url);
+          console.log("🔗 Connecting to:", url);
+          console.log("🔗 API Base URL:", apiBaseUrl);
+          console.log("🔗 Domain being queried:", domain);
 
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          // Prepare headers - add ngrok bypass header if using ngrok
+          const headers = {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          };
+
+          // Bypass ngrok's browser warning page
+          // Note: The server is now properly configured (trustProxy, requestTimeout, Content-Type headers)
+          // to prevent ERR_NGROK_3004 from incomplete responses. This code handles ngrok's browser warning page.
+          // ngrok requires this header to be sent, and the request must not be treated as navigation
+          if (apiBaseUrl.includes("ngrok")) {
+            headers["ngrok-skip-browser-warning"] = "true";
+            // Also set mode to 'cors' explicitly to ensure it's not treated as navigation
+            console.log("🔗 Added ngrok-skip-browser-warning header");
+            console.log("🔗 Headers being sent:", headers);
+
+            // Pre-visit ngrok URL in hidden iframe to accept warning (sets cookie)
+            // This is needed for ngrok free tier to allow subsequent API requests
+            console.log("🔗 Pre-visiting ngrok URL to accept warning...");
+            try {
+              const iframe = document.createElement("iframe");
+              iframe.style.display = "none";
+              iframe.src = apiBaseUrl;
+              document.body.appendChild(iframe);
+
+              // Wait a bit for the iframe to load and set the cookie
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              // Remove iframe after a delay
+              setTimeout(() => {
+                if (iframe.parentNode) {
+                  iframe.parentNode.removeChild(iframe);
+                }
+              }, 3000);
+
+              console.log("✅ Ngrok pre-visit completed");
+            } catch (preVisitError) {
+              console.warn(
+                "⚠️ Pre-visit failed (non-critical):",
+                preVisitError
+              );
+              // Continue anyway - the header might be enough
+            }
+          }
+
+          console.log("📤 Making fetch request...");
+          // #region agent log
+          fetch(
+            "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "wellness_external.html:270",
+                message: "Before fetch call",
+                data: { url, headers, apiBaseUrl, domain },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run1",
+                hypothesisId: "A",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
+
+          let response;
+          const fetchStartTime = Date.now();
+
+          try {
+            // Add timeout wrapper to detect hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+              controller.abort();
+              // #region agent log
+              fetch(
+                "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    location: "wellness_external.html:280",
+                    message: "Fetch timeout triggered",
+                    data: { elapsed: Date.now() - fetchStartTime },
+                    timestamp: Date.now(),
+                    sessionId: "debug-session",
+                    runId: "run1",
+                    hypothesisId: "B",
+                  }),
+                }
+              ).catch(() => {});
+              // #endregion
+            }, 15000); // 15 second timeout
+
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "wellness_external.html:285",
+                  message: "Fetch call initiated",
+                  data: { url, hasSignal: true },
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "C",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
+            // Log the exact URL being called
+            console.log("🌐 Fetch URL:", url);
+            console.log("🌐 Fetch hostname:", new URL(url).hostname);
+            console.log("🌐 Fetch port:", new URL(url).port || "default (80)");
+
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "wellness_external.html:380",
+                  message: "About to fetch",
+                  data: {
+                    url,
+                    hostname: new URL(url).hostname,
+                    port: new URL(url).port || "80",
+                    protocol: new URL(url).protocol,
+                  },
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "F",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
+            // Use 'cors' mode explicitly to ensure proper headers are sent
+            // and request is not treated as navigation
+            response = await fetch(url, {
+              method: "GET",
+              headers: headers,
+              signal: controller.signal,
+              mode: "cors", // Explicitly set CORS mode
+              credentials: "omit", // Don't send cookies to avoid ngrok cookie issues
+            });
+
+            clearTimeout(timeoutId);
+            const fetchDuration = Date.now() - fetchStartTime;
+
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "wellness_external.html:295",
+                  message: "Fetch completed successfully",
+                  data: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: response.headers.get("content-type"),
+                    duration: fetchDuration,
+                  },
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "D",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
+            console.log("📥 Response received:", {
+              status: response.status,
+              statusText: response.statusText,
+              contentType: response.headers.get("content-type"),
+              duration: fetchDuration + "ms",
+            });
+          } catch (fetchError) {
+            const fetchDuration = Date.now() - fetchStartTime;
+            const errorDetails = {
+              name: fetchError.name,
+              message: fetchError.message,
+              stack: fetchError.stack?.substring(0, 200),
+              duration: fetchDuration,
+              url: url,
+              apiBaseUrl: apiBaseUrl,
+            };
+
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "wellness_external.html:420",
+                  message: "Fetch error details",
+                  data: errorDetails,
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "G",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "wellness_external.html:310",
+                  message: "Fetch error caught",
+                  data: errorDetails,
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "E",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
+            console.error("❌ Fetch error:", fetchError);
+            console.error("❌ Error name:", fetchError.name);
+            console.error("❌ Error message:", fetchError.message);
+            console.error("❌ Fetch duration:", fetchDuration + "ms");
+
+            let errorMsg = `Failed to connect to API: ${fetchError.message}\n\n`;
+
+            if (fetchError.name === "AbortError") {
+              errorMsg += `⏱️ Request timed out after ${fetchDuration}ms.\n\n`;
+              errorMsg += `This might mean:\n`;
+              errorMsg += `1. Ngrok is not running or not accessible\n`;
+              errorMsg += `2. Backend server is not running on port 3000\n`;
+              errorMsg += `3. Network connectivity issue\n`;
+              errorMsg += `4. CORS preflight is hanging\n\n`;
+            } else if (
+              fetchError.message.includes("CORS") ||
+              fetchError.message.includes("Failed to fetch")
+            ) {
+              errorMsg += `🚫 CORS or network error detected.\n\n`;
+              errorMsg += `The server needs to allow requests from: ${window.location.origin}\n`;
+              errorMsg += `Check server CORS configuration for origin: ${window.location.origin}\n\n`;
+            } else {
+              errorMsg += `This might be due to:\n`;
+              errorMsg += `1. CORS issue - check server CORS configuration\n`;
+              errorMsg += `2. Network error - check if ngrok is running\n`;
+              errorMsg += `3. Server not running - check if backend is on port 3000\n\n`;
+            }
+
+            errorMsg += `Try accessing this URL directly: ${url}`;
+
+            throw new Error(errorMsg);
+          }
+
+          // Check if response is HTML (ngrok interstitial page or error page)
+          const contentType = response.headers.get("content-type") || "";
+          console.log("📄 Response content-type:", contentType);
+          console.log("📄 Response status:", response.status);
+          console.log(
+            "📄 Response headers:",
+            Object.fromEntries(response.headers.entries())
+          );
+
+          // Check for ngrok error responses
+          if (response.status === 403 || response.status === 0) {
+            const text = await response.text().catch(() => "");
+            console.error(
+              "❌ Possible ngrok blocking:",
+              text.substring(0, 500)
+            );
+
+            if (
+              text.includes("ERR_NGROK") ||
+              text.includes("ngrok") ||
+              response.status === 0
+            ) {
+              throw new Error(
+                `Ngrok browser warning page detected.\n\n` +
+                  `This happens when ngrok's free tier shows a warning page for browser requests.\n\n` +
+                  `Solution:\n` +
+                  `1. Open this URL directly in your browser: ${apiBaseUrl}\n` +
+                  `2. Click "Visit Site" on the ngrok warning page\n` +
+                  `3. This will set a cookie that allows subsequent requests\n` +
+                  `4. Come back and try connecting again\n\n` +
+                  `Note: The server is properly configured - this is just ngrok's browser warning page.`
+              );
+            }
+          }
+
+          if (!contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error(
+              "❌ Received non-JSON response:",
+              text.substring(0, 500)
+            );
+
+            // Check if it's ngrok warning page
+            if (
+              text.includes("ngrok") ||
+              text.includes("Visit Site") ||
+              text.includes("ERR_NGROK")
+            ) {
+              throw new Error(
+                `Ngrok interstitial page detected!\n\n` +
+                  `Please do the following:\n` +
+                  `1. Open this URL in a new tab: ${apiBaseUrl}\n` +
+                  `2. Click "Visit Site" on the ngrok warning page\n` +
+                  `3. Come back and try connecting again\n\n` +
+                  `This is a one-time step to bypass ngrok's browser warning.`
+              );
+            }
+
+            throw new Error(
+              `Server returned HTML instead of JSON. This might be:\n` +
+                `1. Ngrok's browser warning page (try accessing ${apiBaseUrl} in browser first to accept warning)\n` +
+                `2. CORS error page\n` +
+                `3. Server error page\n\n` +
+                `Response preview: ${text.substring(0, 200)}...`
+            );
+          }
 
           if (!response.ok) {
-            const errorData = await response
-              .json()
-              .catch(() => ({ message: "Unknown error" }));
+            let errorData;
+            try {
+              const text = await response.text();
+              console.error("❌ Error response text:", text.substring(0, 500));
+              errorData = JSON.parse(text);
+            } catch (e) {
+              errorData = {
+                message: `HTTP ${response.status}: ${response.statusText}`,
+              };
+            }
             console.error(
-              "Organization lookup failed:",
+              "❌ Organization lookup failed:",
               response.status,
               errorData
             );
             throw new Error(
               errorData.message ||
-                `Organization lookup failed: ${response.status}`
+                `Organization lookup failed: ${response.status} ${response.statusText}`
             );
           }
 
+          console.log("✅ Response OK, parsing JSON...");
           const data = await response.json();
-          console.log("🔍 Response data:", data);
+          console.log("✅ Parsed response data:", data);
 
           if (!data.success) {
             console.error("❌ Response not successful:", data);
@@ -298,7 +661,15 @@
           // Redirect to the React connect page
           // Determine frontend URL based on environment
           let frontendUrl;
-          if (window.location.origin.includes("localhost")) {
+
+          // FOR TESTING: Use ngrok for backend API, localhost for frontend
+          // Backend API: https://7de015d881a8.ngrok-free.app (port 3000)
+          // Frontend: http://localhost:3001 (direct local access)
+          // TODO: Remove this when deploying to production
+          if (window.location.hostname === "wellness.hu") {
+            // Use localhost for frontend (backend uses ngrok)
+            frontendUrl = "http://localhost:3001";
+          } else if (window.location.origin.includes("localhost")) {
             frontendUrl = "http://localhost:3001";
           } else if (
             window.location.hostname.includes("dev") ||
@@ -313,29 +684,72 @@
                 : "http://localhost:3001";
           }
 
+          console.log("🌐 Frontend URL determined:", frontendUrl);
+          console.log("🌐 Current origin:", window.location.origin);
+          console.log("🌐 Current hostname:", window.location.hostname);
+
           // Build connect URL with orgId parameter (more reliable than domain lookup)
           const connectUrl = new URL("/connect", frontendUrl);
           if (orgData.organizationId) {
             connectUrl.searchParams.set("orgId", orgData.organizationId);
+            console.log("🔗 Added orgId:", orgData.organizationId);
           }
           // Also pass domain as fallback
           if (window.location.hostname) {
             connectUrl.searchParams.set("domain", window.location.hostname);
+            console.log("🔗 Added domain:", window.location.hostname);
           }
           // Pass orgSlug for context
           if (orgData.organizationSlug) {
             connectUrl.searchParams.set("orgSlug", orgData.organizationSlug);
+            console.log("🔗 Added orgSlug:", orgData.organizationSlug);
           }
 
-          console.log("🔄 Redirecting to connect page:", connectUrl.toString());
+          console.log("🔄 About to redirect to:", connectUrl.toString());
+          console.log("🔄 Full connect URL:", connectUrl.href);
+
+          // Small delay to ensure all logs are visible
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
           window.location.href = connectUrl.toString();
         } catch (error) {
           console.error("Error connecting to organization:", error);
-          alert(
-            `Failed to connect to organization:\n\n${error.message}\n\nPlease check:\n1. Backend API is reachable\n2. Domain is registered in the database\n3. CORS is properly configured for ${window.location.origin}`
-          );
+
+          let errorMessage = `Failed to connect to organization:\n\n${error.message}\n\n`;
+
+          // Add specific guidance for ngrok issues
+          if (
+            error.message.includes("HTML instead of JSON") ||
+            error.message.includes("ngrok")
+          ) {
+            errorMessage += `⚠️ Ngrok Browser Warning Page Issue:\n`;
+            errorMessage += `1. Open this URL in your browser first: ${apiBaseUrl}\n`;
+            errorMessage += `2. Click "Visit Site" on the ngrok warning page\n`;
+            errorMessage += `3. Then try connecting again from this page\n\n`;
+            errorMessage += `Note: The server is properly configured - this is just ngrok's browser warning page.\n\n`;
+          }
+
+          errorMessage += `Please also check:\n`;
+          errorMessage += `1. Backend API is running and accessible at: ${apiBaseUrl}\n`;
+          errorMessage += `2. Domain "${domain}" is registered in the database\n`;
+          errorMessage += `3. CORS is properly configured for ${window.location.origin}\n`;
+          errorMessage += `4. Check browser console for more details`;
+
+          alert(errorMessage);
+        } finally {
+          // Reset button state
+          if (connectBtn) {
+            connectBtn.disabled = false;
+            if (connectBtnText) connectBtnText.style.display = "inline";
+            if (connectBtnLoading) connectBtnLoading.style.display = "none";
+          }
         }
       }
+
+      // Log page load for debugging
+      console.log("✅ wellness_external.html loaded");
+      console.log("📍 Current URL:", window.location.href);
+      console.log("📍 Hostname:", window.location.hostname);
     </script>
   </body>
 </html>

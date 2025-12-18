@@ -10,7 +10,8 @@ declare module 'fastify' {
   }
   
   interface FastifyInstance {
-    t(key: string, lng?: string): string;
+    t(key: string, options?: { lng?: string; [key: string]: any }): string;
+    ensureLanguageLoaded(lng: string): Promise<void>;
   }
 }
 

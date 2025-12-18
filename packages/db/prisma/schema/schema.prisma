@@ -1,16 +1,13 @@
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../generated"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
+  output   = "../generated"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Models from auth.prisma
 enum UserRole {
   ADMIN
   OWNER
@@ -93,7 +90,7 @@ model Organization {
   name                  String
   description           String?
   slug                  String         @unique
-  domain                String?        @unique  // Domain field for unique identification
+  domain                String?        @unique // Domain field for unique identification
   logo                  String?
   enabled               Boolean        @default(false)
   timeZone              String         @default("Europe/Budapest")
@@ -101,8 +98,8 @@ model Organization {
   availabilityEndHour   Int            @default(20)
   createdAt             DateTime
   metadata              String?
-  qrCodeKey             String?        // S3 path for QR code PNG
-  apkKey                String?        // S3 path for APK
+  qrCodeKey             String? // S3 path for QR code PNG
+  apkKey                String? // S3 path for APK
   members               Member[]
   departments           Department[]
   subscriptions         Subscription[]

@@ -386,7 +386,15 @@
     "time": "Idő",
     "deleting": "Törlés...",
     "client": "Ügyfél",
-    "nA": "N/A"
+    "nA": "N/A",
+    "canceled": "Törölve",
+    "cancellationDetails": "Lemondás részletei",
+    "cancellationDetailsDescription": "A lemondott foglalás részletei",
+    "userName": "Felhasználó neve",
+    "eventTitle": "Esemény címe",
+    "eventDate": "Esemény dátuma",
+    "cancellationDate": "Lemondás dátuma",
+    "notAvailable": "Nem elérhető"
   },
   "client": {
     "clientDashboard": "Ügyfél irányítópult",
@@ -423,6 +431,8 @@
     "organization": "Szervezet",
     "department": "Osztály",
     "price": "Ár",
+    "startDate": "Kezdés dátuma",
+    "timeSlot": "Időpont",
     "backToOrganizations": "Vissza a szervezetekhez",
     "selectDepartmentToViewProviders": "Válassz egy osztályt a rendelkezésre álló szolgáltatók megtekintéséhez",
     "loadingDepartments": "Osztályok betöltése...",
@@ -461,7 +471,13 @@
     "noAvailableTimeSlots": "Nincsenek elérhető időpontok erre a dátumra.",
     "trySelectingDifferentDate": "Próbálj másik dátumot kiválasztani.",
     "booked": "Foglalt",
-    "available": "Elérhető"
+    "available": "Elérhető",
+    "cancelBooking": "Foglalás törlése",
+    "cancelling": "Törlés...",
+    "bookingCancelledSuccessfully": "Foglalás sikeresen törölve",
+    "failedToCancelBooking": "Nem sikerült törölni a foglalást",
+    "cannotCancelPastEvent": "Nem lehet törölni egy múltbeli eseményt",
+    "userEmail": "Felhasználó e-mail címe"
   },
   "errors": {
     "somethingWentWrong": "Valami hiba történt",
