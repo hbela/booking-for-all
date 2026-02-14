@@ -35,9 +35,9 @@ export const Route = createFileRoute("/admin/api-keys")({
       });
     }
 
-    // Check if user has ADMIN role
-    // @ts-ignore - role is UserRole enum
-    if (session.data.user.role !== "ADMIN") {
+    // Check if user has system admin access
+    // @ts-ignore - isSystemAdmin is boolean field
+    if (!session.data.user.isSystemAdmin) {
       throw redirect({
         to: "/owner",
       });

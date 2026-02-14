@@ -128,7 +128,7 @@ exports.Prisma.UserScalarFieldEnum = {
   image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  role: 'role',
+  isSystemAdmin: 'isSystemAdmin',
   banned: 'banned',
   banReason: 'banReason',
   banExpires: 'banExpires',
@@ -194,6 +194,8 @@ exports.Prisma.MemberScalarFieldEnum = {
   organizationId: 'organizationId',
   userId: 'userId',
   email: 'email',
+  role: 'role',
+  authMethod: 'authMethod',
   createdAt: 'createdAt'
 };
 
@@ -217,6 +219,7 @@ exports.Prisma.DepartmentScalarFieldEnum = {
 
 exports.Prisma.ProviderScalarFieldEnum = {
   id: 'id',
+  organizationId: 'organizationId',
   userId: 'userId',
   departmentId: 'departmentId',
   bio: 'bio',
@@ -227,6 +230,7 @@ exports.Prisma.ProviderScalarFieldEnum = {
 
 exports.Prisma.EventScalarFieldEnum = {
   id: 'id',
+  organizationId: 'organizationId',
   providerId: 'providerId',
   title: 'title',
   description: 'description',
@@ -241,6 +245,7 @@ exports.Prisma.EventScalarFieldEnum = {
 
 exports.Prisma.BookingScalarFieldEnum = {
   id: 'id',
+  organizationId: 'organizationId',
   eventId: 'eventId',
   memberId: 'memberId',
   status: 'status',

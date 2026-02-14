@@ -24,46 +24,40 @@ export const Route = createFileRoute("/owner/")({
       });
     }
 
-    // @ts-ignore - role is UserRole enum
-    const role = session.data.user.role;
-
-    // If user is ADMIN, redirect to admin dashboard
-    if (role === "ADMIN") {
+    // If user is system admin, redirect to admin dashboard
+    // @ts-ignore - isSystemAdmin is boolean field
+    if (session.data.user.isSystemAdmin) {
       throw redirect({
         to: "/admin",
       });
     }
 
-    // OWNER must have organization membership
-    if (role === "OWNER") {
-      try {
-        try {
-          const organizations = await apiFetch<any[]>(
-            `${
-              import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
-            }/api/organizations/my-organizations`
-          );
-          if (!organizations || organizations.length === 0) {
-            // Owner has no organizations - redirect to login with error
-            throw redirect({
-              to: "/login",
-              search: {
-                error: "Connect using your organization.",
-              },
-            });
-          }
-        } catch (error) {
-          throw redirect({
-            to: "/login",
-            search: {
-              error: "Connect using your organization.",
-            },
-          });
-        }
-      } catch (error) {
-        console.error("Error checking organization membership:", error);
-        // If check fails, still allow access but log the error
+    // Check if user has OWNER role in at least one organization
+    try {
+      const memberships = await apiFetch<any[]>(
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/members/my-organizations`
+      );
+      
+      // Filter for OWNER memberships
+      const ownerMemberships = memberships.filter((m: any) => m.role === "OWNER");
+      
+      if (!ownerMemberships || ownerMemberships.length === 0) {
+        // User is not an owner of any organization
+        throw redirect({
+          to: "/",
+          search: {
+            error: "You do not have owner access to any organization.",
+          },
+        });
       }
+    } catch (error) {
+      console.error("Error checking organization membership:", error);
+      throw redirect({
+        to: "/",
+        search: {
+          error: "Could not verify organization membership.",
+        },
+      });
     }
 
     return { session };

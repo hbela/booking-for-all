@@ -1,21 +1,9 @@
 import { authClient } from "@/lib/auth-client";
-import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Loader from "./loader";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
 
 export default function SignInForm({
   onSwitchToSignUp,
@@ -27,189 +15,38 @@ export default function SignInForm({
     from: "/",
   });
   const { isPending } = authClient.useSession();
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
-  const [isSendingReset, setIsSendingReset] = useState(false);
-  const [showPasswordChangeDialog, setShowPasswordChangeDialog] =
-    useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [pendingRedirectRole, setPendingRedirectRole] = useState<string | null>(
-    null
-  );
 
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    onSubmit: async ({ value }) => {
-      await authClient.signIn.email(
-        {
-          email: value.email,
-          password: value.password,
+  const handleGoogleSignIn = async () => {
+    // Extract organization ID from URL params or sessionStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlOrgId = urlParams.get("org");
+    const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
+    const orgId = urlOrgId || externalAppOrgId;
+
+    if (!orgId) {
+      toast.error(
+        t("auth.organizationRequired") ||
+          "Organization context is required"
+      );
+      return;
+    }
+
+    try {
+      // Use Better Auth's signIn.social with additionalData to pass orgId
+      // callbackURL ensures user is redirected to frontend after OAuth
+      // Validation will happen in afterSignIn hook
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: `http://localhost:3001/login?org=${orgId}`,
+        additionalData: {
+          organizationId: orgId,
         },
-        {
-          onSuccess: async (context) => {
-            // Wait for session to be set
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            const session = await authClient.getSession();
-            
-            // @ts-ignore - role is UserRole enum
-            const role = session.data?.user?.role;
-            
-            // Check if user is OWNER, PROVIDER, or CLIENT without organization context
-            if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
-              const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
-              
-              if (!externalAppOrgId) {
-                // User is trying to sign in directly without organization context
-                toast.error(t("auth.connectUsingOrganization"));
-                // Sign them out immediately
-                await authClient.signOut();
-                // Stay on login page, do not redirect
-                return;
-              }
-            }
-            
-            toast.success(t("auth.signInSuccessful"));
-
-            // Debug: Log the full context to see what we're getting
-            console.log("🔍 Sign-in context:", context);
-            console.log("🔍 User data from sign-in:", context.data?.user);
-            console.log("🔍 Session data:", session);
-            console.log("🔍 Session user:", session.data?.user);
-
-            // @ts-ignore - needsPasswordChange is custom field
-            const needsPasswordChange = session.data?.user?.needsPasswordChange;
-
-            console.log("🔍 User role from session:", role);
-            console.log(
-              "🔍 Needs password change from session:",
-              needsPasswordChange
-            );
-
-            // Check if user needs to change password
-            if (needsPasswordChange) {
-              console.log("✅ Password change required - showing dialog");
-              setPendingRedirectRole(role || "CLIENT");
-              setShowPasswordChangeDialog(true);
-              return; // Don't redirect yet
-            }
-
-            // Redirect based on role - each role has its own dashboard
-            console.log("🚀 Redirecting based on role:", role);
-            if (role === "ADMIN") {
-              navigate({ to: "/admin" });
-            } else if (role === "OWNER") {
-              navigate({ to: "/owner" });
-            } else if (role === "PROVIDER") {
-              navigate({ to: "/provider" });
-            } else {
-              // CLIENT or default
-              console.log("⚠️ Defaulting to CLIENT dashboard");
-              navigate({ to: "/client" });
-            }
-          },
-          onError: (error) => {
-            const errorMessage =
-              (error as any)?.error?.message || t("auth.signInFailed");
-            toast.error(errorMessage);
-            console.error("Sign in error:", error);
-          },
-        }
-      );
-    },
-  });
-
-  const handleForgotPassword = async () => {
-    if (!forgotPasswordEmail) {
-      toast.error("Please enter your email address");
-      return;
-    }
-
-    setIsSendingReset(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/forgot-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email: forgotPasswordEmail }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Password reset email sent! Check your inbox.");
-        setShowForgotPassword(false);
-        setForgotPasswordEmail("");
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to send reset email");
-      }
+      });
     } catch (error) {
-      console.error("Forgot password error:", error);
-      toast.error("Failed to send reset email");
-    } finally {
-      setIsSendingReset(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    // Validate passwords
-    if (!newPassword || newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    setIsChangingPassword(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/update-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ newPassword }),
-        }
+      console.error("Google sign-in error:", error);
+      toast.error(
+        t("auth.signInFailed") || "Failed to sign in with Google"
       );
-
-      if (response.ok) {
-        toast.success("Password updated successfully!");
-        setShowPasswordChangeDialog(false);
-        setNewPassword("");
-        setConfirmPassword("");
-
-        // Now redirect to the appropriate dashboard
-        if (pendingRedirectRole === "ADMIN") {
-          navigate({ to: "/admin" });
-        } else if (pendingRedirectRole === "OWNER") {
-          navigate({ to: "/owner" });
-        } else if (pendingRedirectRole === "PROVIDER") {
-          navigate({ to: "/provider" });
-        } else {
-          // CLIENT or default
-          navigate({ to: "/client" });
-        }
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to update password");
-      }
-    } catch (error) {
-      console.error("Password update error:", error);
-      toast.error("Failed to update password");
-    } finally {
-      setIsChangingPassword(false);
     }
   };
 
@@ -219,125 +56,39 @@ export default function SignInForm({
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">{t("auth.welcomeBack")}</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">
+        {t("auth.welcomeBack")}
+      </h1>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-        className="space-y-4"
-      >
-        <div>
-          <form.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>{t("auth.email")}</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-red-500 text-sm">
-                    {String(error)}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <div>
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>{t("auth.password")}</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="password"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-red-500 text-sm">
-                    {String(error)}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <form.Subscribe>
-          {(state) => (
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={!state.canSubmit || state.isSubmitting}
-            >
-              {state.isSubmitting ? t("common.submitting") : t("auth.signIn")}
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
-
-      {/* Forgot Password Section */}
-      {showForgotPassword ? (
-        <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-          <h3 className="text-lg font-semibold mb-3">Reset Password</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Enter your email address and we'll send you a link to reset your
-            password.
-          </p>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="reset-email">Email Address</Label>
-              <Input
-                id="reset-email"
-                type="email"
-                value={forgotPasswordEmail}
-                onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                placeholder="Enter your email"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleForgotPassword}
-                disabled={isSendingReset}
-                className="flex-1"
-              >
-                {isSendingReset ? "Sending..." : "Send Reset Email"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowForgotPassword(false);
-                  setForgotPasswordEmail("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4 text-center">
-          <Button
-            variant="link"
-            onClick={() => setShowForgotPassword(true)}
-            className="text-indigo-600 hover:text-indigo-800"
-          >
-            {t("auth.forgotPassword")}
-          </Button>
-        </div>
-      )}
+      {/* Google Sign-In Button */}
+      <div className="mt-6">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+        >
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+            <path
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              fill="#34A853"
+            />
+            <path
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fill="#EA4335"
+            />
+          </svg>
+          Sign in with Google
+        </Button>
+      </div>
 
       <div className="mt-4 text-center">
         <Button
@@ -348,55 +99,6 @@ export default function SignInForm({
           {t("auth.needAnAccount")}
         </Button>
       </div>
-
-      {/* Mandatory Password Change Dialog */}
-      <Dialog open={showPasswordChangeDialog} onOpenChange={() => {}}>
-        <DialogContent
-          className="sm:max-w-md"
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Change Your Password</DialogTitle>
-            <DialogDescription>
-              For security reasons, you must change your temporary password
-              before continuing.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                disabled={isChangingPassword}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter new password"
-                disabled={isChangingPassword}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={handlePasswordChange}
-              disabled={isChangingPassword || !newPassword || !confirmPassword}
-              className="w-full"
-            >
-              {isChangingPassword ? "Updating..." : "Update Password"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

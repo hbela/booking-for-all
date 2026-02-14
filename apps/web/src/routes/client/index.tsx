@@ -24,50 +24,8 @@ export const Route = createFileRoute("/client/")({
       });
     }
 
-    // @ts-ignore - role is UserRole enum
-    const role = session.data.user.role;
-
-    // Owners, Admins, and Providers don't need to book appointments
-    // Redirect to their respective dashboards
-    if (role === "OWNER") {
-      throw redirect({
-        to: "/owner",
-      });
-    }
-    if (role === "ADMIN") {
-      throw redirect({
-        to: "/admin",
-      });
-    }
-    if (role === "PROVIDER") {
-      throw redirect({
-        to: "/provider",
-      });
-    }
-
-    // CLIENT must have organization membership
-    if (role === "CLIENT") {
-      try {
-        try {
-          const organizations = await apiFetch<any[]>(
-            `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/client/organizations`
-          );
-          if (!organizations || organizations.length === 0) {
-            // Client has no organizations - redirect to login
-            throw redirect({
-              to: "/login",
-            });
-          }
-        } catch (error) {
-          throw redirect({
-            to: "/login",
-          });
-        }
-      } catch (error) {
-        console.error("Error checking organization membership:", error);
-      }
-    }
-
+    // Allow all authenticated users to access client booking portal
+    // Users can book appointments if they have CLIENT role in any organization
     return { session };
   },
 });

@@ -127,10 +127,48 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
         throw new AppError("Invalid domain format", "INVALID_DOMAIN", 400);
       }
 
+      // Handle localhost/127.0.0.1 for development - try to find by slug from referrer or use default
+      let organization = null;
+      if (domainWithoutPort === "localhost" || domainWithoutPort === "127.0.0.1") {
+        // In development, try to infer organization from referrer URL or use slug parameter
+        const referrer = (req.headers.referer as string) || "";
+        const slugParam = (req.query as any).slug;
+        
+        // Try to extract slug from referrer path (e.g., /wellness_external.html -> wellness)
+        let inferredSlug = slugParam;
+        if (!inferredSlug && referrer) {
+          const slugMatch = referrer.match(/\/(\w+)_external\.html/);
+          if (slugMatch) {
+            inferredSlug = slugMatch[1];
+          }
+        }
+        
+        // Default to "wellness" if no slug can be inferred
+        if (!inferredSlug) {
+          inferredSlug = "wellness";
+        }
+        
+        // Find organization by slug
+        organization = await prisma.organization.findUnique({
+          where: { slug: inferredSlug },
+        });
+        
+        if (organization) {
+          app.log.info({ 
+            domain: domainWithoutPort, 
+            inferredSlug, 
+            orgId: organization.id,
+            orgName: organization.name 
+          }, "Found organization by slug for localhost/127.0.0.1");
+        }
+      }
+
       // First, try exact match (for production single domain)
-      let organization = await prisma.organization.findUnique({
-        where: { domain: domainWithoutPort },
-      });
+      if (!organization) {
+        organization = await prisma.organization.findUnique({
+          where: { domain: domainWithoutPort },
+        });
+      }
 
       // If not found, search through all organizations to find one where
       // the domain field contains the requested domain (supports comma-separated domains)

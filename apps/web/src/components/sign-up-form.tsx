@@ -1,12 +1,9 @@
 import { authClient } from "@/lib/auth-client";
-import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import Loader from "./loader";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 
 export default function SignUpForm({
   onSwitchToSignIn,
@@ -19,109 +16,36 @@ export default function SignUpForm({
   });
   const { isPending } = authClient.useSession();
 
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-      name: "",
-    },
-    onSubmit: async ({ value }) => {
-      // Check organization context BEFORE sign up
-      const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
-      
-      await authClient.signUp.email(
-        {
-          email: value.email,
-          password: value.password,
-          name: value.name,
-        },
-        {
-          onSuccess: async (context) => {
-            // Wait for session to be set
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            const session = await authClient.getSession();
-            
-            // @ts-ignore - role is UserRole enum
-            const role = session.data?.user?.role;
-            
-            // Block OWNER, PROVIDER, CLIENT from signing up without organization context
-            if (role === "OWNER" || role === "PROVIDER" || role === "CLIENT") {
-              if (!externalAppOrgId) {
-                // User is trying to sign up directly without organization context
-                toast.error(t("auth.connectUsingOrganization"));
-                // Sign them out immediately
-                await authClient.signOut();
-                // Stay on login page, do not redirect
-                return;
-              }
-            }
-            
-            toast.success(t("auth.signUpSuccessful"));
+  const handleGoogleSignUp = async () => {
+    // Extract organization ID from URL params or sessionStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlOrgId = urlParams.get("org");
+    const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
+    const orgId = urlOrgId || externalAppOrgId;
 
-            if (externalAppOrgId) {
-              console.log("🔗 Adding user to organization:", externalAppOrgId);
-              try {
-                // Add user as member of the organization
-                const response = await fetch(
-                  `${import.meta.env.VITE_SERVER_URL}/api/members/join`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({
-                      organizationId: externalAppOrgId,
-                    }),
-                  }
-                );
-
-                console.log(
-                  "🔗 Join organization response:",
-                  response.status,
-                  response.statusText
-                );
-
-                if (response.ok) {
-                  const result = await response.json();
-                  console.log("✅ Successfully joined organization:", result);
-                  toast.success(t("auth.welcomeAddedToOrganization"));
-                } else {
-                  const errorData = await response.json();
-                  console.error(
-                    "❌ Failed to add user to organization:",
-                    errorData
-                  );
-                  toast.error(t("auth.failedToJoinOrganization"));
-                }
-              } catch (error) {
-                console.error("❌ Error adding user to organization:", error);
-                toast.error(t("auth.failedToJoinOrganization"));
-              }
-            }
-
-            // Redirect based on role (already declared above) - each role has its own dashboard
-            if (role === "ADMIN") {
-              navigate({ to: "/admin/" });
-            } else if (role === "OWNER") {
-              navigate({ to: "/owner/" });
-            } else if (role === "PROVIDER") {
-              navigate({ to: "/provider/" });
-            } else {
-              // CLIENT or default
-              navigate({ to: "/client/" });
-            }
-          },
-          onError: (error) => {
-            const errorMessage =
-              (error as any)?.error?.message || t("auth.signUpFailed");
-            toast.error(errorMessage);
-            console.error("Signup error:", error);
-          },
-        }
+    if (!orgId) {
+      toast.error(
+        t("auth.organizationRequired") || "Organization context is required"
       );
-    },
-  });
+      return;
+    }
+
+    try {
+      // Use Better Auth's signIn.social with additionalData to pass orgId
+      // Note: signIn.social handles both sign-in and sign-up for social providers
+      // callbackURL ensures user is redirected to frontend after OAuth
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: `http://localhost:3001/login?org=${orgId}`,
+        additionalData: {
+          organizationId: orgId,
+        },
+      });
+    } catch (error) {
+      console.error("Google sign-up error:", error);
+      toast.error(t("auth.signUpFailed") || "Failed to sign up with Google");
+    }
+  };
 
   if (isPending) {
     return <Loader />;
@@ -129,96 +53,39 @@ export default function SignUpForm({
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">{t("auth.createAccount")}</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">
+        {t("auth.createAccount")}
+      </h1>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-        className="space-y-4"
-      >
-        <div>
-          <form.Field name="name">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>{t("common.name")}</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-red-500 text-sm">
-                    {String(error)}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <div>
-          <form.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>{t("auth.email")}</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-red-500 text-sm">
-                    {String(error)}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <div>
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>{t("auth.password")}</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="password"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors.map((error, index) => (
-                  <p key={index} className="text-red-500 text-sm">
-                    {String(error)}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <form.Subscribe>
-          {(state) => (
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={!state.canSubmit || state.isSubmitting}
-            >
-              {state.isSubmitting ? t("common.submitting") : t("auth.signUp")}
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
+      {/* Google OAuth Button */}
+      <div className="mt-6">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignUp}
+        >
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+            <path
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              fill="#34A853"
+            />
+            <path
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fill="#EA4335"
+            />
+          </svg>
+          Sign up with Google
+        </Button>
+      </div>
 
       <div className="mt-4 text-center">
         <Button

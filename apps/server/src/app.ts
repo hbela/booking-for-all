@@ -31,6 +31,7 @@ import { instrument } from "./instrument";
 import { errorHandler } from "./plugins/errorHandler";
 import i18nPlugin from "./plugins/i18n";
 import orgAppPlugin from "./plugins/orgApp";
+import { registerAuthPlugins } from "./plugins/auth";
 import * as Sentry from "@sentry/node";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -118,7 +119,7 @@ export function buildApp() {
         SENTRY_DSN: cfg.SENTRY_DSN ? "<set>" : "<missing>",
         SENTRY_RELEASE: cfg.SENTRY_RELEASE || "<missing>",
       },
-      "Loaded environment configuration from apps/server/.env",
+      "Loaded environment configuration from apps/server/.env"
     );
 
     instrument({
@@ -143,7 +144,8 @@ export function buildApp() {
       openapi: "3.1.0",
       info: {
         title: "Booking for All API",
-        description: "Comprehensive appointment management system API. Connect organizations, service providers, and clients seamlessly.",
+        description:
+          "Comprehensive appointment management system API. Connect organizations, service providers, and clients seamlessly.",
         version: "1.0.0",
         contact: {
           name: "API Support",
@@ -156,7 +158,10 @@ export function buildApp() {
         },
       ],
       tags: [
-        { name: "organizations", description: "Organization management endpoints" },
+        {
+          name: "organizations",
+          description: "Organization management endpoints",
+        },
         { name: "client", description: "Client-facing endpoints" },
         { name: "owner", description: "Organization owner endpoints" },
         { name: "provider", description: "Service provider endpoints" },
@@ -176,7 +181,8 @@ export function buildApp() {
             type: "http",
             scheme: "bearer",
             bearerFormat: "JWT",
-            description: "Bearer token authentication. Include the token in the Authorization header as: Bearer {token}",
+            description:
+              "Bearer token authentication. Include the token in the Authorization header as: Bearer {token}",
           },
           apiKey: {
             type: "apiKey",
@@ -218,44 +224,47 @@ export function buildApp() {
 
   // Configure content type parser to allow empty JSON bodies (common with DELETE requests)
   // Some HTTP clients send Content-Type: application/json with no body for DELETE requests
-  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
-    try {
-      // If body is empty, return empty object instead of throwing error
-      if (!body || body.trim() === '') {
-        return done(null, {});
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (req, body, done) => {
+      try {
+        // If body is empty, return empty object instead of throwing error
+        if (!body || body.trim() === "") {
+          return done(null, {});
+        }
+        const json = JSON.parse(body);
+        done(null, json);
+      } catch (err) {
+        done(err as Error, undefined);
       }
-      const json = JSON.parse(body);
-      done(null, json);
-    } catch (err) {
-      done(err as Error, undefined);
     }
-  });
-  
+  );
+
   // Register multipart plugin for file uploads
   app.register(multipart, {
     limits: {
-      fileSize: Number(process.env.VOICE_AGENT_MAX_AUDIO_SIZE) || 10 * 1024 * 1024, // 10MB default
+      fileSize:
+        Number(process.env.VOICE_AGENT_MAX_AUDIO_SIZE) || 10 * 1024 * 1024, // 10MB default
     },
   });
-  
+
   // Register rawBody plugin globally but only process routes with rawBody: true
-  app.register(rawBody, { 
-    field: "rawBody", 
+  app.register(rawBody, {
+    field: "rawBody",
     global: false, // Only process routes with config: { rawBody: true }
     runFirst: true, // Run before other body parsers
   });
 
   // Debug: Log Better Auth configuration
   app.log.info(`🔐 Better Auth baseURL: ${process.env.BETTER_AUTH_URL}`);
-  app.log.info(`🔐 Better Auth initialized with emailAndPassword plugin`);
-  
+  app.log.info(`🔐 Better Auth initialized with Google Sign-In only`);
+
   // Wildcard route to forward all /api/auth/* requests to Better Auth
-  // Exclude custom auth routes that we handle with authRoutes plugin
-  const customAuthRoutes = [
-    "/api/auth/update-password",
-    "/api/auth/check-password-change",
-  ];
-  
+  // Note: /api/auth/callback/social is now handled by Better Auth directly
+  // The afterSignIn hook in packages/auth/src/index.ts handles organizationId from additionalData
+  const customAuthRoutes: string[] = [];
+
   app.all("/api/auth/*", async (request, reply) => {
     // Skip Better Auth for custom routes - they'll be handled by authRoutes plugin below
     const customRoute = customAuthRoutes.find((route) =>
@@ -266,55 +275,74 @@ export function buildApp() {
       return reply.callNotFound();
     }
 
-    app.log.info(`🔐 Processing Better Auth request: ${request.method} ${request.url}`);
+    app.log.info(
+      `🔐 Processing Better Auth request: ${request.method} ${request.url}`
+    );
 
     try {
       // Construct full URL for Better Auth
-      const url = new URL(request.url, `${request.protocol}://${request.headers.host}`);
-      
+      const url = new URL(
+        request.url,
+        `${request.protocol}://${request.headers.host}`
+      );
+
       // Convert Fastify headers to Fetch API Headers
       const headers = new Headers();
       Object.entries(request.headers).forEach(([key, value]) => {
         if (value) {
-          headers.append(key, Array.isArray(value) ? value.join(', ') : value.toString());
+          headers.append(
+            key,
+            Array.isArray(value) ? value.join(", ") : value.toString()
+          );
         }
       });
-      
+
       // Create Fetch API-compatible Request
       const fetchRequest = new Request(url.toString(), {
         method: request.method,
         headers,
-        body: request.method !== 'GET' && request.method !== 'HEAD' && request.body 
-          ? JSON.stringify(request.body) 
-          : undefined,
+        body:
+          request.method !== "GET" && request.method !== "HEAD" && request.body
+            ? JSON.stringify(request.body)
+            : undefined,
       });
-      
+
       // Call Better Auth handler (uses Fetch API)
       app.log.info(`🔐 Calling auth.handler with URL: ${url.toString()}`);
       const response = await auth.handler(fetchRequest);
-      
+
       // Forward Better Auth response to client
       reply.status(response.status);
       response.headers.forEach((value, key) => {
         reply.header(key, value);
       });
-      
+
       const responseBody = await response.text();
-      app.log.info(`🔐 Better Auth responded: status=${response.status}, body=${responseBody.substring(0, 200)}`);
-      
+      app.log.info(
+        `🔐 Better Auth responded: status=${response.status}, body=${responseBody.substring(0, 200)}`
+      );
+
       reply.send(responseBody || null);
-      
     } catch (error) {
-      app.log.error(error, '🔐 Error processing Better Auth request');
-      reply.status(500).send({ 
-        error: 'Internal authentication error',
-        code: 'AUTH_FAILURE'
+      app.log.error(error, "🔐 Error processing Better Auth request");
+      reply.status(500).send({
+        error: "Internal authentication error",
+        code: "AUTH_FAILURE",
       });
     }
   });
 
-  app.register(healthRoutes, { prefix: "/health" });
-  
+  // Register auth plugins (organization-scoped routes)
+  // These plugins register routes at /org/:orgId/... so we prefix with /api
+  app.register(async (fastify) => {
+    await registerAuthPlugins(fastify);
+  }, { prefix: "/api" });
+
+  app.register(healthRoutes, { 
+    prefix: "/health",
+    logLevel: "error", // Only log errors, not regular health checks
+  });
+
   // Sentry tunnel endpoint to bypass ad blockers
   // Register as a plugin (like polar webhook) to ensure rawBody plugin works correctly
   app.register(sentryTunnel, { prefix: "/api" });
@@ -342,7 +370,7 @@ export function buildApp() {
 
   app.setNotFoundHandler((_req, reply) => {
     reply
-      .header('Content-Type', 'application/json; charset=utf-8')
+      .header("Content-Type", "application/json; charset=utf-8")
       .status(404)
       .send({ message: "Not Found" });
   });

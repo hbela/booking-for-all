@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +16,7 @@ import { Route as ProviderIndexRouteImport } from './routes/provider/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as ClientIndexRouteImport } from './routes/client/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as ProviderCalendarSaveRouteImport } from './routes/provider/calendar-save'
 import { Route as ProviderCalendarRouteImport } from './routes/provider/calendar'
 import { Route as OwnerProvidersRouteImport } from './routes/owner/providers'
 import { Route as OwnerDepartmentsRouteImport } from './routes/owner/departments'
@@ -26,11 +26,6 @@ import { Route as ClientOrganizationsOrgIdRouteImport } from './routes/client/or
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId'
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdProvidersProviderIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId/providers/$providerId'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -64,6 +59,11 @@ const ClientIndexRoute = ClientIndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProviderCalendarSaveRoute = ProviderCalendarSaveRouteImport.update({
+  id: '/provider/calendar-save',
+  path: '/provider/calendar-save',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProviderCalendarRoute = ProviderCalendarRouteImport.update({
@@ -116,12 +116,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
+  '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin': typeof AdminIndexRoute
   '/client': typeof ClientIndexRoute
   '/owner': typeof OwnerIndexRoute
@@ -134,12 +134,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
+  '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin': typeof AdminIndexRoute
   '/client': typeof ClientIndexRoute
   '/owner': typeof OwnerIndexRoute
@@ -153,12 +153,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
   '/provider/calendar': typeof ProviderCalendarRoute
+  '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin/': typeof AdminIndexRoute
   '/client/': typeof ClientIndexRoute
   '/owner/': typeof OwnerIndexRoute
@@ -173,12 +173,12 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/reset-password'
     | '/admin/api-keys'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
+    | '/provider/calendar-save'
     | '/admin'
     | '/client'
     | '/owner'
@@ -191,12 +191,12 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/reset-password'
     | '/admin/api-keys'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
+    | '/provider/calendar-save'
     | '/admin'
     | '/client'
     | '/owner'
@@ -209,12 +209,12 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/reset-password'
     | '/admin/api-keys'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
     | '/provider/calendar'
+    | '/provider/calendar-save'
     | '/admin/'
     | '/client/'
     | '/owner/'
@@ -228,12 +228,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnectRoute: typeof ConnectRoute
   LoginRoute: typeof LoginRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   AdminApiKeysRoute: typeof AdminApiKeysRoute
   ClientBookingsRoute: typeof ClientBookingsRoute
   OwnerDepartmentsRoute: typeof OwnerDepartmentsRoute
   OwnerProvidersRoute: typeof OwnerProvidersRoute
   ProviderCalendarRoute: typeof ProviderCalendarRoute
+  ProviderCalendarSaveRoute: typeof ProviderCalendarSaveRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ClientIndexRoute: typeof ClientIndexRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
@@ -243,13 +243,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -297,6 +290,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/provider/calendar-save': {
+      id: '/provider/calendar-save'
+      path: '/provider/calendar-save'
+      fullPath: '/provider/calendar-save'
+      preLoaderRoute: typeof ProviderCalendarSaveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/provider/calendar': {
@@ -392,12 +392,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnectRoute: ConnectRoute,
   LoginRoute: LoginRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   AdminApiKeysRoute: AdminApiKeysRoute,
   ClientBookingsRoute: ClientBookingsRoute,
   OwnerDepartmentsRoute: OwnerDepartmentsRoute,
   OwnerProvidersRoute: OwnerProvidersRoute,
   ProviderCalendarRoute: ProviderCalendarRoute,
+  ProviderCalendarSaveRoute: ProviderCalendarSaveRoute,
   AdminIndexRoute: AdminIndexRoute,
   ClientIndexRoute: ClientIndexRoute,
   OwnerIndexRoute: OwnerIndexRoute,

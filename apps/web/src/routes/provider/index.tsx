@@ -24,35 +24,32 @@ export const Route = createFileRoute("/provider/")({
       });
     }
 
-    // @ts-ignore - role is UserRole enum
-    const role = session.data.user.role;
-
-    // Check if user has PROVIDER role
-    if (role !== "PROVIDER") {
-      throw redirect({
-        to: "/login",
-      });
-    }
-
-    // PROVIDER must have provider record (which implies organization membership)
+    // Check if user has PROVIDER role in at least one organization
     try {
-      try {
-        const providers = await apiFetch<any[]>(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/providers?userId=${session.data.user.id}`
-        );
-        if (!providers || providers.length === 0) {
-          // Provider has no provider records - redirect to login
-          throw redirect({
-            to: "/login",
-          });
-        }
-      } catch (error) {
+      const memberships = await apiFetch<any[]>(
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/members/my-organizations`
+      );
+      
+      // Filter for PROVIDER memberships
+      const providerMemberships = memberships.filter((m: any) => m.role === "PROVIDER");
+      
+      if (!providerMemberships || providerMemberships.length === 0) {
+        // User is not a provider in any organization
         throw redirect({
-          to: "/login",
+          to: "/",
+          search: {
+            error: "You do not have provider access to any organization.",
+          },
         });
       }
     } catch (error) {
-      console.error("Error checking provider membership:", error);
+      console.error("Error checking organization membership:", error);
+      throw redirect({
+        to: "/",
+        search: {
+          error: "Could not verify organization membership.",
+        },
+      });
     }
 
     return { session };

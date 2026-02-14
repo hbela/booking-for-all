@@ -34,16 +34,8 @@ export const Route = createFileRoute("/client/bookings")({
       });
     }
 
-    // @ts-ignore - role is UserRole enum
-    const role = session.data.user.role;
-
-    // Only allow CLIENT role
-    if (role === "OWNER" || role === "ADMIN" || role === "PROVIDER") {
-      throw redirect({
-        to: "/",
-      });
-    }
-
+    // Allow all authenticated users to view their bookings
+    // (users can have CLIENT role in some organizations)
     return { session };
   },
 });

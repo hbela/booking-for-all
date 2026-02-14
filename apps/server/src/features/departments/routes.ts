@@ -1,45 +1,26 @@
 import type { FastifyPluginAsync } from "fastify";
 import prisma from "@booking-for-all/db";
-import { requireAuthHook } from "../../plugins/authz";
+import { requireAuthHook, orgGuard } from "../../plugins/authz";
 
 const departmentsRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/departments?organizationId=xxx
-  app.get("/", { preValidation: [requireAuthHook] }, async (req, reply) => {
+  app.get("/", { 
+    preValidation: [requireAuthHook, orgGuard] 
+  }, async (req, reply) => {
     try {
-      const { organizationId } = req.query as any;
-
-      if (!organizationId) {
-        return reply
-          .status(400)
-          .send({ error: "organizationId query parameter is required" });
+      // Organization context is now available from orgGuard
+      const organization = req.organization;
+      if (!organization) {
+        return reply.status(400).send({ error: "Organization context required" });
       }
-
-      const user = req.user;
 
       // For owners, allow access even if organization is disabled
-      const isOwner = user.role === "OWNER";
+      const isOwner = organization.role === "OWNER";
 
       // Build where clause - owners can see disabled orgs, others can't
-      const where: any = { organizationId };
+      const where: any = { organizationId: organization.id };
       if (!isOwner) {
         where.organization = { enabled: true };
-      }
-
-      // Verify user has access to this organization
-      if (!isOwner) {
-        const member = await prisma.member.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId,
-              userId: user.id,
-            },
-          },
-        });
-        if (!member) {
-          return reply
-            .status(403)
-            .send({ error: "You do not have access to this organization" });
-        }
       }
 
       const departments = await prisma.department.findMany({

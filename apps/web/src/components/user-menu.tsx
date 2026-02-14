@@ -15,32 +15,48 @@ import { useEffect, useState } from "react";
 
 export default function UserMenu() {
   const navigate = useNavigate();
-  const { data: session, isPending } = authClient.useSession();
-  const [userRole, setUserRole] = useState<string>("USER");
+  const { data: session, isPending, refetch } = authClient.useSession();
+  const [forceRefresh, setForceRefresh] = useState(0);
 
-  // Determine user role - directly from user object
+  // Listen for custom auth session change events (triggered after sign-in)
   useEffect(() => {
-    if (session?.user) {
-      // @ts-ignore - role is UserRole enum
-      const role = session.user.role || "CLIENT";
+    const handleAuthChange = () => {
+      // Refetch session when auth:session-changed event is fired (after sign-in)
+      console.log("🔄 UserMenu: Auth session changed event received, refetching session");
+      if (refetch) {
+        refetch();
+      } else {
+        // If refetch is not available, force a re-render by updating state
+        setForceRefresh(prev => prev + 1);
+      }
+    };
 
-      // Role is directly available - no API calls needed!
-      setUserRole(role);
+    window.addEventListener('auth:session-changed', handleAuthChange);
 
-      console.log("👤 Logged in user:", {
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role,
-        needsPasswordChange: (session.user as any).needsPasswordChange,
-      });
-    }
-  }, [session]);
+    return () => {
+      window.removeEventListener('auth:session-changed', handleAuthChange);
+    };
+  }, [refetch]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("👤 UserMenu - Session state:", {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      isPending,
+      userEmail: session?.user?.email,
+      userName: session?.user?.name,
+      isSystemAdmin: (session?.user as any)?.isSystemAdmin,
+      forceRefresh,
+    });
+  }, [session, isPending, forceRefresh]);
 
   if (isPending) {
     return <Skeleton className="h-9 w-24" />;
   }
 
-  if (!session) {
+  if (!session || !session.user) {
+    console.log("👤 UserMenu - No session, showing Sign In button");
     return (
       <Button variant="outline" asChild>
         <Link to="/login">Sign In</Link>
@@ -58,9 +74,11 @@ export default function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="flex flex-col items-start">
           <span className="font-medium">{session.user.email}</span>
-          <span className="text-xs text-muted-foreground">
-            Role: {userRole}
-          </span>
+          {(session.user as any)?.isSystemAdmin && (
+            <span className="text-xs text-muted-foreground">
+              System Administrator
+            </span>
+          )}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
@@ -68,16 +86,13 @@ export default function UserMenu() {
             variant="destructive"
             className="w-full"
             onClick={() => {
-              // Capture role and sessionStorage before signOut clears them
-              const currentRole = userRole;
+              // Capture sessionStorage before signOut clears them
               const orgSlug = sessionStorage.getItem("sourceOrganization");
               const externalAppOrigin =
                 sessionStorage.getItem("externalAppOrigin");
 
               console.log(
-                "🔓 Sign out - Role:",
-                currentRole,
-                "Org:",
+                "🔓 Sign out - Org:",
                 orgSlug,
                 "Origin:",
                 externalAppOrigin
@@ -86,27 +101,13 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    // Admins redirect to login page
-                    if (currentRole === "ADMIN") {
-                      console.log("🔓 Admin sign out - redirecting to /login");
-                      navigate({ to: "/login" });
-                      return;
-                    }
-
-                    const normalizedRole = currentRole?.toUpperCase();
-                    const requiresExternalRedirect =
-                      normalizedRole === "OWNER" ||
-                      normalizedRole === "PROVIDER" ||
-                      normalizedRole === "CLIENT";
-
-                    if (orgSlug && requiresExternalRedirect) {
+                    // If there's an organization slug, redirect to org-specific page
+                    if (orgSlug) {
                       const env =
                         import.meta.env.MODE === "production"
                           ? "production"
                           : "development";
                       const normalizedSlug = orgSlug.toLowerCase();
-                      // In production, files are at root: /{slug}_external.html
-                      // In development, files may be in subfolders: /{slug}/{slug}_external.html
                       const externalPath =
                         env === "production"
                           ? `${normalizedSlug}_external.html`
@@ -137,33 +138,27 @@ export default function UserMenu() {
                         window.location.href = resolvedUrl;
                         return;
                       }
+
+                      if (externalAppOrigin) {
+                        const baseUrl = externalAppOrigin.replace(/\/$/, "");
+                        const redirectUrl =
+                          env === "production"
+                            ? `${baseUrl}/${orgSlug}_external.html`
+                            : `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
+                        console.log(
+                          "🔓 Organization user sign out - redirecting via stored origin:",
+                          redirectUrl
+                        );
+                        window.location.href = redirectUrl;
+                        return;
+                      }
                     }
 
-                    if (orgSlug && externalAppOrigin) {
-                      // Redirect to the organization's external HTML page using the stored origin
-                      // In production, files are at root: /{slug}_external.html (e.g., /wellness_external.html)
-                      // In development, files may be in subfolders: /{slug}/{slug}_external.html
-                      const env =
-                        import.meta.env.MODE === "production"
-                          ? "production"
-                          : "development";
-                      const baseUrl = externalAppOrigin.replace(/\/$/, ""); // Remove trailing slash if present
-                      const redirectUrl =
-                        env === "production"
-                          ? `${baseUrl}/${orgSlug}_external.html`
-                          : `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
-                      console.log(
-                        "🔓 Organization user sign out - redirecting via stored origin:",
-                        redirectUrl
-                      );
-                      window.location.href = redirectUrl;
-                    } else {
-                      // No organization context, redirect to login
-                      console.log(
-                        "🔓 No organization context - redirecting to /login"
-                      );
-                      navigate({ to: "/login" });
-                    }
+                    // Default: redirect to login
+                    console.log(
+                      "🔓 Sign out - redirecting to /login"
+                    );
+                    navigate({ to: "/login" });
                   },
                 },
               });

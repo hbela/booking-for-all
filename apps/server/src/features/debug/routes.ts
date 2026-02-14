@@ -3,6 +3,17 @@ import prisma from '@booking-for-all/db';
 import { captureException, captureMessage } from '../../instrument';
 
 const debugRoutes: FastifyPluginAsync = async (app) => {
+  // Debug endpoint to list all registered routes
+  app.get('/routes', async (_req, reply) => {
+    const routes: any[] = [];
+    app.printRoutes().split('\n').forEach((line) => {
+      if (line.trim()) {
+        routes.push(line.trim());
+      }
+    });
+    return { routes };
+  });
+
   app.get('/db-info', async (_req, reply) => {
     try {
       const userCount = await prisma.user.count();

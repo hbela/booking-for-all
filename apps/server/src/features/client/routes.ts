@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import prisma from "@booking-for-all/db";
 import crypto from "crypto";
-import { requireAuthHook } from "../../plugins/authz";
+import { requireAuthHook, orgGuard } from "../../plugins/authz";
 import { AppError } from "../../errors/AppError";
 import { sendBookingConfirmationEmails } from "../../utils/booking-email-utils";
 
@@ -41,16 +41,34 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
     { preValidation: [requireAuthHook] },
     async (req, reply) => {
       const { id } = req.params as any;
-      const organization = await prisma.organization.findUnique({
-        where: { id, enabled: true },
-        select: { id: true, name: true, description: true },
+      const user = req.user;
+      
+      // Verify user is a member of this organization
+      const member = await prisma.member.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: id,
+            userId: user.id,
+          },
+        },
+        include: {
+          organization: {
+            select: { id: true, name: true, description: true, enabled: true },
+          },
+        },
       });
-      if (!organization) {
+      
+      if (!member || !member.organization.enabled) {
         throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
       }
+      
       reply.send({
         success: true,
-        data: organization,
+        data: {
+          id: member.organization.id,
+          name: member.organization.name,
+          description: member.organization.description,
+        },
       });
     }
   );
@@ -60,6 +78,22 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
     { preValidation: [requireAuthHook] },
     async (req, reply) => {
       const { id } = req.params as any;
+      const user = req.user;
+      
+      // Verify user is a member of this organization
+      const member = await prisma.member.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: id,
+            userId: user.id,
+          },
+        },
+      });
+      
+      if (!member) {
+        throw new AppError("You do not have access to this organization", "FORBIDDEN", 403);
+      }
+      
       const departments = await prisma.department.findMany({
         where: { organizationId: id, organization: { enabled: true } },
         select: {
@@ -280,6 +314,7 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
               id: crypto.randomUUID(),
               eventId: event.id,
               memberId: user.id,
+              organizationId: event.organizationId, // Required after schema migration
               status: "CONFIRMED",
               createdAt: new Date(),
               updatedAt: new Date(),

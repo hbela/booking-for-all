@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { auth } from '@booking-for-all/auth';
 import prisma from '@booking-for-all/db';
+import { AppError } from '../errors/AppError';
 
 export async function requireAuthHook(request: FastifyRequest, reply: FastifyReply) {
   const session = await auth.api.getSession({ headers: request.headers as any });
@@ -32,45 +33,37 @@ export async function requireAuthHook(request: FastifyRequest, reply: FastifyRep
   });
 }
 
-export async function requireAdminHook(request: FastifyRequest, reply: FastifyReply) {
+/**
+ * Organization guard middleware - verifies user membership in organization
+ * Must be called after requireAuthHook
+ * Extracts organizationId from query params, body, or URL params
+ * Attaches organization context (id, role, organization) to request
+ */
+export async function orgGuard(request: FastifyRequest, reply: FastifyReply) {
   // @ts-expect-error populated by requireAuthHook
   const user = request.user;
-  if (!user || user.role !== 'ADMIN') {
-    return reply.status(403).send({ error: 'Forbidden - Admin access required' });
+  if (!user) {
+    return reply.status(401).send({ error: 'Unauthenticated' });
   }
-}
 
-export async function requireOwnerHook(request: FastifyRequest, reply: FastifyReply) {
-  // @ts-expect-error populated by requireAuthHook
-  const user = request.user;
-  
-  if (user.role !== 'OWNER') {
-    return reply.status(403).send({ error: 'Forbidden - Owner access required' });
-  }
-  
-  // For DELETE endpoints, organizationId is not in the request - it needs to be fetched from the database
-  // So we skip the organizationId check for DELETE and let the route handler fetch it first
-  const method = request.method;
-  if (method === 'DELETE') {
-    // For DELETE endpoints, just verify the role and let the route handler fetch organizationId
-    return;
-  }
-  
-  // For POST/PUT/PATCH, organizationId should be in the request
-  // @ts-expect-error use narrow type as needed
-  const organizationId = (request.body as any)?.organizationId || (request.params as any)?.organizationId || (request.query as any)?.organizationId;
+  // Get organizationId from various sources
+  const organizationId = 
+    (request.query as any)?.organizationId ||
+    (request.body as any)?.organizationId ||
+    (request.params as any)?.orgId ||
+    (request.params as any)?.organizationId;
+
   if (!organizationId) {
     return reply.status(400).send({ error: 'Organization ID required' });
   }
 
-  // Normalize organizationId to prevent whitespace issues
+  // Normalize organizationId
   const normalizedOrgId = String(organizationId).trim();
   if (!normalizedOrgId) {
     return reply.status(400).send({ error: 'Organization ID cannot be empty' });
   }
 
-  // CRITICAL SECURITY CHECK: Verify user is a member of the organization
-  // This must be checked before allowing any operations
+  // Verify membership and get role from Member model
   const member = await prisma.member.findUnique({
     where: {
       organizationId_userId: {
@@ -78,14 +71,70 @@ export async function requireOwnerHook(request: FastifyRequest, reply: FastifyRe
         userId: user.id,
       },
     },
+    include: {
+      organization: true,
+    },
   });
-  
+
   if (!member) {
-    return reply.status(403).send({ error: 'You are not a member of this organization' });
+    return reply.status(403).send({ error: 'No access to organization' });
+  }
+
+  // Attach organization context to request
+  // @ts-expect-error augment at runtime
+  request.organization = {
+    id: member.organizationId,
+    role: member.role, // ✅ Role from Member model
+    organization: member.organization,
+  };
+}
+
+/**
+ * Require ADMIN role (global role, not organization-scoped)
+ * Must be called after requireAuthHook
+ */
+export async function requireAdminHook(request: FastifyRequest, reply: FastifyReply) {
+  // @ts-expect-error populated by requireAuthHook
+  const user = request.user;
+  if (!user || !user.isSystemAdmin) {
+    return reply.status(403).send({ error: 'Forbidden - Admin access required' });
+  }
+}
+
+/**
+ * Require specific role(s) in the organization context
+ * Must be called after requireAuthHook and orgGuard
+ */
+export function requireOrgRole(roles: string[]) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    // @ts-expect-error populated by orgGuard
+    const organization = request.organization;
+    
+    if (!organization) {
+      return reply.status(500).send({ error: 'Organization guard missing - orgGuard must be called first' });
+    }
+    
+    if (!roles.includes(organization.role)) {
+      return reply.status(403).send({ error: 'Forbidden - Insufficient role' });
+    }
+  };
+}
+
+/**
+ * Require OWNER role in the organization context
+ * Must be called after requireAuthHook and orgGuard
+ */
+export async function requireOwnerHook(request: FastifyRequest, reply: FastifyReply) {
+  // @ts-expect-error populated by orgGuard
+  const organization = request.organization;
+  
+  if (!organization) {
+    return reply.status(500).send({ error: 'Organization guard missing - orgGuard must be called first' });
   }
   
-  // @ts-expect-error attach for handlers - use normalized value
-  request.organizationId = normalizedOrgId;
+  if (organization.role !== 'OWNER') {
+    return reply.status(403).send({ error: 'Forbidden - Owner access required' });
+  }
 }
 
 export async function requireProviderHook(request: FastifyRequest, reply: FastifyReply) {

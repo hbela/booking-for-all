@@ -37,9 +37,9 @@ export const Route = createFileRoute("/admin/")({
       });
     }
 
-    // Check if user has ADMIN role
-    // @ts-ignore - role is UserRole enum
-    if (session.data.user.role !== "ADMIN") {
+    // Check if user has system admin access
+    // @ts-ignore - isSystemAdmin is boolean field
+    if (!session.data.user.isSystemAdmin) {
       throw redirect({
         to: "/owner",
       });
@@ -166,7 +166,7 @@ const createCheckout = async (
 };
 
 function AdminComponent() {
-  const { session } = Route.useRouteContext();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -320,18 +320,28 @@ function AdminComponent() {
   };
 
   const isLoadingAny =
+    isSessionPending ||
     isLoading ||
     createOrgMutation.isPending ||
     deleteOrgMutation.isPending ||
     subscribeMutation.isPending ||
     uploadApkMutation.isPending;
 
+  // Show loading state while session is being fetched
+  if (isSessionPending || !session) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold">{t("admin.adminDashboard")}</h1>
         <p className="text-muted-foreground">
-          {t("admin.welcomeAdmin", { name: session.data?.user.name })}
+          {t("admin.welcomeAdmin", { name: session.user.name })}
         </p>
         <div className="mt-4">
           <Button

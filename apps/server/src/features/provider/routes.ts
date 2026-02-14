@@ -119,6 +119,7 @@ const providerRoutes: FastifyPluginAsync = async (app) => {
         data: {
           id: crypto.randomUUID(),
           providerId,
+          organizationId: provider.department.organizationId, // Required after schema migration
           title,
           description,
           start: startDate,

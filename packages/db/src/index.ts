@@ -19,20 +19,9 @@ const packagesEnvPath = path.resolve(__dirname, "../../.env"); // packages/.env
 const actualServerEnvPath = fs.existsSync(serverEnvPath) ? serverEnvPath : 
                             (fs.existsSync(cwdEnvPath) && process.cwd().endsWith('apps/server') ? cwdEnvPath : null);
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:11',message:'Starting env file loading',data:{cwd:process.cwd(),__dirname,serverEnvPath,exists:fs.existsSync(serverEnvPath),cwdEnvPath,existsCwd:fs.existsSync(cwdEnvPath),packagesEnvPath,existsPackages:fs.existsSync(packagesEnvPath),actualServerEnvPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-// #endregion
-
 // Load apps/server/.env FIRST with override: true to ensure it takes precedence
 if (actualServerEnvPath) {
-  // #region agent log
-  const beforeLoad = { DATABASE_URL: process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET', DIRECT_URL: process.env.DIRECT_URL?.substring(0, 50) || 'NOT SET' };
-  // #endregion
   dotenv.config({ path: actualServerEnvPath, override: true });
-  // #region agent log
-  const afterLoad = { DATABASE_URL: process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET', DIRECT_URL: process.env.DIRECT_URL?.substring(0, 50) || 'NOT SET' };
-  fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:25',message:'Loaded apps/server/.env with override',data:{envPath:actualServerEnvPath,beforeLoad,afterLoad,changed:beforeLoad.DATABASE_URL!==afterLoad.DATABASE_URL||beforeLoad.DIRECT_URL!==afterLoad.DIRECT_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 }
 
 // Load other env files with override: false (they won't override apps/server/.env)
@@ -42,14 +31,7 @@ const otherEnvPaths = [
 ].filter((p): p is string => p !== null && fs.existsSync(p));
 
 for (const envPath of otherEnvPaths) {
-  // #region agent log
-  const beforeLoad = { DATABASE_URL: process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET', DIRECT_URL: process.env.DIRECT_URL?.substring(0, 50) || 'NOT SET' };
-  // #endregion
   dotenv.config({ path: envPath, override: false });
-  // #region agent log
-  const afterLoad = { DATABASE_URL: process.env.DATABASE_URL?.substring(0, 50) || 'NOT SET', DIRECT_URL: process.env.DIRECT_URL?.substring(0, 50) || 'NOT SET' };
-  fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:35',message:'Loaded other env file',data:{envPath,beforeLoad,afterLoad,changed:beforeLoad.DATABASE_URL!==afterLoad.DATABASE_URL||beforeLoad.DIRECT_URL!==afterLoad.DIRECT_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 }
 
 const nodeEnv =
@@ -61,10 +43,6 @@ const normalizedEnv = nodeEnv.toLowerCase();
 const isProductionEnv = normalizedEnv === "production";
 const directUrl = process.env.DIRECT_URL?.trim();
 const accelerateUrl = process.env.DATABASE_URL?.trim();
-
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:31',message:'After env loading - raw values',data:{nodeEnv,isProductionEnv,directUrl:directUrl?.substring(0,50)||'NOT SET',accelerateUrl:accelerateUrl?.substring(0,50)||'NOT SET'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-// #endregion
 
 // Check if DATABASE_URL is a Data Proxy URL (prisma://)
 // When using --no-engine, Prisma Client requires prisma:// format (Data Proxy)
@@ -80,10 +58,6 @@ const isDirectUrlActuallyAccelerate =
   directUrl?.startsWith("prisma://") ||
   directUrl?.startsWith("prisma+postgres://");
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:45',message:'URL type detection',data:{isAccelerateOrDataProxyUrl,isDirectUrlActuallyAccelerate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-// #endregion
-
 // In development, prefer DIRECT_URL only if:
 // 1. It's set AND
 // 2. DATABASE_URL is NOT an Accelerate/Data Proxy URL (which requires --no-engine) AND
@@ -95,15 +69,7 @@ const shouldUseDirectUrl =
   !isAccelerateOrDataProxyUrl &&
   !isDirectUrlActuallyAccelerate;
 
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:56',message:'shouldUseDirectUrl decision',data:{isProductionEnv,hasDirectUrl:!!directUrl,shouldUseDirectUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-// #endregion
-
 const databaseUrl = shouldUseDirectUrl ? directUrl : accelerateUrl;
-
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/b8bb93ec-15de-4b3a-bec0-935d0a287309',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'packages/db/src/index.ts:58',message:'Final database URL selection',data:{databaseUrl:databaseUrl?.substring(0,50)||'NOT SET',source:shouldUseDirectUrl?'DIRECT_URL':'DATABASE_URL'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-// #endregion
 
 if (!databaseUrl) {
   throw new Error(
