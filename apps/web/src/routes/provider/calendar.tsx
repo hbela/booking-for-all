@@ -916,19 +916,12 @@ function ProviderCalendarComponent() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">{t("provider.myCalendar")}</h1>
-        <p className="text-muted-foreground">
-          {t("provider.manageYourAvailability", {
-            department: provider?.department?.name || "",
-          })}
-          <SentrySmokeTest />
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
-          <CardTitle>{t("provider.availabilityCalendar")}</CardTitle>
+          <CardTitle>
+            {provider?.user?.name ? `${provider.user.name} ` : ""}
+            {t("provider.availabilityCalendar")}
+          </CardTitle>
           <CardDescription>
             {t("provider.clickCalendarToCreateSlotsDesc")}
           </CardDescription>

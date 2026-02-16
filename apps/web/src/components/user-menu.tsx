@@ -101,27 +101,27 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    // If there's an organization slug, redirect to org-specific page
+                    // If there's an organization slug, redirect to org-specific local page
                     if (orgSlug) {
                       const env =
                         import.meta.env.MODE === "production"
                           ? "production"
                           : "development";
                       const normalizedSlug = orgSlug.toLowerCase();
-                      const externalPath =
+                      const localPath =
                         env === "production"
-                          ? `${normalizedSlug}_external.html`
-                          : `${normalizedSlug}/${normalizedSlug}_external.html`;
+                          ? `${normalizedSlug}_local.html`
+                          : `${normalizedSlug}/${normalizedSlug}_local.html`;
 
                       const envOrigins = {
                         development:
                           import.meta.env.VITE_EXTERNAL_DEV_ORIGIN ??
-                          "http://127.0.0.1:5500",
+                          `http://${normalizedSlug}.hu`,
                         production:
                           import.meta.env.VITE_EXTERNAL_PROD_HOST_TEMPLATE?.replace(
                             "{slug}",
                             normalizedSlug
-                          ) ?? `https://${normalizedSlug}.appointer.hu`,
+                          ) ?? `https://${normalizedSlug}.hu`,
                       };
 
                       const resolvedOrigin = envOrigins[env]?.replace(
@@ -130,7 +130,7 @@ export default function UserMenu() {
                       );
 
                       if (resolvedOrigin) {
-                        const resolvedUrl = `${resolvedOrigin}/${externalPath}`;
+                        const resolvedUrl = `${resolvedOrigin}/${localPath}`;
                         console.log(
                           "🔓 Organization user sign out - redirecting to slug-based URL:",
                           resolvedUrl
@@ -143,8 +143,8 @@ export default function UserMenu() {
                         const baseUrl = externalAppOrigin.replace(/\/$/, "");
                         const redirectUrl =
                           env === "production"
-                            ? `${baseUrl}/${orgSlug}_external.html`
-                            : `${baseUrl}/${orgSlug}/${orgSlug}_external.html`;
+                            ? `${baseUrl}/${normalizedSlug}_local.html`
+                            : `${baseUrl}/${normalizedSlug}/${normalizedSlug}_local.html`;
                         console.log(
                           "🔓 Organization user sign out - redirecting via stored origin:",
                           redirectUrl

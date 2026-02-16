@@ -53,15 +53,15 @@ export default function Header() {
     const baseLinks = [];
 
     // Home link depends on user role
-    if (isOnlyClient) {
-      baseLinks.push({ to: "/client", label: t("navigation.home") });
-    } else if (isOnlyProvider) {
+    if (isProvider) {
       baseLinks.push({ to: "/provider/", label: t("navigation.home") });
+    } else if (isClient) {
+      baseLinks.push({ to: "/client", label: t("navigation.home") });
     } else {
       baseLinks.push({ to: "/", label: t("navigation.home") });
     }
 
-    if (isClient) {
+    if (isClient && !isProvider) {
       baseLinks.push({ to: "/client/about", label: t("navigation.about") });
     }
 
@@ -89,7 +89,9 @@ export default function Header() {
               <Link
                 key={to}
                 to={to}
-                className={isAdminLink ? "text-orange-500 font-semibold" : ""}
+                activeOptions={{ exact: true }}
+                activeProps={{ className: isAdminLink ? "text-orange-500 font-semibold underline" : "font-semibold underline" }}
+                inactiveProps={{ className: isAdminLink ? "text-orange-500 font-semibold" : "" }}
               >
                 {label}
               </Link>

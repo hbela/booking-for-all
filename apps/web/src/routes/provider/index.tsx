@@ -29,10 +29,10 @@ export const Route = createFileRoute("/provider/")({
       const memberships = await apiFetch<any[]>(
         `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/members/my-organizations`
       );
-      
+
       // Filter for PROVIDER memberships
       const providerMemberships = memberships.filter((m: any) => m.role === "PROVIDER");
-      
+
       if (!providerMemberships || providerMemberships.length === 0) {
         // User is not a provider in any organization
         throw redirect({
@@ -163,7 +163,7 @@ function ProviderComponent() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">{t("provider.providerDashboard")}</h1>
         <p className="text-muted-foreground">
-          {t("provider.welcomeBack", { name: session.data?.user.name })}
+          {t("provider.welcomeBack", { name: provider?.user?.name || session.data?.user.name })}
         </p>
       </div>
 

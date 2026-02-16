@@ -467,7 +467,8 @@ function ClientCalendar() {
                 onSelectEvent={handleSelectEvent}
                 eventPropGetter={eventStyleGetter}
                 style={{ height: "100%" }}
-                step={15}
+                step={5}
+                timeslots={1}
                 showMultiDayTimes
                 defaultView="week"
                 min={new Date(0, 0, 0, 8, 0, 0)}

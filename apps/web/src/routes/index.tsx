@@ -63,12 +63,12 @@ function HomeComponent() {
 
   useEffect(() => {
     if (session?.user && !isSystemAdmin && organizations && organizations.length > 0) {
-      const isOnlyClient = organizations.every(org => org.role === 'CLIENT');
-      const isOnlyProvider = organizations.every(org => org.role === 'PROVIDER');
-      if (isOnlyClient) {
+      const isProvider = organizations.some(org => org.role === 'PROVIDER');
+      const isClient = organizations.some(org => org.role === 'CLIENT');
+      if (isProvider) {
+        navigate({ to: '/provider/' });
+      } else if (isClient) {
         navigate({ to: '/client/about' });
-      } else if (isOnlyProvider) {
-        navigate({ to: '/provider/about' });
       }
     }
   }, [session, isSystemAdmin, organizations, navigate]);
