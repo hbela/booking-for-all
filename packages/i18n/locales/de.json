@@ -453,6 +453,7 @@
     "id": "ID",
     "backToProviders": "Zurück zu Dienstleistern",
     "availableTimeSlots": "Verfügbare Zeitfenster",
+    "availableTimeSlotsOf": "Verfügbare Zeitfenster von {{name}}",
     "clickGreenSlotsToBook": "Klicke auf grüne Zeitfenster, um einen Termin zu buchen. Rote Zeitfenster sind bereits gebucht.",
     "errorLoadingCalendar": "Fehler beim Laden des Kalenders.",
     "thisTimeSlotAlreadyBooked": "Dieses Zeitfenster ist bereits gebucht",
@@ -477,7 +478,13 @@
     "bookingCancelledSuccessfully": "Buchung erfolgreich storniert",
     "failedToCancelBooking": "Buchung konnte nicht storniert werden",
     "cannotCancelPastEvent": "Eine vergangene Veranstaltung kann nicht storniert werden",
-    "userEmail": "Benutzer-E-Mail"
+    "userEmail": "Benutzer-E-Mail",
+    "userName": "Benutzername",
+    "cancellationDetails": "Stornierungsdetails",
+    "cancellationDetailsDescription": "Details zur stornierten Buchung",
+    "cancellationDate": "Stornierungsdatum",
+    "eventTitle": "Veranstaltungstitel",
+    "eventDate": "Veranstaltungsdatum"
   },
   "errors": {
     "somethingWentWrong": "Etwas ist schief gelaufen",
@@ -616,5 +623,26 @@
       "bestRegards": "Mit freundlichen Grüßen,",
       "theTeam": "Das Booking for All Team"
     }
+  },
+  "providerAbout": {
+    "title": "Info - Anbieterportal",
+    "subtitle": "Alles, was du über die Verwaltung deiner Termine als Dienstleister wissen musst.",
+    "whatIsTitle": "Was ist Booking for All?",
+    "whatIsDescription": "Booking for All ist eine Terminverwaltungsplattform, die Dienstleister wie dich mit Kunden verbindet. Deine Organisation hat dich als Anbieter eingerichtet, damit Kunden direkt Termine bei dir buchen können.",
+    "whatIsDetail": "Als Anbieter kontrollierst du deine eigene Verfügbarkeit. Du erstellst Zeitfenster in deinem Kalender, und Kunden können diese durchsuchen und buchen. Du erhältst Benachrichtigungen, wenn Buchungen vorgenommen oder storniert werden.",
+    "howItWorksTitle": "So funktioniert es",
+    "setAvailabilityTitle": "Verfügbarkeit festlegen",
+    "setAvailabilityDesc": "Öffne deinen Kalender und klicke auf Zeitfenster, um zu markieren, wann du für Termine verfügbar bist.",
+    "receiveBookingsTitle": "Buchungen empfangen",
+    "receiveBookingsDesc": "Kunden sehen deine verfügbaren Zeitfenster und können direkt buchen. Du erhältst eine E-Mail-Benachrichtigung für jede neue Buchung.",
+    "manageScheduleTitle": "Zeitplan verwalten",
+    "manageScheduleDesc": "Sieh dir alle bevorstehenden Termine an, prüfe wer gebucht hat, und behalte deinen Tag über das Dashboard im Blick.",
+    "stayInformedTitle": "Informiert bleiben",
+    "stayInformedDesc": "Erhalte E-Mail-Benachrichtigungen für neue Buchungen und Stornierungen, damit du immer auf dem Laufenden bist.",
+    "gettingStartedTitle": "Erste Schritte",
+    "step1": "Gehe zu deinem Dashboard (Startseite), um deine Statistiken und Schnellaktionen zu sehen.",
+    "step2": "Öffne den Kalender, um deine verfügbaren Zeitfenster zu erstellen.",
+    "step3": "Warte, bis Kunden deine Zeitfenster buchen — du wirst per E-Mail benachrichtigt.",
+    "step4": "Überprüfe regelmäßig dein Dashboard, um bevorstehende Termine im Blick zu behalten."
   }
 }

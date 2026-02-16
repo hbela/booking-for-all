@@ -592,11 +592,10 @@ function ProviderCalendarComponent() {
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
-    // Check if event is cancelled
-    const isCancelled = event.booking?.status === "CANCELLED";
+    // Show cancellation dialog only if event is still marked as booked with a cancelled booking
+    const isCancelledAndBooked = event.isBooked && event.booking?.status === "CANCELLED";
 
-    if (isCancelled) {
-      // Show cancellation details dialog instead of edit modal
+    if (isCancelledAndBooked) {
       setSelectedEvent(event);
       setShowCancellationDialog(true);
     } else {
@@ -632,15 +631,16 @@ function ProviderCalendarComponent() {
   };
 
   // Event styling based on booking status
+  // Green = available for booking, Yellow = booked, Red = cancelled and still booked
   const eventStyleGetter = (event: CalendarEvent) => {
-    const isCancelled = event.booking?.status === "CANCELLED";
     let backgroundColor = "#10b981"; // Default green for available
 
-    if (isCancelled) {
-      backgroundColor = "#dc2626"; // Red for cancelled
+    if (event.isBooked && event.booking?.status === "CANCELLED") {
+      backgroundColor = "#dc2626"; // Red for cancelled but still marked as booked
     } else if (event.isBooked) {
-      backgroundColor = "#eab308"; // Yellow for booked (not cancelled)
+      backgroundColor = "#eab308"; // Yellow for booked (active)
     }
+    // isBooked=false means available (green) even if a cancelled booking record exists
 
     const style = {
       backgroundColor,
@@ -881,11 +881,10 @@ function ProviderCalendarComponent() {
       // For day view, use the current date
       clickedDate = new Date(date);
     } else {
-      // For week view, calculate from start of week
-      const startOfWeek = new Date(date);
-      startOfWeek.setDate(date.getDate() - date.getDay()); // Go to Sunday
-      clickedDate = new Date(startOfWeek);
-      clickedDate.setDate(startOfWeek.getDate() + dayIndex);
+      // For week view, calculate from start of week using locale-aware function
+      const weekStart = startOfWeek(date, { locale: dateFnsLocale });
+      clickedDate = new Date(weekStart);
+      clickedDate.setDate(weekStart.getDate() + dayIndex);
     }
 
     // Calculate time (8 AM start + 5-minute slots)

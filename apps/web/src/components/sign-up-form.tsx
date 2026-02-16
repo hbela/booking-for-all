@@ -23,23 +23,25 @@ export default function SignUpForm({
     const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
     const orgId = urlOrgId || externalAppOrgId;
 
-    if (!orgId) {
-      toast.error(
-        t("auth.organizationRequired") || "Organization context is required"
-      );
-      return;
-    }
+    // Note: orgId is optional - admins can sign up without organization context
 
     try {
+      // Build callbackURL - include org param only if available
+      const callbackURL = orgId
+        ? `http://localhost:3001/login?org=${orgId}`
+        : `http://localhost:3001/login`;
+
       // Use Better Auth's signIn.social with additionalData to pass orgId
       // Note: signIn.social handles both sign-in and sign-up for social providers
       // callbackURL ensures user is redirected to frontend after OAuth
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: `http://localhost:3001/login?org=${orgId}`,
-        additionalData: {
-          organizationId: orgId,
-        },
+        callbackURL,
+        ...(orgId && {
+          additionalData: {
+            organizationId: orgId,
+          },
+        }),
       });
     } catch (error) {
       console.error("Google sign-up error:", error);

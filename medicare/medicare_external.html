@@ -211,6 +211,10 @@
           "connect-btn-loading"
         );
 
+        // Declare these outside try block so they're accessible in catch handler
+        let apiBaseUrl = "http://localhost:3000";
+        const domain = window.location.hostname;
+
         try {
           // Show loading state
           if (connectBtn) {
@@ -219,14 +223,11 @@
             if (connectBtnLoading) connectBtnLoading.style.display = "inline";
           }
 
-          // Extract domain from current location
-          const domain = window.location.hostname;
           console.log("🔍 Detected domain:", domain);
           console.log("🔍 Full URL:", window.location.href);
 
           // Call backend API directly (no PHP proxy needed)
           // Determine API URL based on environment
-          let apiBaseUrl;
 
           // FOR TESTING: Use localhost in development, ngrok only if needed
           // TODO: Remove this when deploying to production

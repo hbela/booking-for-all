@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediCare - Local Dev</title>
+    <script>
+      // Auto-redirect to Caddy URL if not already on medicare.hu
+      if (window.location.hostname !== "medicare.hu") {
+        window.location.href =
+          "http://medicare.hu" + window.location.pathname + window.location.search;
+      }
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 16px;
+        background-color: #f5f5f5;
+        min-height: 100vh;
+      }
+
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 24px;
+        margin: 0 0 16px 0;
+        line-height: 1.3;
+      }
+
+      h3 {
+        font-size: 18px;
+        margin: 0 0 12px 0;
+        line-height: 1.3;
+      }
+
+      .success {
+        color: #28a745;
+        font-size: 16px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      .info {
+        background: #e3f2fd;
+        padding: 16px;
+        border-radius: 4px;
+        margin: 20px 0;
+      }
+
+      .info p {
+        margin: 0;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .button {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 10px 5px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+
+      .button:hover {
+        background: #0056b3;
+      }
+
+      .button:active {
+        transform: scale(0.98);
+      }
+
+      .button.primary {
+        background: #dc3545;
+        font-size: 16px;
+        padding: 16px 32px;
+        width: 100%;
+        display: block;
+        text-align: center;
+        margin: 16px 0 0 0;
+        min-height: 48px;
+      }
+
+      .button.primary:hover {
+        background: #c82333;
+      }
+
+      .organization-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        background: #f8f9fa;
+      }
+
+      .organization-card p {
+        margin: 0 0 16px 0;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .env-badge {
+        display: inline-block;
+        background: #ffc107;
+        color: #000;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 8px;
+      }
+
+      @media (min-width: 768px) {
+        body {
+          padding: 20px;
+        }
+
+        .container {
+          padding: 30px;
+        }
+
+        h1 {
+          font-size: 32px;
+        }
+
+        h3 {
+          font-size: 20px;
+        }
+
+        .success {
+          font-size: 18px;
+        }
+
+        .info p {
+          font-size: 16px;
+        }
+
+        .button.primary {
+          width: auto;
+          display: inline-block;
+          padding: 15px 30px;
+        }
+
+        .organization-card p {
+          font-size: 16px;
+        }
+      }
+
+      @media (max-width: 360px) {
+        h1 {
+          font-size: 20px;
+        }
+
+        .container {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>MediCare <span class="env-badge">LOCAL</span></h1>
+
+      <div class="success">Welcome to the MediCare External App!</div>
+
+      <div class="info">
+        <h3>About This Integration</h3>
+        <p>
+          This is MediCare's external application that securely integrates with
+          the booking system.
+        </p>
+        <p style="margin-top: 8px; font-size: 12px; color: #666;">
+          Served via Caddy: http://medicare.hu &rarr; localhost:3001<br />
+          API: localhost:3000 (or ngrok)<br />
+          Frontend: localhost:3001
+        </p>
+      </div>
+
+      <div class="organization-card">
+        <h3>Connect to MediCare</h3>
+        <p>Connect to the booking system:</p>
+
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+          "
+        >
+          <button
+            id="connect-btn"
+            class="button primary"
+            onclick="connectToOrganization()"
+            style="width: 100%"
+          >
+            <span id="connect-btn-text">Connect to the app</span>
+            <span id="connect-btn-loading" style="display: none"
+              >Connecting...</span
+            >
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // LOCAL ENVIRONMENT CONFIGURATION
+      // ============================================================
+      // Default: use localhost API directly.
+      // To use ngrok instead, replace apiBaseUrl with your ngrok URL.
+      // e.g. const apiBaseUrl = "https://xxxx-xxxx.ngrok-free.app";
+      const apiBaseUrl = "http://localhost:3000";
+      const frontendUrl = "http://localhost:3001";
+
+      // The domain used for organization lookup.
+      // When served via Caddy (http://medicare.hu), window.location.hostname
+      // returns "medicare.hu" automatically.
+      // When served via Live Server or other local tools, hostname will be
+      // "127.0.0.1" or "localhost", so we override it here.
+      const orgDomain = "medicare.hu";
+      // ============================================================
+
+      async function connectToOrganization() {
+        const connectBtn = document.getElementById("connect-btn");
+        const connectBtnText = document.getElementById("connect-btn-text");
+        const connectBtnLoading = document.getElementById(
+          "connect-btn-loading"
+        );
+
+        // Use the configured orgDomain instead of window.location.hostname
+        // so the org lookup works regardless of how the file is served
+        // (Caddy at medicare.hu, Live Server at 127.0.0.1, etc.)
+        const domain = orgDomain;
+
+        try {
+          if (connectBtn) {
+            connectBtn.disabled = true;
+            if (connectBtnText) connectBtnText.style.display = "none";
+            if (connectBtnLoading) connectBtnLoading.style.display = "inline";
+          }
+
+          console.log("Detected domain:", domain);
+          console.log("API Base URL:", apiBaseUrl);
+          console.log("Frontend URL:", frontendUrl);
+
+          const headers = {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          };
+
+          // If using ngrok, add bypass header and pre-visit
+          if (apiBaseUrl.includes("ngrok")) {
+            headers["ngrok-skip-browser-warning"] = "true";
+            console.log("Using ngrok - added skip-browser-warning header");
+
+            try {
+              const iframe = document.createElement("iframe");
+              iframe.style.display = "none";
+              iframe.src = apiBaseUrl;
+              document.body.appendChild(iframe);
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+              setTimeout(() => {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+              }, 3000);
+            } catch (e) {
+              console.warn("Ngrok pre-visit failed (non-critical):", e);
+            }
+          }
+
+          const url = `${apiBaseUrl}/api/external/organization-by-domain?domain=${encodeURIComponent(domain)}`;
+          console.log("Fetching:", url);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+          const response = await fetch(url, {
+            method: "GET",
+            headers: headers,
+            signal: controller.signal,
+            mode: "cors",
+            credentials: "omit",
+          });
+
+          clearTimeout(timeoutId);
+
+          console.log("Response:", response.status, response.statusText);
+
+          const contentType = response.headers.get("content-type") || "";
+
+          if (response.status === 403 || response.status === 0) {
+            const text = await response.text().catch(() => "");
+            if (
+              text.includes("ERR_NGROK") ||
+              text.includes("ngrok") ||
+              response.status === 0
+            ) {
+              throw new Error(
+                `Ngrok browser warning detected.\n\n` +
+                  `Open ${apiBaseUrl} in your browser first, click "Visit Site", then retry.`
+              );
+            }
+          }
+
+          if (!contentType.includes("application/json")) {
+            const text = await response.text();
+            if (text.includes("ngrok") || text.includes("ERR_NGROK")) {
+              throw new Error(
+                `Ngrok interstitial page detected.\n\n` +
+                  `Open ${apiBaseUrl} in a new tab, click "Visit Site", then retry.`
+              );
+            }
+            throw new Error(
+              `Expected JSON but got: ${contentType}\nPreview: ${text.substring(0, 200)}`
+            );
+          }
+
+          if (!response.ok) {
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch (e) {
+              errorData = {
+                message: `HTTP ${response.status}: ${response.statusText}`,
+              };
+            }
+            throw new Error(
+              errorData.message ||
+                `Organization lookup failed: ${response.status}`
+            );
+          }
+
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.message || "Organization lookup failed");
+          }
+
+          const orgData = data.data;
+          console.log("Organization found:", orgData);
+
+          if (orgData.organizationId)
+            sessionStorage.setItem(
+              "selectedOrganization",
+              orgData.organizationId
+            );
+          if (orgData.organizationName)
+            sessionStorage.setItem(
+              "organizationName",
+              orgData.organizationName
+            );
+          if (orgData.organizationSlug)
+            sessionStorage.setItem(
+              "sourceOrganization",
+              orgData.organizationSlug
+            );
+          sessionStorage.setItem("externalAppOrigin", window.location.origin);
+
+          const connectUrl = new URL("/connect", frontendUrl);
+          if (orgData.organizationId)
+            connectUrl.searchParams.set("orgId", orgData.organizationId);
+          if (window.location.hostname)
+            connectUrl.searchParams.set("domain", window.location.hostname);
+          if (orgData.organizationSlug)
+            connectUrl.searchParams.set("orgSlug", orgData.organizationSlug);
+
+          console.log("Redirecting to:", connectUrl.toString());
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          window.location.href = connectUrl.toString();
+        } catch (error) {
+          console.error("Error:", error);
+
+          let errorMessage = `Failed to connect:\n\n${error.message}\n\n`;
+          errorMessage += `Check:\n`;
+          errorMessage += `1. Backend running at: ${apiBaseUrl}\n`;
+          errorMessage += `2. Domain "${domain}" registered in DB\n`;
+          errorMessage += `3. CORS allows origin: ${window.location.origin}\n`;
+          errorMessage += `   (Server uses origin:true so all origins are allowed)\n`;
+
+          if (apiBaseUrl.includes("ngrok")) {
+            errorMessage += `4. Visit ${apiBaseUrl} in browser to accept ngrok warning\n`;
+          }
+
+          alert(errorMessage);
+        } finally {
+          if (connectBtn) {
+            connectBtn.disabled = false;
+            if (connectBtnText) connectBtnText.style.display = "inline";
+            if (connectBtnLoading) connectBtnLoading.style.display = "none";
+          }
+        }
+      }
+
+      console.log("medicare_local.html loaded");
+      console.log("URL:", window.location.href);
+      console.log("Hostname:", window.location.hostname);
+    </script>
+  </body>
+</html>

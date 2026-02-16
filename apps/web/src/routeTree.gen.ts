@@ -18,9 +18,11 @@ import { Route as ClientIndexRouteImport } from './routes/client/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ProviderCalendarSaveRouteImport } from './routes/provider/calendar-save'
 import { Route as ProviderCalendarRouteImport } from './routes/provider/calendar'
+import { Route as ProviderAboutRouteImport } from './routes/provider/about'
 import { Route as OwnerProvidersRouteImport } from './routes/owner/providers'
 import { Route as OwnerDepartmentsRouteImport } from './routes/owner/departments'
 import { Route as ClientBookingsRouteImport } from './routes/client/bookings'
+import { Route as ClientAboutRouteImport } from './routes/client/about'
 import { Route as AdminApiKeysRouteImport } from './routes/admin/api-keys'
 import { Route as ClientOrganizationsOrgIdRouteImport } from './routes/client/organizations/$orgId'
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId'
@@ -71,6 +73,11 @@ const ProviderCalendarRoute = ProviderCalendarRouteImport.update({
   path: '/provider/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProviderAboutRoute = ProviderAboutRouteImport.update({
+  id: '/provider/about',
+  path: '/provider/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OwnerProvidersRoute = OwnerProvidersRouteImport.update({
   id: '/owner/providers',
   path: '/owner/providers',
@@ -84,6 +91,11 @@ const OwnerDepartmentsRoute = OwnerDepartmentsRouteImport.update({
 const ClientBookingsRoute = ClientBookingsRouteImport.update({
   id: '/client/bookings',
   path: '/client/bookings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientAboutRoute = ClientAboutRouteImport.update({
+  id: '/client/about',
+  path: '/client/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminApiKeysRoute = AdminApiKeysRouteImport.update({
@@ -117,9 +129,11 @@ export interface FileRoutesByFullPath {
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
+  '/provider/about': typeof ProviderAboutRoute
   '/provider/calendar': typeof ProviderCalendarRoute
   '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin': typeof AdminIndexRoute
@@ -135,9 +149,11 @@ export interface FileRoutesByTo {
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
+  '/provider/about': typeof ProviderAboutRoute
   '/provider/calendar': typeof ProviderCalendarRoute
   '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin': typeof AdminIndexRoute
@@ -154,9 +170,11 @@ export interface FileRoutesById {
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/admin/api-keys': typeof AdminApiKeysRoute
+  '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
   '/owner/providers': typeof OwnerProvidersRoute
+  '/provider/about': typeof ProviderAboutRoute
   '/provider/calendar': typeof ProviderCalendarRoute
   '/provider/calendar-save': typeof ProviderCalendarSaveRoute
   '/admin/': typeof AdminIndexRoute
@@ -174,9 +192,11 @@ export interface FileRouteTypes {
     | '/connect'
     | '/login'
     | '/admin/api-keys'
+    | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
+    | '/provider/about'
     | '/provider/calendar'
     | '/provider/calendar-save'
     | '/admin'
@@ -192,9 +212,11 @@ export interface FileRouteTypes {
     | '/connect'
     | '/login'
     | '/admin/api-keys'
+    | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
+    | '/provider/about'
     | '/provider/calendar'
     | '/provider/calendar-save'
     | '/admin'
@@ -210,9 +232,11 @@ export interface FileRouteTypes {
     | '/connect'
     | '/login'
     | '/admin/api-keys'
+    | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
     | '/owner/providers'
+    | '/provider/about'
     | '/provider/calendar'
     | '/provider/calendar-save'
     | '/admin/'
@@ -229,9 +253,11 @@ export interface RootRouteChildren {
   ConnectRoute: typeof ConnectRoute
   LoginRoute: typeof LoginRoute
   AdminApiKeysRoute: typeof AdminApiKeysRoute
+  ClientAboutRoute: typeof ClientAboutRoute
   ClientBookingsRoute: typeof ClientBookingsRoute
   OwnerDepartmentsRoute: typeof OwnerDepartmentsRoute
   OwnerProvidersRoute: typeof OwnerProvidersRoute
+  ProviderAboutRoute: typeof ProviderAboutRoute
   ProviderCalendarRoute: typeof ProviderCalendarRoute
   ProviderCalendarSaveRoute: typeof ProviderCalendarSaveRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -306,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProviderCalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/provider/about': {
+      id: '/provider/about'
+      path: '/provider/about'
+      fullPath: '/provider/about'
+      preLoaderRoute: typeof ProviderAboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/owner/providers': {
       id: '/owner/providers'
       path: '/owner/providers'
@@ -325,6 +358,13 @@ declare module '@tanstack/react-router' {
       path: '/client/bookings'
       fullPath: '/client/bookings'
       preLoaderRoute: typeof ClientBookingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/about': {
+      id: '/client/about'
+      path: '/client/about'
+      fullPath: '/client/about'
+      preLoaderRoute: typeof ClientAboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/api-keys': {
@@ -393,9 +433,11 @@ const rootRouteChildren: RootRouteChildren = {
   ConnectRoute: ConnectRoute,
   LoginRoute: LoginRoute,
   AdminApiKeysRoute: AdminApiKeysRoute,
+  ClientAboutRoute: ClientAboutRoute,
   ClientBookingsRoute: ClientBookingsRoute,
   OwnerDepartmentsRoute: OwnerDepartmentsRoute,
   OwnerProvidersRoute: OwnerProvidersRoute,
+  ProviderAboutRoute: ProviderAboutRoute,
   ProviderCalendarRoute: ProviderCalendarRoute,
   ProviderCalendarSaveRoute: ProviderCalendarSaveRoute,
   AdminIndexRoute: AdminIndexRoute,

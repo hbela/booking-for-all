@@ -5,6 +5,7 @@ import { LanguageSwitcher } from "./language-switcher";
 import { authClient } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useMyOrganizations } from "@/hooks/useMemberRole";
 
 export default function Header() {
   const { t } = useTranslation();
@@ -41,8 +42,32 @@ export default function Header() {
 
   // Determine navigation links - simplified for global header
   // Organization-specific navigation should be handled within routes
+  const { data: organizations } = useMyOrganizations();
+  
   const getLinks = () => {
-    const baseLinks = [{ to: "/", label: t("navigation.home") }];
+    const isClient = organizations?.some(org => org.role === 'CLIENT');
+    const isProvider = organizations?.some(org => org.role === 'PROVIDER');
+    const isOnlyClient = organizations && organizations.length > 0 && organizations.every(org => org.role === 'CLIENT');
+    const isOnlyProvider = organizations && organizations.length > 0 && organizations.every(org => org.role === 'PROVIDER');
+
+    const baseLinks = [];
+
+    // Home link depends on user role
+    if (isOnlyClient) {
+      baseLinks.push({ to: "/client", label: t("navigation.home") });
+    } else if (isOnlyProvider) {
+      baseLinks.push({ to: "/provider/", label: t("navigation.home") });
+    } else {
+      baseLinks.push({ to: "/", label: t("navigation.home") });
+    }
+
+    if (isClient) {
+      baseLinks.push({ to: "/client/about", label: t("navigation.about") });
+    }
+
+    if (isProvider) {
+      baseLinks.push({ to: "/provider/about", label: t("navigation.about") });
+    }
 
     // System admins get access to admin panel
     if (isSystemAdmin) {

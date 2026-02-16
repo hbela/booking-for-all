@@ -326,32 +326,10 @@ function ClientCalendar() {
         {t("client.backToProviders")}
       </Button>
 
-      {/* Provider Info */}
-      <Card className="mb-8">
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">{provider?.user.name}</CardTitle>
-              {provider?.specialization && (
-                <CardDescription className="text-base">
-                  {provider.specialization}
-                </CardDescription>
-              )}
-            </div>
-          </div>
-          {provider?.bio && (
-            <CardDescription className="mt-4">{provider.bio}</CardDescription>
-          )}
-        </CardHeader>
-      </Card>
-
       {/* Calendar - Responsive: Big Calendar for desktop, Mobile Calendar for mobile */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{t("client.availableTimeSlots")}</CardTitle>
+          <CardTitle className="text-2xl">{t("client.availableTimeSlotsOf", { name: provider?.user.name })}</CardTitle>
           <CardDescription>
             {t("client.clickGreenSlotsToBook")}
           </CardDescription>

@@ -19,32 +19,13 @@ const eventsRoutes: FastifyPluginAsync = async (app) => {
       where.start = { gte: new Date() };
     }
     
-    // Exclude events with cancelled bookings - they should not appear in the calendar
-    // Only include events that either have no booking OR have a booking that is not cancelled
-    // Combine base conditions with booking filter using AND
-    const baseConditions = { ...where };
-    const finalWhere: any = {
-      AND: [
-        baseConditions,
-        {
-          OR: [
-            { booking: null }, // Events with no booking
-            { booking: { status: { not: 'CANCELLED' } } }, // Events with active (non-cancelled) bookings
-          ],
-        },
-      ],
-    };
-    
     const events = await prisma.event.findMany({
-      where: finalWhere,
+      where,
       include: {
         provider: {
           include: { user: { select: { id: true, name: true, email: true } }, department: true },
         },
-        booking: { 
-          where: {
-            status: { not: 'CANCELLED' }, // Only include non-cancelled bookings in the relation
-          },
+        booking: {
           select: {
             id: true,
             status: true,

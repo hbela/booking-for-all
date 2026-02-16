@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useEffect } from "react";
 import { DefaultHomepage } from "@/components/homepages/DefaultHomepage";
@@ -56,10 +56,22 @@ export const Route = createFileRoute("/")({
 });
 
 function HomeComponent() {
+  const navigate = useNavigate();
   const { data: session, isPending, error } = authClient.useSession();
   const { data: organizations, isLoading: isLoadingOrgs } = useMyOrganizations();
   const isSystemAdmin = (session?.user as any)?.isSystemAdmin;
 
+  useEffect(() => {
+    if (session?.user && !isSystemAdmin && organizations && organizations.length > 0) {
+      const isOnlyClient = organizations.every(org => org.role === 'CLIENT');
+      const isOnlyProvider = organizations.every(org => org.role === 'PROVIDER');
+      if (isOnlyClient) {
+        navigate({ to: '/client/about' });
+      } else if (isOnlyProvider) {
+        navigate({ to: '/provider/about' });
+      }
+    }
+  }, [session, isSystemAdmin, organizations, navigate]);
   // Debug logging
   useEffect(() => {
     console.log("🏠 HomeComponent mounted");

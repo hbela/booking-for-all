@@ -453,6 +453,7 @@
     "id": "Azonosító",
     "backToProviders": "Vissza a szolgáltatókhoz",
     "availableTimeSlots": "Elérhető időpontok",
+    "availableTimeSlotsOf": "{{name}} elérhető időpontjai",
     "clickGreenSlotsToBook": "Kattints a zöld időpontokra a foglaláshoz. A piros időpontok már foglaltak.",
     "errorLoadingCalendar": "Hiba a naptár betöltésekor.",
     "thisTimeSlotAlreadyBooked": "Ez az időpont már foglalt",
@@ -477,7 +478,13 @@
     "bookingCancelledSuccessfully": "Foglalás sikeresen törölve",
     "failedToCancelBooking": "Nem sikerült törölni a foglalást",
     "cannotCancelPastEvent": "Nem lehet törölni egy múltbeli eseményt",
-    "userEmail": "Felhasználó e-mail címe"
+    "userEmail": "Felhasználó e-mail címe",
+    "userName": "Felhasználó neve",
+    "cancellationDetails": "Lemondás részletei",
+    "cancellationDetailsDescription": "A lemondott foglalás részletei",
+    "cancellationDate": "Lemondás dátuma",
+    "eventTitle": "Esemény címe",
+    "eventDate": "Esemény dátuma"
   },
   "errors": {
     "somethingWentWrong": "Valami hiba történt",
@@ -616,5 +623,26 @@
       "bestRegards": "Üdvözlettel,",
       "theTeam": "A Booking for All csapata"
     }
+  },
+  "providerAbout": {
+    "title": "Névjegy - Szolgáltatói portál",
+    "subtitle": "Minden, amit tudnod kell az időpontjaid kezeléséről szolgáltatóként.",
+    "whatIsTitle": "Mi az a Booking for All?",
+    "whatIsDescription": "A Booking for All egy időpontkezelő platform, amely összeköti a szolgáltatókat, mint te, az ügyfelekkel. A szervezeted szolgáltatóként állított be, így az ügyfelek közvetlenül foglalhatnak nálad időpontot.",
+    "whatIsDetail": "Szolgáltatóként te irányítod a saját elérhetőségedet. Időpontokat hozol létre a naptáradban, és az ügyfelek böngészhetik és lefoglalhatják a nekik megfelelőket. Értesítést kapsz, amikor foglalás történik vagy lemondásra kerül.",
+    "howItWorksTitle": "Hogyan működik",
+    "setAvailabilityTitle": "Állítsd be az elérhetőségedet",
+    "setAvailabilityDesc": "Nyisd meg a naptáradat és kattints az időpontokra, hogy jelöld, mikor vagy elérhető.",
+    "receiveBookingsTitle": "Foglalások fogadása",
+    "receiveBookingsDesc": "Az ügyfelek látják az elérhető időpontjaidat és közvetlenül foglalhatnak. Minden új foglalásról e-mail értesítést kapsz.",
+    "manageScheduleTitle": "Kezeld a beosztásodat",
+    "manageScheduleDesc": "Tekintsd meg az összes közelgő időpontodat, ellenőrizd ki foglalt, és kövesd a napodat az irányítópultról.",
+    "stayInformedTitle": "Maradj tájékozott",
+    "stayInformedDesc": "E-mail értesítéseket kapsz az új foglalásokról és lemondásokról, hogy mindig naprakész legyél.",
+    "gettingStartedTitle": "Első lépések",
+    "step1": "Menj az Irányítópultra (Kezdőlap) a statisztikák és gyors műveletek megtekintéséhez.",
+    "step2": "Nyisd meg a Naptárat az elérhető időpontjaid létrehozásához.",
+    "step3": "Várd meg, amíg az ügyfelek lefoglalják az időpontjaidat — e-mailben értesítünk.",
+    "step4": "Rendszeresen ellenőrizd az Irányítópultodat a közelgő időpontok nyomon követéséhez."
   }
 }
