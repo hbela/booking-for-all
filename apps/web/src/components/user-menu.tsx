@@ -7,14 +7,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { useNavigate } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export default function UserMenu() {
-  const navigate = useNavigate();
   const { data: session, isPending, refetch } = authClient.useSession();
   const [forceRefresh, setForceRefresh] = useState(0);
 
@@ -86,82 +84,55 @@ export default function UserMenu() {
             variant="destructive"
             className="w-full"
             onClick={() => {
-              // Capture sessionStorage before signOut clears them
               const orgSlug = sessionStorage.getItem("sourceOrganization");
-              const externalAppOrigin =
-                sessionStorage.getItem("externalAppOrigin");
+              const externalAppOrigin = sessionStorage.getItem("externalAppOrigin");
 
-              console.log(
-                "🔓 Sign out - Org:",
-                orgSlug,
-                "Origin:",
-                externalAppOrigin
-              );
+              console.log("🔓 Sign out - Org:", orgSlug, "Origin:", externalAppOrigin);
 
-              authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    // If there's an organization slug, redirect to org-specific local page
-                    if (orgSlug) {
-                      const env =
-                        import.meta.env.MODE === "production"
-                          ? "production"
-                          : "development";
-                      const normalizedSlug = orgSlug.toLowerCase();
-                      const localPath =
-                        env === "production"
-                          ? `${normalizedSlug}_local.html`
-                          : `${normalizedSlug}/${normalizedSlug}_local.html`;
+              if (orgSlug) {
+                // Org user: sign out via JS and redirect back to org's local page
+                const env = import.meta.env.MODE === "production" ? "production" : "development";
+                const normalizedSlug = orgSlug.toLowerCase();
+                const localPath =
+                  env === "production"
+                    ? `${normalizedSlug}_local.html`
+                    : `${normalizedSlug}/${normalizedSlug}_local.html`;
 
-                      const envOrigins = {
-                        development:
-                          import.meta.env.VITE_EXTERNAL_DEV_ORIGIN ??
-                          `http://${normalizedSlug}.hu`,
-                        production:
-                          import.meta.env.VITE_EXTERNAL_PROD_HOST_TEMPLATE?.replace(
-                            "{slug}",
-                            normalizedSlug
-                          ) ?? `https://${normalizedSlug}.hu`,
-                      };
+                const envOrigins = {
+                  development:
+                    import.meta.env.VITE_EXTERNAL_DEV_ORIGIN ??
+                    `http://${normalizedSlug}.hu`,
+                  production:
+                    import.meta.env.VITE_EXTERNAL_PROD_HOST_TEMPLATE?.replace(
+                      "{slug}",
+                      normalizedSlug
+                    ) ?? `https://${normalizedSlug}.hu`,
+                };
+                const resolvedOrigin = envOrigins[env]?.replace(/\/$/, "");
+                const orgRedirectUrl = resolvedOrigin
+                  ? `${resolvedOrigin}/${localPath}`
+                  : externalAppOrigin
+                  ? `${externalAppOrigin.replace(/\/$/, "")}/${localPath}`
+                  : null;
 
-                      const resolvedOrigin = envOrigins[env]?.replace(
-                        /\/$/,
-                        ""
-                      );
-
-                      if (resolvedOrigin) {
-                        const resolvedUrl = `${resolvedOrigin}/${localPath}`;
-                        console.log(
-                          "🔓 Organization user sign out - redirecting to slug-based URL:",
-                          resolvedUrl
-                        );
-                        window.location.href = resolvedUrl;
-                        return;
-                      }
-
-                      if (externalAppOrigin) {
-                        const baseUrl = externalAppOrigin.replace(/\/$/, "");
-                        const redirectUrl =
-                          env === "production"
-                            ? `${baseUrl}/${normalizedSlug}_local.html`
-                            : `${baseUrl}/${normalizedSlug}/${normalizedSlug}_local.html`;
-                        console.log(
-                          "🔓 Organization user sign out - redirecting via stored origin:",
-                          redirectUrl
-                        );
-                        window.location.href = redirectUrl;
-                        return;
-                      }
-                    }
-
-                    // Default: redirect to login
-                    console.log(
-                      "🔓 Sign out - redirecting to /login"
-                    );
-                    navigate({ to: "/login" });
+                sessionStorage.clear();
+                authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = orgRedirectUrl ?? "/login";
+                    },
+                    onError: () => {
+                      // Even on error, leave the app
+                      window.location.href = orgRedirectUrl ?? "/login";
+                    },
                   },
-                },
-              });
+                });
+              } else {
+                // Admin / no-org user: use server-side sign-out (reliable cookie clearing)
+                // The server calls Better Auth directly, sets Set-Cookie, then redirects to /login
+                sessionStorage.clear();
+                window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/signout`;
+              }
             }}
           >
             Sign Out

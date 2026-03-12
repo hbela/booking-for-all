@@ -52,11 +52,17 @@ export async function processVoiceInput(
   }
 
   // Call n8n webhook
+  const webhookHeaders = formData.getHeaders();
+  const internalSecret = process.env.INTERNAL_WEBHOOK_SECRET;
+  if (internalSecret) {
+    webhookHeaders['x-internal-secret'] = internalSecret;
+  }
+
   const response = await fetch(N8N_WEBHOOK_URL, {
     method: 'POST',
     // @ts-ignore - form-data types are compatible with fetch
     body: formData as any,
-    headers: formData.getHeaders(),
+    headers: webhookHeaders,
   });
 
   if (!response.ok) {

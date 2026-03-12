@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx @tanstack/router-cli generate:*)"
+      "Bash(npx @tanstack/router-cli generate:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db push:*)",
+      "mcp__claude_ai_n8n__search_workflows"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "n8n-mcp"
+  ]
 }

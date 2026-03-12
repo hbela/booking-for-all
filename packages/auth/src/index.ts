@@ -49,6 +49,7 @@ export const auth = betterAuth({
       enabled: !!(
         process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ),
+      prompt: "select_account",
     },
   },
   // Note: User creation hooks are handled via Prisma extensions in @booking-for-all/db

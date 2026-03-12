@@ -20,6 +20,7 @@ import {
 import { apiFetch } from "@/lib/apiFetch";
 import { toast } from "sonner";
 import { Loader2, Globe, Smartphone } from "lucide-react";
+import SignInForm from "@/components/sign-in-form";
 
 export const Route = createFileRoute("/connect")({
   component: ConnectLandingPage,
@@ -63,6 +64,7 @@ function ConnectLandingPage() {
   const urlDomain = search.domain as string | undefined;
   const urlOrgSlug = search.orgSlug as string | undefined;
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showSignInForm, setShowSignInForm] = useState(false);
   const [organizationId, setOrganizationId] = useState<string | null>(urlOrgId || null);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(urlOrgSlug || null);
 
@@ -178,39 +180,20 @@ function ConnectLandingPage() {
   const handleContinueWithWeb = () => {
     const orgId = organizationId || orgData?.data?.organizationId;
     const orgSlug = organizationSlug || orgData?.data?.organizationSlug;
-    const externalOrigin =
-      typeof window !== "undefined" ? window.location.origin : "";
 
     if (!orgId) {
       toast.error("Organization not found. Please try again.");
       return;
     }
 
-    // Build redirect URL with orgId in query params (same as wellness_external.html)
-    const redirectUrl = new URL("/login", window.location.origin);
-    redirectUrl.searchParams.set("org", orgId);
-    
-    // Include orgSlug if available
+    // Store org context in sessionStorage for sign-out redirect and auth flow
     if (orgSlug) {
-      redirectUrl.searchParams.set("orgSlug", orgSlug);
+      sessionStorage.setItem("sourceOrganization", orgSlug);
+      console.log("✅ Stored sourceOrganization:", orgSlug);
     }
-    
-    // Include external origin for reference
-    if (externalOrigin) {
-      redirectUrl.searchParams.set("externalOrigin", externalOrigin);
-    }
+    sessionStorage.setItem("externalAppOrgId", orgId);
 
-    // Include referrer
-    if (document.referrer) {
-      redirectUrl.searchParams.set("referrer", encodeURIComponent(document.referrer));
-    }
-
-    console.log("🔄 Redirecting to:", redirectUrl.toString());
-
-    navigate({
-      to: redirectUrl.pathname,
-      search: Object.fromEntries(redirectUrl.searchParams),
-    });
+    setShowSignInForm(true);
   };
 
   const handleInstallMobile = () => {
@@ -351,30 +334,54 @@ function ConnectLandingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            onClick={handleContinueWithWeb}
-            className="w-full h-14 text-lg"
-            size="lg"
-          >
-            <Globe className="mr-2 h-5 w-5" />
-            Continue with the web
-          </Button>
+          {showSignInForm ? (
+            <>
+              <SignInForm
+                onSwitchToSignUp={() => {}}
+                orgId={finalOrgId ?? undefined}
+                callbackURL={
+                  finalOrgId
+                    ? `${window.location.origin}/login?org=${finalOrgId}`
+                    : undefined
+                }
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => setShowSignInForm(false)}
+              >
+                ← Back
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={handleContinueWithWeb}
+                className="w-full h-14 text-lg"
+                size="lg"
+              >
+                <Globe className="mr-2 h-5 w-5" />
+                Continue with the web
+              </Button>
 
-          <Button
-            onClick={handleInstallMobile}
-            variant="outline"
-            className="w-full h-14 text-lg border-2"
-            size="lg"
-            disabled={!finalOrgId}
-          >
-            <Smartphone className="mr-2 h-5 w-5" />
-            Install the mobile app
-          </Button>
+              <Button
+                onClick={handleInstallMobile}
+                variant="outline"
+                className="w-full h-14 text-lg border-2"
+                size="lg"
+                disabled={!finalOrgId}
+              >
+                <Smartphone className="mr-2 h-5 w-5" />
+                Install the mobile app
+              </Button>
 
-          {!finalOrgId && (
-            <p className="text-xs text-center text-muted-foreground">
-              Organization ID is required to install the mobile app
-            </p>
+              {!finalOrgId && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Organization ID is required to install the mobile app
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

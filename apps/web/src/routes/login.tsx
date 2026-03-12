@@ -25,25 +25,22 @@ export const Route = createFileRoute("/login")({
       });
       
       if (session.data?.user) {
-        // System admin redirects to admin panel
-        if (isSystemAdmin) {
-          console.log("🔐 System admin authenticated, redirecting to /admin");
-          throw redirect({ to: "/admin" });
-        }
-        
         // Check for organization context in URL or sessionStorage
         const urlParams = new URLSearchParams(window.location.search);
         const orgId = urlParams.get("org") || (typeof window !== "undefined" ? sessionStorage.getItem("externalAppOrgId") : null);
-        
-        // If there's an orgId, we'll let the component handle fetching the member role
-        // and redirecting appropriately. Otherwise, redirect to home to choose organization.
-        if (!orgId) {
+
+        // If there's an org context, let the component handle the redirect based on role
+        // (applies to all users including admins — they may be accessing an org booking page)
+        if (orgId) {
+          console.log("🔐 User authenticated with org context, component will handle redirect");
+        } else if (isSystemAdmin) {
+          // No org context — admin goes to admin panel
+          console.log("🔐 System admin authenticated, redirecting to /admin");
+          throw redirect({ to: "/admin" });
+        } else {
           console.log("🔐 User authenticated but no org context, redirecting to home");
           throw redirect({ to: "/" });
         }
-        
-        // If there's an orgId, let the component handle the redirect based on member role
-        console.log("🔐 User authenticated with org context, component will handle redirect");
       }
     } catch (error) {
       // If it's a redirect, re-throw it
@@ -111,7 +108,7 @@ function RouteComponent() {
   const orgId = urlParams.get("org") || sessionStorage.getItem("externalAppOrgId");
   
   // Fetch member role if there's an orgId
-  const { member, isLoading: isLoadingMember } = useMemberRole({ 
+  const { member, isLoading: isLoadingMember, isError: isMemberError } = useMemberRole({
     organizationId: orgId || undefined,
     enabled: !!session?.user && !!orgId
   });
@@ -148,18 +145,12 @@ function RouteComponent() {
   useEffect(() => {
     if (!isPending && session?.user && !isLoadingMember) {
       const isSystemAdmin = (session.user as any)?.isSystemAdmin;
-      
-      // System admin redirects to admin panel
-      if (isSystemAdmin) {
-        console.log("🔐 System admin detected, redirecting to /admin");
-        navigate({ to: "/admin" });
-        return;
-      }
-      
+
       // If there's an orgId and we have the member role, redirect based on role
+      // (applies to all users including admins accessing an org booking page)
       if (orgId && member) {
         let redirectPath = "/";
-        
+
         if (member.role === "OWNER") {
           redirectPath = "/owner/";
         } else if (member.role === "PROVIDER") {
@@ -167,19 +158,35 @@ function RouteComponent() {
         } else if (member.role === "CLIENT") {
           redirectPath = orgId ? `/client/organizations/${orgId}` : "/client/";
         }
-        
+
         console.log("🔐 Session detected with org context, redirecting to:", redirectPath);
         navigate({ to: redirectPath as any });
         return;
       }
-      
-      // If no orgId, redirect to home to choose organization
+
+      // orgId present but member fetch failed — fall back by role
+      if (orgId && isMemberError) {
+        console.warn("🔐 Member fetch failed, falling back by role");
+        if (isSystemAdmin) {
+          navigate({ to: "/admin" });
+        } else {
+          navigate({ to: "/" });
+        }
+        return;
+      }
+
+      // If no orgId, redirect based on role
       if (!orgId) {
-        console.log("🔐 Session detected without org context, redirecting to home");
-        navigate({ to: "/" });
+        if (isSystemAdmin) {
+          console.log("🔐 Admin detected without org context, redirecting to /admin");
+          navigate({ to: "/admin" });
+        } else {
+          console.log("🔐 Session detected without org context, redirecting to home");
+          navigate({ to: "/" });
+        }
       }
     }
-  }, [session, isPending, member, isLoadingMember, orgId, navigate]);
+  }, [session, isPending, member, isLoadingMember, isMemberError, orgId, navigate]);
 
   // Store external app referrer and organization context for sign-out redirect
   useEffect(() => {

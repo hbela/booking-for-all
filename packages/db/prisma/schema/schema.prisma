@@ -101,7 +101,6 @@ model Organization {
   createdAt             DateTime
   metadata              String?
   qrCodeKey             String? // S3 path for QR code PNG
-  apkKey                String? // S3 path for APK
   members               Member[]
   departments           Department[]
   providers             Provider[]

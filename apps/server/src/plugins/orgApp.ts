@@ -70,34 +70,11 @@ export default fp(async (fastify: FastifyInstance) => {
     );
   }
 
-  // Helper function to resolve APK URL from either S3 or R2
+  // Helper function to resolve APK URL from R2
   async function resolveApkUrl(
-    orgId: string,
-    apkKey: string | null
-  ): Promise<{ url: string; source: "s3" | "r2" | null }> {
-    // Priority 1: Check S3 if apkKey exists
-    if (apkKey) {
-      try {
-        await s3.send(
-          new HeadObjectCommand({
-            Bucket: bucket,
-            Key: apkKey,
-          })
-        );
-        fastify.log.info(`✅ APK found in S3: ${apkKey}`);
-        return { url: `${publicAppUrl}/api/file/${apkKey}`, source: "s3" };
-      } catch (error: any) {
-        if (
-          error.name !== "NotFound" &&
-          error.$metadata?.httpStatusCode !== 404
-        ) {
-          fastify.log.warn(error, `⚠️ Error checking S3 for APK: ${apkKey}`);
-        }
-        // Fall through to R2 check
-      }
-    }
-
-    // Priority 2: Check R2 fallback
+    orgId: string
+  ): Promise<{ url: string; source: "r2" | null }> {
+    // Check R2 for APK files
     if (r2 && r2BucketName) {
       // Try organization-specific path first
       const r2Key = `organizations/${orgId}/app-release.apk`;
@@ -219,51 +196,6 @@ export default fp(async (fastify: FastifyInstance) => {
   );
 
   // ------------------------
-  // Upload APK File
-  // ------------------------
-  fastify.post(
-    "/api/admin/organizations/:id/upload-apk",
-    { preValidation: [requireAuthHook, requireAdminHook] },
-    async (req, reply) => {
-      const { id } = req.params as { id: string };
-
-      const org = await prisma.organization.findUnique({ where: { id } });
-      if (!org) {
-        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
-      }
-
-      const data = await req.file();
-      if (!data) {
-        throw new AppError("No file provided", "NO_FILE", 400);
-      }
-
-      if (!data.filename.endsWith(".apk")) {
-        throw new AppError("APK file required", "INVALID_FILE_TYPE", 400);
-      }
-
-      const buffer = await data.toBuffer();
-      const key = `orgs/${id}/${Date.now()}.apk`;
-
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: buffer,
-          ContentType:
-            data.mimetype || "application/vnd.android.package-archive",
-        })
-      );
-
-      await prisma.organization.update({
-        where: { id },
-        data: { apkKey: key },
-      });
-
-      return reply.send({ success: true, data: { key } });
-    }
-  );
-
-  // ------------------------
   // Download APK Page (Public Route)
   // ------------------------
   fastify.get("/org/:id/app", async (req, reply) => {
@@ -295,8 +227,8 @@ export default fp(async (fastify: FastifyInstance) => {
       return reply.redirect(302, deepLink);
     }
 
-    // Resolve APK URL from S3 or R2
-    const apkResult = await resolveApkUrl(finalOrgId, org.apkKey);
+    // Resolve APK URL from R2
+    const apkResult = await resolveApkUrl(finalOrgId);
 
     // Get QR code URL
     let qrCodeUrl = "";
@@ -977,7 +909,6 @@ export default fp(async (fastify: FastifyInstance) => {
         id: true,
         name: true,
         slug: true,
-        apkKey: true,
         qrCodeKey: true,
       },
     });
@@ -986,8 +917,8 @@ export default fp(async (fastify: FastifyInstance) => {
       throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
     }
 
-    // Resolve APK URL from S3 or R2
-    const apkResult = await resolveApkUrl(finalOrgId, org.apkKey);
+    // Resolve APK URL from R2
+    const apkResult = await resolveApkUrl(finalOrgId);
 
     // Build QR code URL if available
     let qrCodeUrl = "";

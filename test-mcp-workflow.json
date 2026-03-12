@@ -1,0 +1,55 @@
+{
+  "name": "MCP Test - Echo Message",
+  "meta": {
+    "description": "A simple test workflow to echo messages back via MCP"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "echo",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "test-echo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the incoming message from the webhook body\nconst message = $input.item.json.body?.message || $input.item.json.message || 'No message provided';\n\nreturn [\n  {\n    json: {\n      response: `You said: ${message}`,\n      timestamp: new Date().toISOString(),\n      receivedData: $input.item.json\n    }\n  }\n];"
+      },
+      "id": "code-1",
+      "name": "Echo Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Echo Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-20T00:00:00.000Z",
+  "versionId": "1",
+  "active": true
+}

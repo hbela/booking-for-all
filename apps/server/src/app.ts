@@ -63,6 +63,7 @@ const envSchema = {
     CORS_ORIGIN: { type: "string" },
     FRONTEND_URL: { type: "string" },
     N8N_WEBHOOK_URL: { type: "string" },
+    INTERNAL_WEBHOOK_SECRET: { type: "string" },
     VOICE_AGENT_SESSION_TTL: { type: "string" },
     VOICE_AGENT_MAX_AUDIO_SIZE: { type: "string" },
     MOBILE_APP_ORIGIN: { type: "string" },

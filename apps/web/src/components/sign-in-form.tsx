@@ -7,8 +7,12 @@ import { Button } from "./ui/button";
 
 export default function SignInForm({
   onSwitchToSignUp,
+  orgId: orgIdProp,
+  callbackURL: callbackURLProp,
 }: {
   onSwitchToSignUp: () => void;
+  orgId?: string;
+  callbackURL?: string;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate({
@@ -17,19 +21,20 @@ export default function SignInForm({
   const { isPending } = authClient.useSession();
 
   const handleGoogleSignIn = async () => {
-    // Extract organization ID from URL params or sessionStorage
+    // Extract organization ID: prop takes priority, then URL params, then sessionStorage
     const urlParams = new URLSearchParams(window.location.search);
     const urlOrgId = urlParams.get("org");
     const externalAppOrgId = sessionStorage.getItem("externalAppOrgId");
-    const orgId = urlOrgId || externalAppOrgId;
+    const orgId = orgIdProp || urlOrgId || externalAppOrgId;
 
     // Note: orgId is optional - admins can sign in without organization context
 
     try {
-      // Build callbackURL - include org param only if available
-      const callbackURL = orgId
-        ? `http://localhost:3001/login?org=${orgId}`
-        : `http://localhost:3001/login`;
+      // Build callbackURL: prop takes priority, then compute from orgId
+      const baseUrl = window.location.origin;
+      const callbackURL = callbackURLProp || (orgId
+        ? `${baseUrl}/login?org=${orgId}`
+        : `${baseUrl}/login`);
 
       // Use Better Auth's signIn.social with additionalData to pass orgId
       // callbackURL ensures user is redirected to frontend after OAuth

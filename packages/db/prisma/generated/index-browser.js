@@ -185,8 +185,7 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   availabilityEndHour: 'availabilityEndHour',
   createdAt: 'createdAt',
   metadata: 'metadata',
-  qrCodeKey: 'qrCodeKey',
-  apkKey: 'apkKey'
+  qrCodeKey: 'qrCodeKey'
 };
 
 exports.Prisma.MemberScalarFieldEnum = {
