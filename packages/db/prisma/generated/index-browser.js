@@ -128,6 +128,7 @@ exports.Prisma.UserScalarFieldEnum = {
   image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  role: 'role',
   isSystemAdmin: 'isSystemAdmin',
   banned: 'banned',
   banReason: 'banReason',

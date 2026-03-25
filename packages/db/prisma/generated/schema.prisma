@@ -23,6 +23,7 @@ model User {
   image               String?
   createdAt           DateTime
   updatedAt           DateTime
+  role                UserRole       @default(CLIENT)
   isSystemAdmin       Boolean        @default(false) // System-wide admin (not org-scoped)
   banned              Boolean?       @default(false)
   banReason           String?
