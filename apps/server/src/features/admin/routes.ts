@@ -116,57 +116,63 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           );
         }
 
-        // Create organization with domain
-        const organization = await prisma.organization.create({
-          data: {
-            id: crypto.randomUUID(),
-            name,
-            slug: normalizedSlug,
-            domain: normalizedDomain, // Required and unique
-            enabled: false,
-            createdAt: new Date(),
-          },
-        });
-
         // Create owner user with temporary password
         const tempPassword = "ownerpass321";
         const hashedPassword = await hashPassword(tempPassword);
 
-        const ownerUser = await prisma.user.create({
-          data: {
-            id: crypto.randomUUID(),
-            name: ownerName,
-            email: ownerEmail,
-            emailVerified: true,
-            role: "OWNER",
-            needsPasswordChange: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
+        const { organization, ownerUser } = await prisma.$transaction(async (tx) => {
+          // Create organization with domain
+          const org = await tx.organization.create({
+            data: {
+              id: crypto.randomUUID(),
+              name,
+              slug: normalizedSlug,
+              domain: normalizedDomain, // Required and unique
+              enabled: false,
+              createdAt: new Date(),
+            },
+          });
 
-        // Create account with password
-        await prisma.account.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: ownerUser.id,
-            providerId: "credential",
-            accountId: ownerUser.email,
-            password: hashedPassword,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
+          const user = await tx.user.create({
+            data: {
+              id: crypto.randomUUID(),
+              name: ownerName,
+              email: ownerEmail,
+              emailVerified: true,
+              role: "OWNER",
+              needsPasswordChange: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
 
-        // Add user as member (owner) of the organization
-        await prisma.member.create({
-          data: {
-            id: crypto.randomUUID(),
-            organizationId: organization.id,
-            userId: ownerUser.id,
-            email: ownerUser.email,
-            createdAt: new Date(),
-          },
+          // Create account with password
+          await tx.account.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId: user.id,
+              providerId: "credential",
+              accountId: user.email,
+              password: hashedPassword,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Add user as member (owner) of the organization
+          await tx.member.create({
+            data: {
+              id: crypto.randomUUID(),
+              organizationId: org.id,
+              userId: user.id,
+              email: user.email,
+              role: "OWNER",
+              authMethod: "credential",
+              createdAt: new Date(),
+            },
+          });
+
+          return { organization: org, ownerUser: user };
         });
 
         // Auto-generate QR code for the organization
