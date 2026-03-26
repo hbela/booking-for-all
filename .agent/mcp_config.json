@@ -15,10 +15,15 @@
                 "shadcn@latest",
                 "mcp"
             ]
+        },
+        "prisma": {
+            "command": "npx",
+            "args": [
+                "prisma",
+                "mcp"
+            ]
         }
         //other mcp servers
     }
 }
-
 // setup mcp server in  ~/.gemini\antigravity\mcp_config.json
-
