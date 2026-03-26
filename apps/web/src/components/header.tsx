@@ -47,13 +47,16 @@ export default function Header() {
   const getLinks = () => {
     const isClient = organizations?.some(org => org.role === 'CLIENT');
     const isProvider = organizations?.some(org => org.role === 'PROVIDER');
+    const isOwner = organizations?.some(org => org.role === 'OWNER');
     const isOnlyClient = organizations && organizations.length > 0 && organizations.every(org => org.role === 'CLIENT');
     const isOnlyProvider = organizations && organizations.length > 0 && organizations.every(org => org.role === 'PROVIDER');
 
     const baseLinks = [];
 
     // Home link depends on user role
-    if (isProvider) {
+    if (isOwner) {
+      baseLinks.push({ to: "/owner/", label: t("navigation.home") || "Dashboard" });
+    } else if (isProvider) {
       baseLinks.push({ to: "/provider/", label: t("navigation.home") });
     } else if (isClient) {
       baseLinks.push({ to: "/client", label: t("navigation.home") });

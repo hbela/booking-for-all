@@ -356,7 +356,7 @@ function ClientCalendar() {
               loading={isLoadingEvents}
             />
           ) : (
-            <div style={{ height: "600px" }} className="calendar-container">
+            <div className="calendar-container h-[600px]">
               <style>{`
                 /* Fix navigation buttons visibility - both light and dark mode */
                 .rbc-toolbar button {
@@ -466,7 +466,7 @@ function ClientCalendar() {
                 onNavigate={setDate}
                 onSelectEvent={handleSelectEvent}
                 eventPropGetter={eventStyleGetter}
-                style={{ height: "100%" }}
+                className="h-full"
                 step={5}
                 timeslots={1}
                 showMultiDayTimes

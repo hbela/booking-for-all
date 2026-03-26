@@ -590,7 +590,7 @@ function AdminComponent() {
               {organizations.map((org) => (
                 <div
                   key={org.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
+                  className="flex items-center justify-between rounded-md border border-border bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-primary/50"
                 >
                   <div className="flex items-center gap-4">
                     {org.logo && (
