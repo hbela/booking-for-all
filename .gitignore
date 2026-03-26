@@ -48,5 +48,6 @@ coverage
 .cache
 tmp
 temp
+*.tmp*
 testsprite_tests
 docs
