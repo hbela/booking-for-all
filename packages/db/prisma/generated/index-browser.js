@@ -255,7 +255,7 @@ exports.Prisma.BookingScalarFieldEnum = {
 
 exports.Prisma.ProductScalarFieldEnum = {
   id: 'id',
-  polarId: 'polarId',
+  stripeProductId: 'stripeProductId',
   name: 'name',
   description: 'description',
   priceCents: 'priceCents',
@@ -268,9 +268,9 @@ exports.Prisma.ProductScalarFieldEnum = {
 
 exports.Prisma.SubscriptionScalarFieldEnum = {
   id: 'id',
-  polarCheckoutId: 'polarCheckoutId',
-  polarSubscriptionId: 'polarSubscriptionId',
-  polarCustomerId: 'polarCustomerId',
+  stripeSessionId: 'stripeSessionId',
+  stripeSubscriptionId: 'stripeSubscriptionId',
+  stripeCustomerId: 'stripeCustomerId',
   status: 'status',
   currentPeriodStart: 'currentPeriodStart',
   currentPeriodEnd: 'currentPeriodEnd',
@@ -284,7 +284,7 @@ exports.Prisma.SubscriptionScalarFieldEnum = {
 
 exports.Prisma.PaymentScalarFieldEnum = {
   id: 'id',
-  polarPaymentId: 'polarPaymentId',
+  stripeInvoiceId: 'stripeInvoiceId',
   amount: 'amount',
   currency: 'currency',
   status: 'status',

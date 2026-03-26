@@ -213,32 +213,32 @@ model Booking {
 }
 
 model Product {
-  id            String         @id @map("_id")
-  polarId       String         @unique
-  name          String
-  description   String?
-  priceCents    Int
-  currency      String         @default("USD")
-  interval      String?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  subscriptions Subscription[]
+  id              String         @id @map("_id")
+  stripeProductId String         @unique
+  name            String
+  description     String?
+  priceCents      Int
+  currency        String         @default("USD")
+  interval        String?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  subscriptions   Subscription[]
 
   @@map("product")
 }
 
 model Subscription {
-  id                  String    @id @map("_id")
-  polarCheckoutId     String?   @unique
-  polarSubscriptionId String?   @unique
-  polarCustomerId     String?
-  status              String
-  currentPeriodStart  DateTime?
-  currentPeriodEnd    DateTime?
-  cancelledAt         DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                   String    @id @map("_id")
+  stripeSessionId      String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripeCustomerId     String?
+  status               String
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -255,15 +255,15 @@ model Subscription {
 }
 
 model Payment {
-  id             String   @id @map("_id")
-  polarPaymentId String?  @unique
-  amount         Int
-  currency       String   @default("USD")
-  status         String
-  paymentMethod  String?
-  receiptUrl     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @map("_id")
+  stripeInvoiceId String?  @unique
+  amount          Int
+  currency        String   @default("USD")
+  status          String
+  paymentMethod   String?
+  receiptUrl      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   subscriptionId String
   subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)

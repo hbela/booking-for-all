@@ -15214,7 +15214,7 @@ export namespace Prisma {
 
   export type ProductMinAggregateOutputType = {
     id: string | null
-    polarId: string | null
+    stripeProductId: string | null
     name: string | null
     description: string | null
     priceCents: number | null
@@ -15227,7 +15227,7 @@ export namespace Prisma {
 
   export type ProductMaxAggregateOutputType = {
     id: string | null
-    polarId: string | null
+    stripeProductId: string | null
     name: string | null
     description: string | null
     priceCents: number | null
@@ -15240,7 +15240,7 @@ export namespace Prisma {
 
   export type ProductCountAggregateOutputType = {
     id: number
-    polarId: number
+    stripeProductId: number
     name: number
     description: number
     priceCents: number
@@ -15263,7 +15263,7 @@ export namespace Prisma {
 
   export type ProductMinAggregateInputType = {
     id?: true
-    polarId?: true
+    stripeProductId?: true
     name?: true
     description?: true
     priceCents?: true
@@ -15276,7 +15276,7 @@ export namespace Prisma {
 
   export type ProductMaxAggregateInputType = {
     id?: true
-    polarId?: true
+    stripeProductId?: true
     name?: true
     description?: true
     priceCents?: true
@@ -15289,7 +15289,7 @@ export namespace Prisma {
 
   export type ProductCountAggregateInputType = {
     id?: true
-    polarId?: true
+    stripeProductId?: true
     name?: true
     description?: true
     priceCents?: true
@@ -15389,7 +15389,7 @@ export namespace Prisma {
 
   export type ProductGroupByOutputType = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description: string | null
     priceCents: number
@@ -15421,7 +15421,7 @@ export namespace Prisma {
 
   export type ProductSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarId?: boolean
+    stripeProductId?: boolean
     name?: boolean
     description?: boolean
     priceCents?: boolean
@@ -15436,7 +15436,7 @@ export namespace Prisma {
 
   export type ProductSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarId?: boolean
+    stripeProductId?: boolean
     name?: boolean
     description?: boolean
     priceCents?: boolean
@@ -15449,7 +15449,7 @@ export namespace Prisma {
 
   export type ProductSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarId?: boolean
+    stripeProductId?: boolean
     name?: boolean
     description?: boolean
     priceCents?: boolean
@@ -15462,7 +15462,7 @@ export namespace Prisma {
 
   export type ProductSelectScalar = {
     id?: boolean
-    polarId?: boolean
+    stripeProductId?: boolean
     name?: boolean
     description?: boolean
     priceCents?: boolean
@@ -15473,7 +15473,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "polarId" | "name" | "description" | "priceCents" | "currency" | "interval" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stripeProductId" | "name" | "description" | "priceCents" | "currency" | "interval" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     subscriptions?: boolean | Product$subscriptionsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -15488,7 +15488,7 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      polarId: string
+      stripeProductId: string
       name: string
       description: string | null
       priceCents: number
@@ -15922,7 +15922,7 @@ export namespace Prisma {
    */
   interface ProductFieldRefs {
     readonly id: FieldRef<"Product", 'String'>
-    readonly polarId: FieldRef<"Product", 'String'>
+    readonly stripeProductId: FieldRef<"Product", 'String'>
     readonly name: FieldRef<"Product", 'String'>
     readonly description: FieldRef<"Product", 'String'>
     readonly priceCents: FieldRef<"Product", 'Int'>
@@ -16373,9 +16373,9 @@ export namespace Prisma {
 
   export type SubscriptionMinAggregateOutputType = {
     id: string | null
-    polarCheckoutId: string | null
-    polarSubscriptionId: string | null
-    polarCustomerId: string | null
+    stripeSessionId: string | null
+    stripeSubscriptionId: string | null
+    stripeCustomerId: string | null
     status: string | null
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
@@ -16389,9 +16389,9 @@ export namespace Prisma {
 
   export type SubscriptionMaxAggregateOutputType = {
     id: string | null
-    polarCheckoutId: string | null
-    polarSubscriptionId: string | null
-    polarCustomerId: string | null
+    stripeSessionId: string | null
+    stripeSubscriptionId: string | null
+    stripeCustomerId: string | null
     status: string | null
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
@@ -16405,9 +16405,9 @@ export namespace Prisma {
 
   export type SubscriptionCountAggregateOutputType = {
     id: number
-    polarCheckoutId: number
-    polarSubscriptionId: number
-    polarCustomerId: number
+    stripeSessionId: number
+    stripeSubscriptionId: number
+    stripeCustomerId: number
     status: number
     currentPeriodStart: number
     currentPeriodEnd: number
@@ -16423,9 +16423,9 @@ export namespace Prisma {
 
   export type SubscriptionMinAggregateInputType = {
     id?: true
-    polarCheckoutId?: true
-    polarSubscriptionId?: true
-    polarCustomerId?: true
+    stripeSessionId?: true
+    stripeSubscriptionId?: true
+    stripeCustomerId?: true
     status?: true
     currentPeriodStart?: true
     currentPeriodEnd?: true
@@ -16439,9 +16439,9 @@ export namespace Prisma {
 
   export type SubscriptionMaxAggregateInputType = {
     id?: true
-    polarCheckoutId?: true
-    polarSubscriptionId?: true
-    polarCustomerId?: true
+    stripeSessionId?: true
+    stripeSubscriptionId?: true
+    stripeCustomerId?: true
     status?: true
     currentPeriodStart?: true
     currentPeriodEnd?: true
@@ -16455,9 +16455,9 @@ export namespace Prisma {
 
   export type SubscriptionCountAggregateInputType = {
     id?: true
-    polarCheckoutId?: true
-    polarSubscriptionId?: true
-    polarCustomerId?: true
+    stripeSessionId?: true
+    stripeSubscriptionId?: true
+    stripeCustomerId?: true
     status?: true
     currentPeriodStart?: true
     currentPeriodEnd?: true
@@ -16544,9 +16544,9 @@ export namespace Prisma {
 
   export type SubscriptionGroupByOutputType = {
     id: string
-    polarCheckoutId: string | null
-    polarSubscriptionId: string | null
-    polarCustomerId: string | null
+    stripeSessionId: string | null
+    stripeSubscriptionId: string | null
+    stripeCustomerId: string | null
     status: string
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
@@ -16577,9 +16577,9 @@ export namespace Prisma {
 
   export type SubscriptionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarCheckoutId?: boolean
-    polarSubscriptionId?: boolean
-    polarCustomerId?: boolean
+    stripeSessionId?: boolean
+    stripeSubscriptionId?: boolean
+    stripeCustomerId?: boolean
     status?: boolean
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
@@ -16598,9 +16598,9 @@ export namespace Prisma {
 
   export type SubscriptionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarCheckoutId?: boolean
-    polarSubscriptionId?: boolean
-    polarCustomerId?: boolean
+    stripeSessionId?: boolean
+    stripeSubscriptionId?: boolean
+    stripeCustomerId?: boolean
     status?: boolean
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
@@ -16617,9 +16617,9 @@ export namespace Prisma {
 
   export type SubscriptionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarCheckoutId?: boolean
-    polarSubscriptionId?: boolean
-    polarCustomerId?: boolean
+    stripeSessionId?: boolean
+    stripeSubscriptionId?: boolean
+    stripeCustomerId?: boolean
     status?: boolean
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
@@ -16636,9 +16636,9 @@ export namespace Prisma {
 
   export type SubscriptionSelectScalar = {
     id?: boolean
-    polarCheckoutId?: boolean
-    polarSubscriptionId?: boolean
-    polarCustomerId?: boolean
+    stripeSessionId?: boolean
+    stripeSubscriptionId?: boolean
+    stripeCustomerId?: boolean
     status?: boolean
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
@@ -16650,7 +16650,7 @@ export namespace Prisma {
     productId?: boolean
   }
 
-  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "polarCheckoutId" | "polarSubscriptionId" | "polarCustomerId" | "status" | "currentPeriodStart" | "currentPeriodEnd" | "cancelledAt" | "createdAt" | "updatedAt" | "userId" | "organizationId" | "productId", ExtArgs["result"]["subscription"]>
+  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stripeSessionId" | "stripeSubscriptionId" | "stripeCustomerId" | "status" | "currentPeriodStart" | "currentPeriodEnd" | "cancelledAt" | "createdAt" | "updatedAt" | "userId" | "organizationId" | "productId", ExtArgs["result"]["subscription"]>
   export type SubscriptionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -16679,9 +16679,9 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      polarCheckoutId: string | null
-      polarSubscriptionId: string | null
-      polarCustomerId: string | null
+      stripeSessionId: string | null
+      stripeSubscriptionId: string | null
+      stripeCustomerId: string | null
       status: string
       currentPeriodStart: Date | null
       currentPeriodEnd: Date | null
@@ -17119,9 +17119,9 @@ export namespace Prisma {
    */
   interface SubscriptionFieldRefs {
     readonly id: FieldRef<"Subscription", 'String'>
-    readonly polarCheckoutId: FieldRef<"Subscription", 'String'>
-    readonly polarSubscriptionId: FieldRef<"Subscription", 'String'>
-    readonly polarCustomerId: FieldRef<"Subscription", 'String'>
+    readonly stripeSessionId: FieldRef<"Subscription", 'String'>
+    readonly stripeSubscriptionId: FieldRef<"Subscription", 'String'>
+    readonly stripeCustomerId: FieldRef<"Subscription", 'String'>
     readonly status: FieldRef<"Subscription", 'String'>
     readonly currentPeriodStart: FieldRef<"Subscription", 'DateTime'>
     readonly currentPeriodEnd: FieldRef<"Subscription", 'DateTime'>
@@ -17591,7 +17591,7 @@ export namespace Prisma {
 
   export type PaymentMinAggregateOutputType = {
     id: string | null
-    polarPaymentId: string | null
+    stripeInvoiceId: string | null
     amount: number | null
     currency: string | null
     status: string | null
@@ -17604,7 +17604,7 @@ export namespace Prisma {
 
   export type PaymentMaxAggregateOutputType = {
     id: string | null
-    polarPaymentId: string | null
+    stripeInvoiceId: string | null
     amount: number | null
     currency: string | null
     status: string | null
@@ -17617,7 +17617,7 @@ export namespace Prisma {
 
   export type PaymentCountAggregateOutputType = {
     id: number
-    polarPaymentId: number
+    stripeInvoiceId: number
     amount: number
     currency: number
     status: number
@@ -17640,7 +17640,7 @@ export namespace Prisma {
 
   export type PaymentMinAggregateInputType = {
     id?: true
-    polarPaymentId?: true
+    stripeInvoiceId?: true
     amount?: true
     currency?: true
     status?: true
@@ -17653,7 +17653,7 @@ export namespace Prisma {
 
   export type PaymentMaxAggregateInputType = {
     id?: true
-    polarPaymentId?: true
+    stripeInvoiceId?: true
     amount?: true
     currency?: true
     status?: true
@@ -17666,7 +17666,7 @@ export namespace Prisma {
 
   export type PaymentCountAggregateInputType = {
     id?: true
-    polarPaymentId?: true
+    stripeInvoiceId?: true
     amount?: true
     currency?: true
     status?: true
@@ -17766,7 +17766,7 @@ export namespace Prisma {
 
   export type PaymentGroupByOutputType = {
     id: string
-    polarPaymentId: string | null
+    stripeInvoiceId: string | null
     amount: number
     currency: string
     status: string
@@ -17798,7 +17798,7 @@ export namespace Prisma {
 
   export type PaymentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarPaymentId?: boolean
+    stripeInvoiceId?: boolean
     amount?: boolean
     currency?: boolean
     status?: boolean
@@ -17812,7 +17812,7 @@ export namespace Prisma {
 
   export type PaymentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarPaymentId?: boolean
+    stripeInvoiceId?: boolean
     amount?: boolean
     currency?: boolean
     status?: boolean
@@ -17826,7 +17826,7 @@ export namespace Prisma {
 
   export type PaymentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    polarPaymentId?: boolean
+    stripeInvoiceId?: boolean
     amount?: boolean
     currency?: boolean
     status?: boolean
@@ -17840,7 +17840,7 @@ export namespace Prisma {
 
   export type PaymentSelectScalar = {
     id?: boolean
-    polarPaymentId?: boolean
+    stripeInvoiceId?: boolean
     amount?: boolean
     currency?: boolean
     status?: boolean
@@ -17851,7 +17851,7 @@ export namespace Prisma {
     subscriptionId?: boolean
   }
 
-  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "polarPaymentId" | "amount" | "currency" | "status" | "paymentMethod" | "receiptUrl" | "createdAt" | "updatedAt" | "subscriptionId", ExtArgs["result"]["payment"]>
+  export type PaymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stripeInvoiceId" | "amount" | "currency" | "status" | "paymentMethod" | "receiptUrl" | "createdAt" | "updatedAt" | "subscriptionId", ExtArgs["result"]["payment"]>
   export type PaymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     subscription?: boolean | SubscriptionDefaultArgs<ExtArgs>
   }
@@ -17869,7 +17869,7 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      polarPaymentId: string | null
+      stripeInvoiceId: string | null
       amount: number
       currency: string
       status: string
@@ -18303,7 +18303,7 @@ export namespace Prisma {
    */
   interface PaymentFieldRefs {
     readonly id: FieldRef<"Payment", 'String'>
-    readonly polarPaymentId: FieldRef<"Payment", 'String'>
+    readonly stripeInvoiceId: FieldRef<"Payment", 'String'>
     readonly amount: FieldRef<"Payment", 'Int'>
     readonly currency: FieldRef<"Payment", 'String'>
     readonly status: FieldRef<"Payment", 'String'>
@@ -20078,7 +20078,7 @@ export namespace Prisma {
 
   export const ProductScalarFieldEnum: {
     id: 'id',
-    polarId: 'polarId',
+    stripeProductId: 'stripeProductId',
     name: 'name',
     description: 'description',
     priceCents: 'priceCents',
@@ -20094,9 +20094,9 @@ export namespace Prisma {
 
   export const SubscriptionScalarFieldEnum: {
     id: 'id',
-    polarCheckoutId: 'polarCheckoutId',
-    polarSubscriptionId: 'polarSubscriptionId',
-    polarCustomerId: 'polarCustomerId',
+    stripeSessionId: 'stripeSessionId',
+    stripeSubscriptionId: 'stripeSubscriptionId',
+    stripeCustomerId: 'stripeCustomerId',
     status: 'status',
     currentPeriodStart: 'currentPeriodStart',
     currentPeriodEnd: 'currentPeriodEnd',
@@ -20113,7 +20113,7 @@ export namespace Prisma {
 
   export const PaymentScalarFieldEnum: {
     id: 'id',
-    polarPaymentId: 'polarPaymentId',
+    stripeInvoiceId: 'stripeInvoiceId',
     amount: 'amount',
     currency: 'currency',
     status: 'status',
@@ -21187,7 +21187,7 @@ export namespace Prisma {
     OR?: ProductWhereInput[]
     NOT?: ProductWhereInput | ProductWhereInput[]
     id?: StringFilter<"Product"> | string
-    polarId?: StringFilter<"Product"> | string
+    stripeProductId?: StringFilter<"Product"> | string
     name?: StringFilter<"Product"> | string
     description?: StringNullableFilter<"Product"> | string | null
     priceCents?: IntFilter<"Product"> | number
@@ -21201,7 +21201,7 @@ export namespace Prisma {
 
   export type ProductOrderByWithRelationInput = {
     id?: SortOrder
-    polarId?: SortOrder
+    stripeProductId?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     priceCents?: SortOrder
@@ -21215,7 +21215,7 @@ export namespace Prisma {
 
   export type ProductWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    polarId?: string
+    stripeProductId?: string
     AND?: ProductWhereInput | ProductWhereInput[]
     OR?: ProductWhereInput[]
     NOT?: ProductWhereInput | ProductWhereInput[]
@@ -21228,11 +21228,11 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Product"> | Date | string
     updatedAt?: DateTimeFilter<"Product"> | Date | string
     subscriptions?: SubscriptionListRelationFilter
-  }, "id" | "polarId">
+  }, "id" | "stripeProductId">
 
   export type ProductOrderByWithAggregationInput = {
     id?: SortOrder
-    polarId?: SortOrder
+    stripeProductId?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     priceCents?: SortOrder
@@ -21253,7 +21253,7 @@ export namespace Prisma {
     OR?: ProductScalarWhereWithAggregatesInput[]
     NOT?: ProductScalarWhereWithAggregatesInput | ProductScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Product"> | string
-    polarId?: StringWithAggregatesFilter<"Product"> | string
+    stripeProductId?: StringWithAggregatesFilter<"Product"> | string
     name?: StringWithAggregatesFilter<"Product"> | string
     description?: StringNullableWithAggregatesFilter<"Product"> | string | null
     priceCents?: IntWithAggregatesFilter<"Product"> | number
@@ -21269,9 +21269,9 @@ export namespace Prisma {
     OR?: SubscriptionWhereInput[]
     NOT?: SubscriptionWhereInput | SubscriptionWhereInput[]
     id?: StringFilter<"Subscription"> | string
-    polarCheckoutId?: StringNullableFilter<"Subscription"> | string | null
-    polarSubscriptionId?: StringNullableFilter<"Subscription"> | string | null
-    polarCustomerId?: StringNullableFilter<"Subscription"> | string | null
+    stripeSessionId?: StringNullableFilter<"Subscription"> | string | null
+    stripeSubscriptionId?: StringNullableFilter<"Subscription"> | string | null
+    stripeCustomerId?: StringNullableFilter<"Subscription"> | string | null
     status?: StringFilter<"Subscription"> | string
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
@@ -21289,9 +21289,9 @@ export namespace Prisma {
 
   export type SubscriptionOrderByWithRelationInput = {
     id?: SortOrder
-    polarCheckoutId?: SortOrderInput | SortOrder
-    polarSubscriptionId?: SortOrderInput | SortOrder
-    polarCustomerId?: SortOrderInput | SortOrder
+    stripeSessionId?: SortOrderInput | SortOrder
+    stripeSubscriptionId?: SortOrderInput | SortOrder
+    stripeCustomerId?: SortOrderInput | SortOrder
     status?: SortOrder
     currentPeriodStart?: SortOrderInput | SortOrder
     currentPeriodEnd?: SortOrderInput | SortOrder
@@ -21309,12 +21309,12 @@ export namespace Prisma {
 
   export type SubscriptionWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    polarCheckoutId?: string
-    polarSubscriptionId?: string
+    stripeSessionId?: string
+    stripeSubscriptionId?: string
     AND?: SubscriptionWhereInput | SubscriptionWhereInput[]
     OR?: SubscriptionWhereInput[]
     NOT?: SubscriptionWhereInput | SubscriptionWhereInput[]
-    polarCustomerId?: StringNullableFilter<"Subscription"> | string | null
+    stripeCustomerId?: StringNullableFilter<"Subscription"> | string | null
     status?: StringFilter<"Subscription"> | string
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
@@ -21328,13 +21328,13 @@ export namespace Prisma {
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
     product?: XOR<ProductScalarRelationFilter, ProductWhereInput>
     payments?: PaymentListRelationFilter
-  }, "id" | "polarCheckoutId" | "polarSubscriptionId">
+  }, "id" | "stripeSessionId" | "stripeSubscriptionId">
 
   export type SubscriptionOrderByWithAggregationInput = {
     id?: SortOrder
-    polarCheckoutId?: SortOrderInput | SortOrder
-    polarSubscriptionId?: SortOrderInput | SortOrder
-    polarCustomerId?: SortOrderInput | SortOrder
+    stripeSessionId?: SortOrderInput | SortOrder
+    stripeSubscriptionId?: SortOrderInput | SortOrder
+    stripeCustomerId?: SortOrderInput | SortOrder
     status?: SortOrder
     currentPeriodStart?: SortOrderInput | SortOrder
     currentPeriodEnd?: SortOrderInput | SortOrder
@@ -21354,9 +21354,9 @@ export namespace Prisma {
     OR?: SubscriptionScalarWhereWithAggregatesInput[]
     NOT?: SubscriptionScalarWhereWithAggregatesInput | SubscriptionScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Subscription"> | string
-    polarCheckoutId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
-    polarSubscriptionId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
-    polarCustomerId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
+    stripeSessionId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
+    stripeSubscriptionId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
+    stripeCustomerId?: StringNullableWithAggregatesFilter<"Subscription"> | string | null
     status?: StringWithAggregatesFilter<"Subscription"> | string
     currentPeriodStart?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
@@ -21373,7 +21373,7 @@ export namespace Prisma {
     OR?: PaymentWhereInput[]
     NOT?: PaymentWhereInput | PaymentWhereInput[]
     id?: StringFilter<"Payment"> | string
-    polarPaymentId?: StringNullableFilter<"Payment"> | string | null
+    stripeInvoiceId?: StringNullableFilter<"Payment"> | string | null
     amount?: IntFilter<"Payment"> | number
     currency?: StringFilter<"Payment"> | string
     status?: StringFilter<"Payment"> | string
@@ -21387,7 +21387,7 @@ export namespace Prisma {
 
   export type PaymentOrderByWithRelationInput = {
     id?: SortOrder
-    polarPaymentId?: SortOrderInput | SortOrder
+    stripeInvoiceId?: SortOrderInput | SortOrder
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
@@ -21401,7 +21401,7 @@ export namespace Prisma {
 
   export type PaymentWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    polarPaymentId?: string
+    stripeInvoiceId?: string
     AND?: PaymentWhereInput | PaymentWhereInput[]
     OR?: PaymentWhereInput[]
     NOT?: PaymentWhereInput | PaymentWhereInput[]
@@ -21414,11 +21414,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Payment"> | Date | string
     subscriptionId?: StringFilter<"Payment"> | string
     subscription?: XOR<SubscriptionScalarRelationFilter, SubscriptionWhereInput>
-  }, "id" | "polarPaymentId">
+  }, "id" | "stripeInvoiceId">
 
   export type PaymentOrderByWithAggregationInput = {
     id?: SortOrder
-    polarPaymentId?: SortOrderInput | SortOrder
+    stripeInvoiceId?: SortOrderInput | SortOrder
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
@@ -21439,7 +21439,7 @@ export namespace Prisma {
     OR?: PaymentScalarWhereWithAggregatesInput[]
     NOT?: PaymentScalarWhereWithAggregatesInput | PaymentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Payment"> | string
-    polarPaymentId?: StringNullableWithAggregatesFilter<"Payment"> | string | null
+    stripeInvoiceId?: StringNullableWithAggregatesFilter<"Payment"> | string | null
     amount?: IntWithAggregatesFilter<"Payment"> | number
     currency?: StringWithAggregatesFilter<"Payment"> | string
     status?: StringWithAggregatesFilter<"Payment"> | string
@@ -22524,7 +22524,7 @@ export namespace Prisma {
 
   export type ProductCreateInput = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description?: string | null
     priceCents: number
@@ -22538,7 +22538,7 @@ export namespace Prisma {
 
   export type ProductUncheckedCreateInput = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description?: string | null
     priceCents: number
@@ -22552,7 +22552,7 @@ export namespace Prisma {
 
   export type ProductUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -22566,7 +22566,7 @@ export namespace Prisma {
 
   export type ProductUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -22580,7 +22580,7 @@ export namespace Prisma {
 
   export type ProductCreateManyInput = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description?: string | null
     priceCents: number
@@ -22593,7 +22593,7 @@ export namespace Prisma {
 
   export type ProductUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -22606,7 +22606,7 @@ export namespace Prisma {
 
   export type ProductUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -22619,9 +22619,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -22636,9 +22636,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedCreateInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -22653,9 +22653,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22670,9 +22670,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22687,9 +22687,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateManyInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -22703,9 +22703,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22716,9 +22716,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22732,7 +22732,7 @@ export namespace Prisma {
 
   export type PaymentCreateInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -22745,7 +22745,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedCreateInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -22758,7 +22758,7 @@ export namespace Prisma {
 
   export type PaymentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -22771,7 +22771,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -22784,7 +22784,7 @@ export namespace Prisma {
 
   export type PaymentCreateManyInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -22797,7 +22797,7 @@ export namespace Prisma {
 
   export type PaymentUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -22809,7 +22809,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -23738,7 +23738,7 @@ export namespace Prisma {
 
   export type ProductCountOrderByAggregateInput = {
     id?: SortOrder
-    polarId?: SortOrder
+    stripeProductId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     priceCents?: SortOrder
@@ -23755,7 +23755,7 @@ export namespace Prisma {
 
   export type ProductMaxOrderByAggregateInput = {
     id?: SortOrder
-    polarId?: SortOrder
+    stripeProductId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     priceCents?: SortOrder
@@ -23768,7 +23768,7 @@ export namespace Prisma {
 
   export type ProductMinOrderByAggregateInput = {
     id?: SortOrder
-    polarId?: SortOrder
+    stripeProductId?: SortOrder
     name?: SortOrder
     description?: SortOrder
     priceCents?: SortOrder
@@ -23800,9 +23800,9 @@ export namespace Prisma {
 
   export type SubscriptionCountOrderByAggregateInput = {
     id?: SortOrder
-    polarCheckoutId?: SortOrder
-    polarSubscriptionId?: SortOrder
-    polarCustomerId?: SortOrder
+    stripeSessionId?: SortOrder
+    stripeSubscriptionId?: SortOrder
+    stripeCustomerId?: SortOrder
     status?: SortOrder
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
@@ -23816,9 +23816,9 @@ export namespace Prisma {
 
   export type SubscriptionMaxOrderByAggregateInput = {
     id?: SortOrder
-    polarCheckoutId?: SortOrder
-    polarSubscriptionId?: SortOrder
-    polarCustomerId?: SortOrder
+    stripeSessionId?: SortOrder
+    stripeSubscriptionId?: SortOrder
+    stripeCustomerId?: SortOrder
     status?: SortOrder
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
@@ -23832,9 +23832,9 @@ export namespace Prisma {
 
   export type SubscriptionMinOrderByAggregateInput = {
     id?: SortOrder
-    polarCheckoutId?: SortOrder
-    polarSubscriptionId?: SortOrder
-    polarCustomerId?: SortOrder
+    stripeSessionId?: SortOrder
+    stripeSubscriptionId?: SortOrder
+    stripeCustomerId?: SortOrder
     status?: SortOrder
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
@@ -23853,7 +23853,7 @@ export namespace Prisma {
 
   export type PaymentCountOrderByAggregateInput = {
     id?: SortOrder
-    polarPaymentId?: SortOrder
+    stripeInvoiceId?: SortOrder
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
@@ -23870,7 +23870,7 @@ export namespace Prisma {
 
   export type PaymentMaxOrderByAggregateInput = {
     id?: SortOrder
-    polarPaymentId?: SortOrder
+    stripeInvoiceId?: SortOrder
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
@@ -23883,7 +23883,7 @@ export namespace Prisma {
 
   export type PaymentMinOrderByAggregateInput = {
     id?: SortOrder
-    polarPaymentId?: SortOrder
+    stripeInvoiceId?: SortOrder
     amount?: SortOrder
     currency?: SortOrder
     status?: SortOrder
@@ -25509,9 +25509,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateWithoutUserInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -25525,9 +25525,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedCreateWithoutUserInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -25731,9 +25731,9 @@ export namespace Prisma {
     OR?: SubscriptionScalarWhereInput[]
     NOT?: SubscriptionScalarWhereInput | SubscriptionScalarWhereInput[]
     id?: StringFilter<"Subscription"> | string
-    polarCheckoutId?: StringNullableFilter<"Subscription"> | string | null
-    polarSubscriptionId?: StringNullableFilter<"Subscription"> | string | null
-    polarCustomerId?: StringNullableFilter<"Subscription"> | string | null
+    stripeSessionId?: StringNullableFilter<"Subscription"> | string | null
+    stripeSubscriptionId?: StringNullableFilter<"Subscription"> | string | null
+    stripeCustomerId?: StringNullableFilter<"Subscription"> | string | null
     status?: StringFilter<"Subscription"> | string
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
@@ -26244,9 +26244,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateWithoutOrganizationInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -26260,9 +26260,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedCreateWithoutOrganizationInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -27719,9 +27719,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateWithoutProductInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -27735,9 +27735,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedCreateWithoutProductInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -27875,7 +27875,7 @@ export namespace Prisma {
 
   export type ProductCreateWithoutSubscriptionsInput = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description?: string | null
     priceCents: number
@@ -27888,7 +27888,7 @@ export namespace Prisma {
 
   export type ProductUncheckedCreateWithoutSubscriptionsInput = {
     id: string
-    polarId: string
+    stripeProductId: string
     name: string
     description?: string | null
     priceCents: number
@@ -27906,7 +27906,7 @@ export namespace Prisma {
 
   export type PaymentCreateWithoutSubscriptionInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -27918,7 +27918,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedCreateWithoutSubscriptionInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -28061,7 +28061,7 @@ export namespace Prisma {
 
   export type ProductUpdateWithoutSubscriptionsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -28074,7 +28074,7 @@ export namespace Prisma {
 
   export type ProductUncheckedUpdateWithoutSubscriptionsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarId?: StringFieldUpdateOperationsInput | string
+    stripeProductId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     priceCents?: IntFieldUpdateOperationsInput | number
@@ -28106,7 +28106,7 @@ export namespace Prisma {
     OR?: PaymentScalarWhereInput[]
     NOT?: PaymentScalarWhereInput | PaymentScalarWhereInput[]
     id?: StringFilter<"Payment"> | string
-    polarPaymentId?: StringNullableFilter<"Payment"> | string | null
+    stripeInvoiceId?: StringNullableFilter<"Payment"> | string | null
     amount?: IntFilter<"Payment"> | number
     currency?: StringFilter<"Payment"> | string
     status?: StringFilter<"Payment"> | string
@@ -28119,9 +28119,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateWithoutPaymentsInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -28135,9 +28135,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedCreateWithoutPaymentsInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -28167,9 +28167,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateWithoutPaymentsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28183,9 +28183,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateWithoutPaymentsInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28344,9 +28344,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateManyUserInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -28509,9 +28509,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28525,9 +28525,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28541,9 +28541,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28645,9 +28645,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateManyOrganizationInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -28835,9 +28835,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28851,9 +28851,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28867,9 +28867,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateManyWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29039,9 +29039,9 @@ export namespace Prisma {
 
   export type SubscriptionCreateManyProductInput = {
     id: string
-    polarCheckoutId?: string | null
-    polarSubscriptionId?: string | null
-    polarCustomerId?: string | null
+    stripeSessionId?: string | null
+    stripeSubscriptionId?: string | null
+    stripeCustomerId?: string | null
     status: string
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
@@ -29054,9 +29054,9 @@ export namespace Prisma {
 
   export type SubscriptionUpdateWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29070,9 +29070,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29086,9 +29086,9 @@ export namespace Prisma {
 
   export type SubscriptionUncheckedUpdateManyWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarCheckoutId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
-    polarCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSessionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeSubscriptionId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29101,7 +29101,7 @@ export namespace Prisma {
 
   export type PaymentCreateManySubscriptionInput = {
     id: string
-    polarPaymentId?: string | null
+    stripeInvoiceId?: string | null
     amount: number
     currency?: string
     status: string
@@ -29113,7 +29113,7 @@ export namespace Prisma {
 
   export type PaymentUpdateWithoutSubscriptionInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -29125,7 +29125,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedUpdateWithoutSubscriptionInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -29137,7 +29137,7 @@ export namespace Prisma {
 
   export type PaymentUncheckedUpdateManyWithoutSubscriptionInput = {
     id?: StringFieldUpdateOperationsInput | string
-    polarPaymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeInvoiceId?: NullableStringFieldUpdateOperationsInput | string | null
     amount?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
