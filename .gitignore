@@ -43,6 +43,9 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Claude Code local config (may contain secrets)
+.claude/mcp.json
+
 # Misc
 *.tgz
 .cache
