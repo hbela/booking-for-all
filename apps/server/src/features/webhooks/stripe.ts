@@ -179,7 +179,13 @@ async function handleCheckoutCompleted(app: any, session: Stripe.Checkout.Sessio
     },
   });
 
-  // Try to enable organization
+  // Always set status to SUBSCRIBED when checkout completes
+  await prisma.organization.update({
+    where: { id: organizationId },
+    data: { status: 'SUBSCRIBED' as any },
+  });
+
+  // Try to enable organization (requires departments + providers)
   const enabled = await tryEnableOrganization(organizationId);
   if (enabled) {
     app.log.info({ organizationId }, 'Organization enabled after checkout');
@@ -264,11 +270,11 @@ async function handleSubscriptionDeleted(app: any, stripeSub: Stripe.Subscriptio
       },
     });
 
-    // Disable the organization
+    // Disable the organization and update status
     if (existingSubscription.organizationId) {
       await prisma.organization.update({
         where: { id: existingSubscription.organizationId },
-        data: { enabled: false },
+        data: { enabled: false, status: 'SUBSCRIPTION_DELETED' as any },
       });
       app.log.info({ organizationId: existingSubscription.organizationId }, 'Subscription deleted, organization disabled');
     }
@@ -336,6 +342,14 @@ async function handleInvoicePaymentFailed(app: any, invoice: Stripe.Invoice) {
       updatedAt: new Date(),
     },
   });
+
+  // Update organization status to reflect payment failure
+  if (existingSubscription.organizationId) {
+    await prisma.organization.update({
+      where: { id: existingSubscription.organizationId },
+      data: { status: 'PAYMENT_FAILED' as any },
+    });
+  }
 
   app.log.warn(
     { subscriptionId: existingSubscription.id, organizationId: existingSubscription.organizationId },

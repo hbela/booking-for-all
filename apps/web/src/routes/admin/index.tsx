@@ -1,13 +1,3 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +9,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { OrganizationTable } from "./components/organization-table";
+import { CreateOrganizationDialog } from "./components/create-organization-dialog";
+import { EditOrganizationDialog } from "./components/edit-organization-dialog";
+import type { Organization } from "./components/organization-columns";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminComponent,
@@ -37,11 +30,10 @@ export const Route = createFileRoute("/admin/")({
       });
     }
 
-    // Check if user has system admin access
     // @ts-ignore - isSystemAdmin is boolean field
     if (!session.data.user.isSystemAdmin) {
       throw redirect({
-        to: "/owner",
+        to: "/",
       });
     }
 
@@ -49,60 +41,20 @@ export const Route = createFileRoute("/admin/")({
   },
 });
 
-interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  domain?: string | null;
-  logo?: string;
-  enabled: boolean;
-  members?: any[];
-}
-
-interface CreateOrgData {
-  name: string;
-  slug: string;
-  domain: string; // Required and unique
-  logo?: string;
-  ownerName: string;
-  ownerEmail: string;
-}
-
 // API functions
 const fetchOrganizations = async (): Promise<Organization[]> => {
   return apiFetch<Organization[]>(
-    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`
-  );
-};
-
-const createOrganization = async (data: CreateOrgData): Promise<any> => {
-  return apiFetch<any>(
-    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/create`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        name: data.name,
-        slug: data.slug,
-        domain: data.domain,
-        logo: data.logo || undefined,
-        ownerName: data.ownerName,
-        ownerEmail: data.ownerEmail,
-      }),
-    }
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations`,
   );
 };
 
 const deleteOrganization = async (orgId: string): Promise<void> => {
-  // DELETE requests don't need Content-Type header when there's no body
   const res = await fetch(
     `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${orgId}`,
     {
       method: "DELETE",
       credentials: "include",
-      headers: {
-        // Don't set Content-Type for DELETE requests without body
-      },
-    }
+    },
   );
 
   if (!res.ok) {
@@ -112,66 +64,54 @@ const deleteOrganization = async (orgId: string): Promise<void> => {
     throw new ApiError(message, code, res.status);
   }
 
-  // DELETE requests may return 204 No Content
-  if (res.status === 204) {
-    return;
-  }
+  if (res.status === 204) return;
 
   const data = await res.json().catch(() => null);
-  // Handle unified response format: { success: true, data: ... }
-  if (data && typeof data === "object" && "success" in data) {
-    return;
-  }
+  if (data && typeof data === "object" && "success" in data) return;
 };
 
 const createCheckout = async (
-  orgId: string
+  orgId: string,
 ): Promise<{ checkoutUrl: string }> => {
-  const data = await apiFetch<{ checkoutUrl: string }>(
+  return apiFetch<{ checkoutUrl: string }>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/create-checkout`,
     {
       method: "POST",
       body: JSON.stringify({ organizationId: orgId }),
-    }
+    },
   );
-  return data;
+};
+
+const suspendOrganization = async (
+  id: string,
+  suspend: boolean,
+): Promise<Organization> => {
+  return apiFetch<Organization>(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/organizations/${id}/suspend`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ suspend }),
+    },
+  );
 };
 
 function AdminComponent() {
-  const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Query for organizations
+  // Organizations query — auto-loads
   const {
     data: organizations = [],
     isLoading,
     error,
-    refetch,
   } = useQuery({
     queryKey: ["admin", "organizations"],
     queryFn: fetchOrganizations,
-    enabled: false, // Don't auto-fetch, user clicks button
   });
 
-  // Create organization mutation
-  const createOrgMutation = useMutation({
-    mutationFn: createOrganization,
-    onSuccess: (data) => {
-      toast.success(data.message || t("admin.organizationCreatedSuccessfully"));
-      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
-    },
-    onError: (error) => {
-      if (error instanceof ApiError) {
-        toast.error(error.message);
-      } else {
-        toast.error(t("admin.failedToCreateOrganization"));
-      }
-    },
-  });
-
-  // Delete organization mutation
+  // Delete mutation
   const deleteOrgMutation = useMutation({
     mutationFn: deleteOrganization,
     onSuccess: () => {
@@ -183,9 +123,7 @@ function AdminComponent() {
     onError: (error) => {
       if (error instanceof ApiError) {
         if (error.code === "ORG_CANNOT_DELETE_ACTIVE") {
-          toast.error(
-            t("admin.cannotDeleteActiveOrganization") || error.message
-          );
+          toast.error(t("admin.cannotDeleteNonPendingOrganization") || error.message);
         } else {
           toast.error(error.message);
         }
@@ -201,12 +139,11 @@ function AdminComponent() {
   const subscribeMutation = useMutation({
     mutationFn: createCheckout,
     onSuccess: (data, orgId) => {
-      // Find org name for toast
       const org = organizations.find((o) => o.id === orgId);
       toast.success(
         t("admin.redirectingToCheckout", {
           orgName: org?.name || t("admin.organization"),
-        })
+        }),
       );
       window.location.href = data.checkoutUrl;
     },
@@ -214,42 +151,76 @@ function AdminComponent() {
       if (error instanceof ApiError) {
         toast.error(error.message);
       } else {
-        toast.error(error.message || t("admin.failedToCreateCheckout"));
+        toast.error(t("admin.failedToCreateCheckout"));
       }
     },
   });
 
-  // TanStack Form for create organization
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      slug: "",
-      domain: "",
-      logo: "",
-      ownerName: "",
-      ownerEmail: "",
-    } as CreateOrgData,
-    onSubmit: async ({ value }) => {
-      await createOrgMutation.mutateAsync(value);
-      form.reset();
+  // Suspend mutation
+  const suspendMutation = useMutation({
+    mutationFn: ({ id, suspend }: { id: string; suspend: boolean }) =>
+      suspendOrganization(id, suspend),
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.suspend
+          ? t("admin.organizationSuspendedSuccessfully")
+          : t("admin.organizationUnsuspendedSuccessfully"),
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+      setSuspendTarget(null);
+      setShowSuspendDialog(false);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error(t("admin.failedToSuspendOrganization"));
+      }
+      setSuspendTarget(null);
+      setShowSuspendDialog(false);
     },
   });
 
-  // State for delete confirmation dialog
+  // Dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
 
-  const handleDeleteOrg = (org: Organization) => {
-    // Only allow deletion of pending organizations
-    if (org.enabled) {
-      toast.error(
-        t("admin.cannotDeleteActiveOrganization") ||
-          "Only organizations with pending status can be deleted"
-      );
-      return;
-    }
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [orgToEdit, setOrgToEdit] = useState<Organization | null>(null);
+
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [suspendTarget, setSuspendTarget] = useState<Organization | null>(null);
+
+  // Row action handlers (stable references via useCallback)
+  const handleEdit = useCallback((org: Organization) => {
+    setOrgToEdit(org);
+    setShowEditDialog(true);
+  }, []);
+
+  const handleSuspend = useCallback((org: Organization) => {
+    setSuspendTarget(org);
+    setShowSuspendDialog(true);
+  }, []);
+
+  const handleDelete = useCallback((org: Organization) => {
     setOrgToDelete(org);
     setShowDeleteDialog(true);
+  }, []);
+
+  const handleSubscribe = useCallback(
+    (org: Organization) => {
+      subscribeMutation.mutate(org.id);
+    },
+    [subscribeMutation],
+  );
+
+  const handleSuspendConfirm = async () => {
+    if (!suspendTarget) return;
+    const isSuspended = suspendTarget.status === "SUSPENDED";
+    await suspendMutation.mutateAsync({
+      id: suspendTarget.id,
+      suspend: !isSuspended,
+    });
   };
 
   const handleDeleteConfirm = async () => {
@@ -258,18 +229,6 @@ function AdminComponent() {
     }
   };
 
-  const handleSubscribe = async (orgId: string) => {
-    await subscribeMutation.mutateAsync(orgId);
-  };
-
-  const isLoadingAny =
-    isSessionPending ||
-    isLoading ||
-    createOrgMutation.isPending ||
-    deleteOrgMutation.isPending ||
-    subscribeMutation.isPending;
-
-  // Show loading state while session is being fetched
   if (isSessionPending || !session) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -278,413 +237,109 @@ function AdminComponent() {
     );
   }
 
+  if (error) {
+    toast.error(t("admin.errorLoadingOrganizations", { message: (error as Error).message }));
+  }
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">{t("admin.adminDashboard")}</h1>
-        <p className="text-muted-foreground">
-          {t("admin.welcomeAdmin", { name: session.user.name })}
-        </p>
-        <div className="mt-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate({ to: "/admin/api-keys" })}
-            className="mr-2"
-          >
-            {t("admin.manageApiKeys")}
-          </Button>
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{t("admin.manageOrganizations")}</h1>
+          <p className="text-muted-foreground">
+            {t("admin.welcomeAdmin", { name: session.user.name })}
+          </p>
         </div>
+        <CreateOrganizationDialog
+          onSuccess={() =>
+            queryClient.invalidateQueries({
+              queryKey: ["admin", "organizations"],
+            })
+          }
+        />
       </div>
 
-      <div className="max-w-2xl mx-auto">
-        {/* Create Organization */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.createOrganization")}</CardTitle>
-            <CardDescription>{t("admin.addNewOrganization")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                form.handleSubmit();
+      {/* Organizations Table */}
+      <OrganizationTable
+        data={organizations}
+        isLoading={isLoading}
+        onEdit={handleEdit}
+        onSuspend={handleSuspend}
+        onDelete={handleDelete}
+        onSubscribe={handleSubscribe}
+      />
+
+      {/* Edit Dialog */}
+      <EditOrganizationDialog
+        org={orgToEdit}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSuccess={() =>
+          queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] })
+        }
+      />
+
+      {/* Suspend / Unsuspend Confirmation */}
+      <AlertDialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {suspendTarget?.status === "SUSPENDED"
+                ? t("admin.unsuspendConfirmTitle")
+                : t("admin.suspendConfirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {suspendTarget?.status === "SUSPENDED"
+                ? t("admin.unsuspendConfirmDescription", {
+                    name: suspendTarget?.name,
+                  })
+                : t("admin.suspendConfirmDescription", {
+                    name: suspendTarget?.name,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setSuspendTarget(null);
+                setShowSuspendDialog(false);
               }}
-              className="space-y-4"
             >
-              <form.Field
-                name="name"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value || value.trim().length === 0) {
-                      return t("admin.organizationNameRequired");
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>
-                      {t("admin.organizationName")}
-                    </Label>
-                    <Input
-                      id={field.name}
-                      placeholder={t("admin.organizationNamePlaceholder")}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
+              {t("common.cancel") || "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSuspendConfirm}
+              disabled={suspendMutation.isPending}
+            >
+              {suspendMutation.isPending
+                ? "..."
+                : suspendTarget?.status === "SUSPENDED"
+                  ? t("admin.unsuspendOrganization")
+                  : t("admin.suspendOrganization")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-              <form.Field
-                name="slug"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value || value.trim().length === 0) {
-                      return t("admin.slugRequired");
-                    }
-                    if (!/^[a-z0-9-]+$/.test(value)) {
-                      return t("admin.slugInvalid");
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>{t("admin.slug")}</Label>
-                    <Input
-                      id={field.name}
-                      placeholder={t("admin.slugPlaceholder")}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field
-                name="domain"
-                validators={{
-                  onChange: ({ value }) => {
-                    // Domain is required
-                    if (!value || value.trim().length === 0) {
-                      return t("admin.domainRequired") || "Domain is required";
-                    }
-                    // Basic domain validation (allows comma-separated for dev)
-                    const domains = value
-                      .split(",")
-                      .map((d) => d.trim())
-                      .filter((d) => d.length > 0);
-                    if (domains.length === 0) {
-                      return t("admin.domainRequired") || "Domain is required";
-                    }
-                    for (const domain of domains) {
-                      // Allow domains with alphanumeric, dots, hyphens
-                      // Examples: wellness.hu, wellness.appointer.hu, localhost
-                      if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(domain)) {
-                        return (
-                          t("admin.domainInvalid") ||
-                          "Invalid domain format. Use alphanumeric characters, dots, and hyphens only."
-                        );
-                      }
-                      // Must be at least 2 characters
-                      if (domain.length < 2) {
-                        return (
-                          t("admin.domainInvalid") ||
-                          "Domain must be at least 2 characters"
-                        );
-                      }
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>
-                      {t("admin.domain")}{" "}
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id={field.name}
-                      placeholder={
-                        t("admin.domainPlaceholder") ||
-                        "wellness.appointer.hu or wellness.appointer.hu,wellness.hu"
-                      }
-                      value={field.state.value || ""}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t("admin.domainHelp") ||
-                        "For production: single domain. For development: comma-separated domains (e.g., wellness.appointer.hu,wellness.hu)"}
-                    </p>
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field
-                name="ownerName"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value || value.trim().length === 0) {
-                      return t("admin.ownerNameRequired");
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>{t("admin.ownerName")}</Label>
-                    <Input
-                      id={field.name}
-                      placeholder={t("admin.ownerNamePlaceholder")}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field
-                name="ownerEmail"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value || value.trim().length === 0) {
-                      return t("admin.ownerEmailRequired");
-                    }
-                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                      return t("owner.validEmailAddress");
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>{t("admin.ownerEmail")}</Label>
-                    <Input
-                      id={field.name}
-                      type="email"
-                      placeholder={t("admin.ownerEmailPlaceholder")}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field
-                name="logo"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value && value.trim().length > 0) {
-                      try {
-                        new URL(value);
-                      } catch {
-                        return t("admin.logoUrlInvalid");
-                      }
-                    }
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>{t("admin.logoUrl")}</Label>
-                    <Input
-                      id={field.name}
-                      type="url"
-                      placeholder={t("admin.logoUrlPlaceholder")}
-                      value={field.state.value || ""}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      disabled={createOrgMutation.isPending}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-red-500">
-                        {field.state.meta.errors[0]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-
-              <Button
-                type="submit"
-                disabled={createOrgMutation.isPending}
-                className="w-full"
-              >
-                {createOrgMutation.isPending
-                  ? t("admin.creating")
-                  : t("admin.createOrganizationButton")}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Organizations List */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>{t("admin.allOrganizations")}</CardTitle>
-          <CardDescription>{t("admin.manageAllOrganizations")}</CardDescription>
-          <Button
-            onClick={() => refetch()}
-            disabled={isLoading}
-            className="mt-2"
-          >
-            {isLoading ? t("admin.loading") : t("admin.loadOrganizations")}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <p className="text-sm text-red-500 mb-4">
-              {t("admin.errorLoadingOrganizations", { message: error.message })}
-            </p>
-          )}
-          {organizations.length === 0 && !isLoading ? (
-            <p className="text-sm text-muted-foreground">
-              {t("admin.noOrganizationsLoaded")}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {organizations.map((org) => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between rounded-md border border-border bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-primary/50"
-                >
-                  <div className="flex items-center gap-4">
-                    {org.logo && (
-                      <img
-                        src={org.logo}
-                        alt={org.name}
-                        className="h-10 w-10 rounded"
-                      />
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{org.name}</h3>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            org.enabled
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}
-                        >
-                          {org.enabled ? t("admin.active") : t("admin.pending")}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {t("admin.slugLabel")}: {org.slug}
-                      </p>
-                      {org.domain && (
-                        <p className="text-sm text-muted-foreground">
-                          {t("admin.domainLabel") || "Domain"}: {org.domain}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.idLabel")}: {org.id}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.members")}: {org.members?.length || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {!org.enabled && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleSubscribe(org.id)}
-                        disabled={isLoadingAny}
-                      >
-                        {t("admin.subscribe")}
-                      </Button>
-                    )}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteOrg(org)}
-                      disabled={isLoadingAny || org.enabled}
-                      title={
-                        org.enabled
-                          ? t("admin.cannotDeleteActiveOrganization") ||
-                            "Only organizations with pending status can be deleted"
-                          : undefined
-                      }
-                    >
-                      {t("admin.deleteAction")}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("admin.deleteOrganization") || "Delete Organization"}
+              {t("admin.deleteOrganization")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("admin.areYouSureDeleteOrganization") ||
-                "Are you sure you want to delete this organization? This action cannot be undone."}
+              {t("admin.areYouSureDeleteOrganization")}
               {orgToDelete && (
-                <div className="mt-2">
-                  <strong>{t("admin.organization") || "Organization"}:</strong>{" "}
-                  {orgToDelete.name}
+                <div className="mt-2 text-foreground">
+                  <strong>{t("admin.organization")}:</strong> {orgToDelete.name}
                   <br />
-                  <strong>{t("admin.slugLabel") || "Slug"}:</strong>{" "}
-                  {orgToDelete.slug}
+                  <strong>{t("admin.slugLabel")}:</strong> {orgToDelete.slug}
                   {orgToDelete.domain && (
                     <>
                       <br />
-                      <strong>
-                        {t("admin.domainLabel") || "Domain"}:
-                      </strong>{" "}
+                      <strong>{t("admin.domainLabel")}:</strong>{" "}
                       {orgToDelete.domain}
                     </>
                   )}

@@ -102,11 +102,26 @@ export namespace $Enums {
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
+
+export const OrganizationStatus: {
+  PENDING: 'PENDING',
+  SUBSCRIBED: 'SUBSCRIBED',
+  SUBSCRIPTION_DELETED: 'SUBSCRIPTION_DELETED',
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
+  SUSPENDED: 'SUSPENDED'
+};
+
+export type OrganizationStatus = (typeof OrganizationStatus)[keyof typeof OrganizationStatus]
+
 }
 
 export type UserRole = $Enums.UserRole
 
 export const UserRole: typeof $Enums.UserRole
+
+export type OrganizationStatus = $Enums.OrganizationStatus
+
+export const OrganizationStatus: typeof $Enums.OrganizationStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -7097,6 +7112,7 @@ export namespace Prisma {
     domain: string | null
     logo: string | null
     enabled: boolean | null
+    status: $Enums.OrganizationStatus | null
     timeZone: string | null
     availabilityStartHour: number | null
     availabilityEndHour: number | null
@@ -7113,6 +7129,7 @@ export namespace Prisma {
     domain: string | null
     logo: string | null
     enabled: boolean | null
+    status: $Enums.OrganizationStatus | null
     timeZone: string | null
     availabilityStartHour: number | null
     availabilityEndHour: number | null
@@ -7129,6 +7146,7 @@ export namespace Prisma {
     domain: number
     logo: number
     enabled: number
+    status: number
     timeZone: number
     availabilityStartHour: number
     availabilityEndHour: number
@@ -7157,6 +7175,7 @@ export namespace Prisma {
     domain?: true
     logo?: true
     enabled?: true
+    status?: true
     timeZone?: true
     availabilityStartHour?: true
     availabilityEndHour?: true
@@ -7173,6 +7192,7 @@ export namespace Prisma {
     domain?: true
     logo?: true
     enabled?: true
+    status?: true
     timeZone?: true
     availabilityStartHour?: true
     availabilityEndHour?: true
@@ -7189,6 +7209,7 @@ export namespace Prisma {
     domain?: true
     logo?: true
     enabled?: true
+    status?: true
     timeZone?: true
     availabilityStartHour?: true
     availabilityEndHour?: true
@@ -7292,6 +7313,7 @@ export namespace Prisma {
     domain: string | null
     logo: string | null
     enabled: boolean
+    status: $Enums.OrganizationStatus
     timeZone: string
     availabilityStartHour: number
     availabilityEndHour: number
@@ -7327,6 +7349,7 @@ export namespace Prisma {
     domain?: boolean
     logo?: boolean
     enabled?: boolean
+    status?: boolean
     timeZone?: boolean
     availabilityStartHour?: boolean
     availabilityEndHour?: boolean
@@ -7352,6 +7375,7 @@ export namespace Prisma {
     domain?: boolean
     logo?: boolean
     enabled?: boolean
+    status?: boolean
     timeZone?: boolean
     availabilityStartHour?: boolean
     availabilityEndHour?: boolean
@@ -7368,6 +7392,7 @@ export namespace Prisma {
     domain?: boolean
     logo?: boolean
     enabled?: boolean
+    status?: boolean
     timeZone?: boolean
     availabilityStartHour?: boolean
     availabilityEndHour?: boolean
@@ -7384,6 +7409,7 @@ export namespace Prisma {
     domain?: boolean
     logo?: boolean
     enabled?: boolean
+    status?: boolean
     timeZone?: boolean
     availabilityStartHour?: boolean
     availabilityEndHour?: boolean
@@ -7392,7 +7418,7 @@ export namespace Prisma {
     qrCodeKey?: boolean
   }
 
-  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "domain" | "logo" | "enabled" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata" | "qrCodeKey", ExtArgs["result"]["organization"]>
+  export type OrganizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "slug" | "domain" | "logo" | "enabled" | "status" | "timeZone" | "availabilityStartHour" | "availabilityEndHour" | "createdAt" | "metadata" | "qrCodeKey", ExtArgs["result"]["organization"]>
   export type OrganizationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     members?: boolean | Organization$membersArgs<ExtArgs>
     departments?: boolean | Organization$departmentsArgs<ExtArgs>
@@ -7427,6 +7453,7 @@ export namespace Prisma {
       domain: string | null
       logo: string | null
       enabled: boolean
+      status: $Enums.OrganizationStatus
       timeZone: string
       availabilityStartHour: number
       availabilityEndHour: number
@@ -7871,6 +7898,7 @@ export namespace Prisma {
     readonly domain: FieldRef<"Organization", 'String'>
     readonly logo: FieldRef<"Organization", 'String'>
     readonly enabled: FieldRef<"Organization", 'Boolean'>
+    readonly status: FieldRef<"Organization", 'OrganizationStatus'>
     readonly timeZone: FieldRef<"Organization", 'String'>
     readonly availabilityStartHour: FieldRef<"Organization", 'Int'>
     readonly availabilityEndHour: FieldRef<"Organization", 'Int'>
@@ -19983,6 +20011,7 @@ export namespace Prisma {
     domain: 'domain',
     logo: 'logo',
     enabled: 'enabled',
+    status: 'status',
     timeZone: 'timeZone',
     availabilityStartHour: 'availabilityStartHour',
     availabilityEndHour: 'availabilityEndHour',
@@ -20236,6 +20265,20 @@ export namespace Prisma {
    * Reference to a field of type 'UserRole[]'
    */
   export type ListEnumUserRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrganizationStatus'
+   */
+  export type EnumOrganizationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrganizationStatus[]'
+   */
+  export type ListEnumOrganizationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationStatus[]'>
     
 
 
@@ -20636,6 +20679,7 @@ export namespace Prisma {
     domain?: StringNullableFilter<"Organization"> | string | null
     logo?: StringNullableFilter<"Organization"> | string | null
     enabled?: BoolFilter<"Organization"> | boolean
+    status?: EnumOrganizationStatusFilter<"Organization"> | $Enums.OrganizationStatus
     timeZone?: StringFilter<"Organization"> | string
     availabilityStartHour?: IntFilter<"Organization"> | number
     availabilityEndHour?: IntFilter<"Organization"> | number
@@ -20660,6 +20704,7 @@ export namespace Prisma {
     domain?: SortOrderInput | SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
+    status?: SortOrder
     timeZone?: SortOrder
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
@@ -20687,6 +20732,7 @@ export namespace Prisma {
     description?: StringNullableFilter<"Organization"> | string | null
     logo?: StringNullableFilter<"Organization"> | string | null
     enabled?: BoolFilter<"Organization"> | boolean
+    status?: EnumOrganizationStatusFilter<"Organization"> | $Enums.OrganizationStatus
     timeZone?: StringFilter<"Organization"> | string
     availabilityStartHour?: IntFilter<"Organization"> | number
     availabilityEndHour?: IntFilter<"Organization"> | number
@@ -20711,6 +20757,7 @@ export namespace Prisma {
     domain?: SortOrderInput | SortOrder
     logo?: SortOrderInput | SortOrder
     enabled?: SortOrder
+    status?: SortOrder
     timeZone?: SortOrder
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
@@ -20735,6 +20782,7 @@ export namespace Prisma {
     domain?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     logo?: StringNullableWithAggregatesFilter<"Organization"> | string | null
     enabled?: BoolWithAggregatesFilter<"Organization"> | boolean
+    status?: EnumOrganizationStatusWithAggregatesFilter<"Organization"> | $Enums.OrganizationStatus
     timeZone?: StringWithAggregatesFilter<"Organization"> | string
     availabilityStartHour?: IntWithAggregatesFilter<"Organization"> | number
     availabilityEndHour?: IntWithAggregatesFilter<"Organization"> | number
@@ -21937,6 +21985,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -21961,6 +22010,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -21985,6 +22035,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -22009,6 +22060,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -22033,6 +22085,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -22049,6 +22102,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -22065,6 +22119,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -23315,6 +23370,13 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type EnumOrganizationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrganizationStatus | EnumOrganizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrganizationStatusFilter<$PrismaModel> | $Enums.OrganizationStatus
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -23374,6 +23436,7 @@ export namespace Prisma {
     domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    status?: SortOrder
     timeZone?: SortOrder
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
@@ -23395,6 +23458,7 @@ export namespace Prisma {
     domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    status?: SortOrder
     timeZone?: SortOrder
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
@@ -23411,6 +23475,7 @@ export namespace Prisma {
     domain?: SortOrder
     logo?: SortOrder
     enabled?: SortOrder
+    status?: SortOrder
     timeZone?: SortOrder
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
@@ -23422,6 +23487,16 @@ export namespace Prisma {
   export type OrganizationSumOrderByAggregateInput = {
     availabilityStartHour?: SortOrder
     availabilityEndHour?: SortOrder
+  }
+
+  export type EnumOrganizationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrganizationStatus | EnumOrganizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrganizationStatusWithAggregatesFilter<$PrismaModel> | $Enums.OrganizationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumOrganizationStatusFilter<$PrismaModel>
+    _max?: NestedEnumOrganizationStatusFilter<$PrismaModel>
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -24433,6 +24508,10 @@ export namespace Prisma {
     connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
   }
 
+  export type EnumOrganizationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.OrganizationStatus
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -25282,6 +25361,23 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumOrganizationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrganizationStatus | EnumOrganizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrganizationStatusFilter<$PrismaModel> | $Enums.OrganizationStatus
+  }
+
+  export type NestedEnumOrganizationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrganizationStatus | EnumOrganizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrganizationStatus[] | ListEnumOrganizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrganizationStatusWithAggregatesFilter<$PrismaModel> | $Enums.OrganizationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumOrganizationStatusFilter<$PrismaModel>
+    _max?: NestedEnumOrganizationStatusFilter<$PrismaModel>
+  }
+
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -25833,6 +25929,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -25856,6 +25953,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -25948,6 +26046,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -25971,6 +26070,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26533,6 +26633,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26556,6 +26657,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26595,6 +26697,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26618,6 +26721,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26641,6 +26745,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26664,6 +26769,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26703,6 +26809,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26726,6 +26833,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26749,6 +26857,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26772,6 +26881,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26843,6 +26953,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26866,6 +26977,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -26905,6 +27017,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -26928,6 +27041,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27077,6 +27191,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27100,6 +27215,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27221,6 +27337,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27244,6 +27361,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27333,6 +27451,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27356,6 +27475,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27441,6 +27561,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27464,6 +27585,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27585,6 +27707,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27608,6 +27731,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -27830,6 +27954,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -27853,6 +27978,7 @@ export namespace Prisma {
     domain?: string | null
     logo?: string | null
     enabled?: boolean
+    status?: $Enums.OrganizationStatus
     timeZone?: string
     availabilityStartHour?: number
     availabilityEndHour?: number
@@ -28010,6 +28136,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
@@ -28033,6 +28160,7 @@ export namespace Prisma {
     domain?: NullableStringFieldUpdateOperationsInput | string | null
     logo?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
     timeZone?: StringFieldUpdateOperationsInput | string
     availabilityStartHour?: IntFieldUpdateOperationsInput | number
     availabilityEndHour?: IntFieldUpdateOperationsInput | number
