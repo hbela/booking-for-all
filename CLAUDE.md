@@ -194,6 +194,25 @@ DIRECT_URL             # Alternative direct URL
 
 ---
 
+## Available Skills
+
+Invoke these with `/skill-name` or via the Skill tool.
+
+| Skill | Trigger |
+|-------|---------|
+| `fastify` | Adding/extending API route modules in `apps/server` (Fastify 5 + Zod + Swagger) |
+| `prisma` | Schema changes, queries, transactions, error handling in `packages/db` |
+| `tanstack-query-fastify` | New data-fetching hooks, mutations, cache invalidation in `apps/web` |
+| `tanstack-router-fastify` | New file-based routes, auth guards, loaders, search params in `apps/web` |
+| `react-expert` | React 19 components with Radix UI, Tailwind CSS 4, TanStack Form, sonner, i18next |
+| `typescript-pro` | Strict TypeScript, Zod inference, Prisma payload types, ESM imports |
+| `secure-code-guardian` | Auth guards, RBAC via `authz`, org scoping, webhook signature verification |
+| `test-master` | Vitest tests for Fastify routes (`app.inject`) and React components |
+| `monitoring-expert` | Sentry error capture, structured Fastify logging, performance spans |
+| `devops-engineer` | GitHub Actions CI, Docker, `db:migrate:deploy`, Turbo remote cache |
+
+---
+
 ## Development Notes
 
 - **TypeScript:** Strict mode everywhere. No unused vars/params.
