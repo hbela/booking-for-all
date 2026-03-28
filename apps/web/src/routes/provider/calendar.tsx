@@ -927,15 +927,7 @@ function ProviderCalendarComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div
-            style={{
-              height: "calc(100vh - 280px)",
-              minHeight: "600px",
-              maxHeight: "1400px",
-              position: "relative",
-            }}
-            className="calendar-container"
-          >
+          <div className="calendar-container relative h-[calc(100vh-280px)] min-h-[600px] max-h-[1400px]">
             <style>{`
               /* Ensure calendar cells are clickable */
               .rbc-time-view .rbc-day-slot {
@@ -1286,7 +1278,7 @@ function ProviderCalendarComponent() {
             `}</style>
             <div
               onClick={handleCalendarClick}
-              style={{ height: "100%", width: "100%" }}
+              className="h-full w-full"
             >
               <Calendar
                 localizer={localizer}
@@ -1307,7 +1299,7 @@ function ProviderCalendarComponent() {
                   handleSelectEvent(event);
                 }}
                 eventPropGetter={eventStyleGetter}
-                style={{ height: "100%" }}
+                className="h-full"
                 step={5}
                 timeslots={1}
                 showMultiDayTimes

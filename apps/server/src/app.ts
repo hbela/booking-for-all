@@ -18,7 +18,7 @@ import membersRoutes from "./features/members/routes";
 import debugRoutes from "./features/debug/routes";
 import testEmailRoutes from "./features/testEmail/routes";
 import rawBody from "fastify-raw-body";
-import polarWebhook from "./features/webhooks/polar";
+import stripeWebhook from "./features/webhooks/stripe";
 import sentryTunnel from "./features/webhooks/sentry-tunnel";
 import { auth } from "@booking-for-all/auth";
 import subscriptionsRoutes from "./features/subscriptions/routes";
@@ -76,6 +76,10 @@ const envSchema = {
     S3_SECRET_KEY: { type: "string" },
     S3_BUCKET: { type: "string" },
     PUBLIC_APP_URL: { type: "string" },
+    STRIPE_SECRET_KEY: { type: "string" },
+    STRIPE_WEBHOOK_SECRET: { type: "string" },
+    STRIPE_PRICE_ID_MONTHLY: { type: "string" },
+    STRIPE_PRICE_ID_YEARLY: { type: "string" },
   },
 } as const;
 
@@ -345,7 +349,7 @@ export function buildApp() {
   });
 
   // Sentry tunnel endpoint to bypass ad blockers
-  // Register as a plugin (like polar webhook) to ensure rawBody plugin works correctly
+  // Register as a plugin (like stripe webhook) to ensure rawBody plugin works correctly
   app.register(sentryTunnel, { prefix: "/api" });
   app.register(organizationsRoutes, { prefix: "/api/organizations" });
   app.register(adminRoutes, { prefix: "/api/admin" });
@@ -360,7 +364,7 @@ export function buildApp() {
   app.register(membersRoutes, { prefix: "/api/members" });
   app.register(debugRoutes, { prefix: "/debug" });
   app.register(testEmailRoutes);
-  app.register(polarWebhook, { prefix: "/api/webhooks" });
+  app.register(stripeWebhook, { prefix: "/api/webhooks" });
   app.register(subscriptionsRoutes, { prefix: "/api/subscriptions" });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(voiceAgentRoutes, { prefix: "/api/voice-agent" });

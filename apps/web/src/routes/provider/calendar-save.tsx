@@ -587,13 +587,7 @@ function ProviderCalendarComponent() {
         </CardHeader>
         <CardContent>
           <div
-            style={{
-              height: "calc(100vh - 280px)",
-              minHeight: "600px",
-              maxHeight: "1400px",
-              position: "relative",
-            }}
-            className="calendar-container"
+            className="calendar-container relative h-[calc(100vh-280px)] min-h-[600px] max-h-[1400px]"
             onClick={handleContainerClick}
             onMouseDown={(e) =>
               console.log("📅 Mouse down on container:", e.target)
@@ -690,7 +684,7 @@ function ProviderCalendarComponent() {
               onMouseDown={(e) =>
                 console.log("📅 Calendar wrapper mouse down:", e.target)
               }
-              style={{ height: "100%", width: "100%" }}
+              className="h-full w-full"
             >
               <Calendar
                 localizer={localizer}
@@ -711,7 +705,7 @@ function ProviderCalendarComponent() {
                   handleSelectEvent(event);
                 }}
                 eventPropGetter={eventStyleGetter}
-                style={{ height: "100%" }}
+                className="h-full"
                 step={15}
                 showMultiDayTimes
                 defaultView="week"

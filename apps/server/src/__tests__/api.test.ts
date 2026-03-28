@@ -102,7 +102,7 @@ describe("Medisched API Tests", () => {
     });
   });
 
-  describe("5. Simulate Polar Webhook", () => {
+  describe("5. Simulate Stripe Webhook", () => {
     it("should enable organization on subscription payment", async () => {
       if (!organizationId) {
         console.log("⚠️  Skipping: Requires organizationId");
@@ -110,19 +110,21 @@ describe("Medisched API Tests", () => {
       }
 
       const response = await request(BASE_URL)
-        .post("/api/webhooks/polar")
+        .post("/api/webhooks/stripe")
         .send({
-          type: "subscription.created",
+          type: "checkout.session.completed",
           data: {
-            id: "sub_test123",
-            customer: {
-              id: "cust_test456",
-              email: "owner@test.com",
-              name: "Test Owner",
-            },
-            metadata: {
-              organizationId: organizationId,
-              organizationName: "Test Hospital",
+            object: {
+              id: "cs_test123",
+              subscription: "sub_test123",
+              customer: "cus_test456",
+              metadata: {
+                organizationId: organizationId,
+                organizationName: "Test Hospital",
+                userId: userId,
+                userEmail: "owner@test.com",
+              },
+              payment_status: "paid",
             },
           },
         });

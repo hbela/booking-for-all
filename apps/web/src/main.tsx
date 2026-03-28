@@ -163,7 +163,7 @@ const AppRoot = () => {
   if (!router) {
     console.error("❌ CRITICAL: Router is null/undefined!");
     return (
-      <div style={{ padding: "20px", backgroundColor: "red", color: "white" }}>
+      <div className="bg-destructive text-destructive-foreground p-5">
         Router is null!
       </div>
     );
