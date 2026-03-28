@@ -181,6 +181,7 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   domain: 'domain',
   logo: 'logo',
   enabled: 'enabled',
+  status: 'status',
   timeZone: 'timeZone',
   availabilityStartHour: 'availabilityStartHour',
   availabilityEndHour: 'availabilityEndHour',
@@ -339,6 +340,14 @@ exports.UserRole = exports.$Enums.UserRole = {
   OWNER: 'OWNER',
   PROVIDER: 'PROVIDER',
   CLIENT: 'CLIENT'
+};
+
+exports.OrganizationStatus = exports.$Enums.OrganizationStatus = {
+  PENDING: 'PENDING',
+  SUBSCRIBED: 'SUBSCRIBED',
+  SUBSCRIPTION_DELETED: 'SUBSCRIPTION_DELETED',
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
+  SUSPENDED: 'SUSPENDED'
 };
 
 exports.Prisma.ModelName = {

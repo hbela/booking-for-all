@@ -15,6 +15,14 @@ enum UserRole {
   CLIENT
 }
 
+enum OrganizationStatus {
+  PENDING
+  SUBSCRIBED
+  SUBSCRIPTION_DELETED
+  PAYMENT_FAILED
+  SUSPENDED
+}
+
 model User {
   id                  String         @id @map("_id")
   name                String
@@ -96,6 +104,7 @@ model Organization {
   domain                String?        @unique // Domain field for unique identification
   logo                  String?
   enabled               Boolean        @default(false)
+  status                OrganizationStatus @default(PENDING)
   timeZone              String         @default("Europe/Budapest")
   availabilityStartHour Int            @default(8)
   availabilityEndHour   Int            @default(20)

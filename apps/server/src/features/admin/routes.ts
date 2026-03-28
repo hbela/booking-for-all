@@ -29,6 +29,25 @@ const DeleteOrganizationParamsSchema = z.object({
   id: z.string().min(1, "id is required"),
 });
 
+const UpdateOrganizationParamsSchema = z.object({
+  id: z.string().min(1, "id is required"),
+});
+
+const UpdateOrganizationBodySchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: z.string().regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens").optional(),
+  domain: z.string().min(1).optional(),
+  logo: z.string().url().optional().or(z.literal("")),
+});
+
+const SuspendOrganizationParamsSchema = z.object({
+  id: z.string().min(1, "id is required"),
+});
+
+const SuspendOrganizationBodySchema = z.object({
+  suspend: z.boolean(),
+});
+
 const CreateUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -48,8 +67,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           id: true,
           name: true,
           slug: true,
-          domain: true, // NEW: Include domain
+          domain: true,
           enabled: true,
+          status: true,
           createdAt: true,
         },
         orderBy: { createdAt: "desc" },
@@ -70,7 +90,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req, reply) => {
-      // ✅ req.body is typed as { name: string; slug?: string; domain: string; ownerName: string; ownerEmail: string }
       const { name, slug, domain, ownerName, ownerEmail } = req.body;
 
         // Check if owner email already exists
@@ -127,8 +146,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
               id: crypto.randomUUID(),
               name,
               slug: normalizedSlug,
-              domain: normalizedDomain, // Required and unique
+              domain: normalizedDomain,
               enabled: false,
+              status: "PENDING",
               createdAt: new Date(),
             },
           });
@@ -179,7 +199,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         try {
           const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
           const QRCode = await import("qrcode");
-          
+
           const cfg = (app as any).config as any;
           const s3 = new S3Client({
             region: cfg.S3_REGION || process.env.S3_REGION || "us-east-1",
@@ -224,7 +244,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           }
         } catch (qrError) {
           app.log.error(qrError, "❌ Failed to generate QR code for organization");
-          // Continue - organization is still created, QR code can be generated later
         }
 
         // Send email to owner with login link
@@ -233,57 +252,54 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           const resend = new Resend(process.env.RESEND_API_KEY);
           const fromEmail =
             process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-          
-          // Build external HTML page URL (e.g., http://localhost:8000/medicare_external.html)
+
           const phpServerUrl =
             process.env.PHP_SERVER_URL || "http://localhost:8000";
           const externalPageUrl = `${phpServerUrl}/${normalizedSlug}_external.html`;
-          
-          // Also provide direct dashboard link as fallback
+
           const frontendUrl =
             process.env.CORS_ORIGIN ||
             process.env.FRONTEND_URL ||
             "http://localhost:3001";
           const loginUrl = `${frontendUrl}/login`;
 
-          // Get language preference (default to "en", can be enhanced with user preference)
           const lang = req.language || "en";
 
           await resend.emails.send({
             from: fromEmail,
             to: ownerEmail,
-            subject: app.t("emails.organizationOwner.subject", { 
+            subject: app.t("emails.organizationOwner.subject", {
               lng: lang,
-              organizationName: name 
+              organizationName: name
             }),
             html: `
               <h2>${app.t("emails.organizationOwner.greeting", { lng: lang, organizationName: name })}</h2>
               <p>${app.t("emails.organizationOwner.dear", { lng: lang, name: ownerName })}</p>
               <p>${app.t("emails.organizationOwner.organizationCreated", { lng: lang, organizationName: name })}</p>
-              
+
               <h3>${app.t("emails.organizationOwner.accountDetails", { lng: lang })}</h3>
               <ul>
                 <li><strong>${app.t("emails.organizationOwner.email", { lng: lang })}</strong> ${ownerEmail}</li>
                 <li><strong>${app.t("emails.organizationOwner.temporaryPassword", { lng: lang })}</strong> ${tempPassword}</li>
                 <li><strong>${app.t("emails.organizationOwner.role", { lng: lang })}</strong> ${app.t("emails.organizationOwner.owner", { lng: lang })}</li>
               </ul>
-              
+
               <p><strong>${app.t("emails.organizationOwner.important", { lng: lang })}</strong> ${app.t("emails.organizationOwner.changePassword", { lng: lang })}</p>
-              
+
               <h3>${app.t("emails.organizationOwner.accessOrganization", { lng: lang })}</h3>
               <p>${app.t("emails.organizationOwner.clickButton", { lng: lang })}</p>
-              
+
               <p>
                 <a href="${externalPageUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
                   ${app.t("emails.organizationOwner.accessPortal", { lng: lang })}
                 </a>
               </p>
-              
+
               <p>${app.t("emails.organizationOwner.orCopyPaste", { lng: lang })}</p>
               <p><a href="${externalPageUrl}">${externalPageUrl}</a></p>
-              
+
               <p>${app.t("emails.organizationOwner.afterLogin", { lng: lang })}</p>
-              
+
               <p>${app.t("emails.organizationOwner.bestRegards", { lng: lang })}<br>${app.t("emails.organizationOwner.adminTeam", { lng: lang })}</p>
             `,
           });
@@ -291,7 +307,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           console.log(`📧 Welcome email sent to owner: ${ownerEmail}`);
         } catch (emailError) {
           console.error("❌ Failed to send welcome email:", emailError);
-          // Continue - organization and user are still created
         }
 
       reply.code(201).send({
@@ -310,6 +325,140 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     }
   );
 
+  app.patch(
+    "/organizations/:id",
+    {
+      preValidation: [requireAuthHook, requireAdminHook],
+      schema: {
+        params: UpdateOrganizationParamsSchema,
+        body: UpdateOrganizationBodySchema,
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params;
+      const { name, slug, domain, logo } = req.body;
+
+      const organization = await prisma.organization.findUnique({ where: { id } });
+      if (!organization) {
+        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+      }
+
+      // Check slug uniqueness (exclude self)
+      if (slug && slug !== organization.slug) {
+        const slugConflict = await prisma.organization.findUnique({ where: { slug } });
+        if (slugConflict) {
+          throw new AppError("Organization slug already exists", "ORG_SLUG_EXISTS", 400);
+        }
+      }
+
+      // Check domain uniqueness (exclude self)
+      if (domain && domain !== organization.domain) {
+        const normalizedDomain = domain.toLowerCase().trim();
+        const domainConflict = await prisma.organization.findUnique({ where: { domain: normalizedDomain } });
+        if (domainConflict) {
+          throw new AppError("Organization domain already exists", "ORG_DOMAIN_EXISTS", 400);
+        }
+      }
+
+      const updated = await prisma.organization.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(slug !== undefined && { slug }),
+          ...(domain !== undefined && { domain: domain.toLowerCase().trim() }),
+          ...(logo !== undefined && { logo: logo || null }),
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          domain: true,
+          enabled: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      reply.send({ success: true, data: updated });
+    }
+  );
+
+  app.patch(
+    "/organizations/:id/suspend",
+    {
+      preValidation: [requireAuthHook, requireAdminHook],
+      schema: {
+        params: SuspendOrganizationParamsSchema,
+        body: SuspendOrganizationBodySchema,
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params;
+      const { suspend } = req.body;
+
+      const organization = await prisma.organization.findUnique({ where: { id } });
+      if (!organization) {
+        throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
+      }
+
+      let updated;
+      if (suspend) {
+        // Store previous status in metadata for restore on unsuspend
+        const currentMeta = organization.metadata ? JSON.parse(organization.metadata) : {};
+        const updatedMeta = { ...currentMeta, previousStatus: organization.status };
+
+        updated = await prisma.organization.update({
+          where: { id },
+          data: {
+            status: "SUSPENDED",
+            enabled: false,
+            metadata: JSON.stringify(updatedMeta),
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            domain: true,
+            enabled: true,
+            status: true,
+            createdAt: true,
+          },
+        });
+      } else {
+        // Restore previous status
+        const currentMeta = organization.metadata ? JSON.parse(organization.metadata) : {};
+        const previousStatus = currentMeta.previousStatus as string | undefined;
+        const restoredStatus = (previousStatus && previousStatus !== "SUSPENDED")
+          ? previousStatus
+          : "PENDING";
+        const restoredEnabled = restoredStatus === "SUBSCRIBED" ? organization.enabled : false;
+
+        // Clean previousStatus from metadata
+        const { previousStatus: _removed, ...restMeta } = currentMeta;
+
+        updated = await prisma.organization.update({
+          where: { id },
+          data: {
+            status: restoredStatus as any,
+            enabled: restoredEnabled,
+            metadata: JSON.stringify(restMeta),
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            domain: true,
+            enabled: true,
+            status: true,
+            createdAt: true,
+          },
+        });
+      }
+
+      reply.send({ success: true, data: updated });
+    }
+  );
+
   app.delete(
     "/organizations/:id",
     {
@@ -320,10 +469,8 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req, reply) => {
       try {
-        // ✅ req.params is typed as { id: string }
         const { id } = req.params;
 
-        // Check if organization exists
         const organization = await prisma.organization.findUnique({
           where: { id },
         });
@@ -336,8 +483,8 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           );
         }
 
-        // Only allow deletion of organizations with pending status (enabled: false)
-        if (organization.enabled) {
+        // Only allow deletion of organizations with PENDING status
+        if ((organization as any).status !== "PENDING") {
           throw new AppError(
             "Only organizations with pending status can be deleted",
             "ORG_CANNOT_DELETE_ACTIVE",
@@ -345,7 +492,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
           );
         }
 
-        // Delete organization (cascade will handle related records)
         await prisma.organization.delete({
           where: { id },
         });
@@ -374,7 +520,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (_req, reply) => {
       const keys = await prisma.apikey.findMany({
         include: {
-          // best-effort include for creator user; ignore if relation differs
           // @ts-ignore
           user: {
             select: { id: true, name: true, email: true },
@@ -424,7 +569,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req, reply) => {
       try {
-        // ✅ req.body is typed as { organizationId: string; name: string; expiresInDays?: number }
         const { organizationId, name, expiresInDays } = req.body;
 
         // @ts-ignore
@@ -437,12 +581,10 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         const created = await prisma.apikey.create({
           data: {
             id: crypto.randomUUID(),
-            // minimal fields known to exist from existing code (validateApiKey)
             key,
             enabled: true,
             expiresAt,
             metadata: JSON.stringify({ organizationId, name }),
-            // link to creator user (required by schema)
             user: {
               connect: { id: user.id },
             },
@@ -474,10 +616,8 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req, reply) => {
       try {
-        // ✅ req.params is typed as { id: string }
         const { id } = req.params;
 
-        // Prefer soft-revoke; use updateMany in case id is not the unique field
         const result = (await prisma.apikey.updateMany({
           where: { id },
           data: { enabled: false },
@@ -485,7 +625,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         if (result.count && result.count > 0) {
           return reply.send({ success: true });
         }
-        // Fallback: try by key (if UI passed key as id by mistake)
         const resultByKey = (await prisma.apikey.updateMany({
           where: { key: id },
           data: { enabled: false },
@@ -518,7 +657,6 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (req, reply) => {
       try {
-        // ✅ req.body is typed as { name: string; email: string; role?: "ADMIN" | "OWNER" | "PROVIDER" | "CLIENT" | "USER" }
         const { name, email, role } = req.body;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
