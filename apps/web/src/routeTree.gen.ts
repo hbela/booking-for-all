@@ -23,7 +23,6 @@ import { Route as OwnerProvidersRouteImport } from './routes/owner/providers'
 import { Route as OwnerDepartmentsRouteImport } from './routes/owner/departments'
 import { Route as ClientBookingsRouteImport } from './routes/client/bookings'
 import { Route as ClientAboutRouteImport } from './routes/client/about'
-import { Route as AdminApiKeysRouteImport } from './routes/admin/api-keys'
 import { Route as ClientOrganizationsOrgIdRouteImport } from './routes/client/organizations/$orgId'
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId'
 import { Route as ClientOrganizationsOrgIdDepartmentsDeptIdProvidersProviderIdRouteImport } from './routes/client/organizations/$orgId/departments/$deptId/providers/$providerId'
@@ -98,11 +97,6 @@ const ClientAboutRoute = ClientAboutRouteImport.update({
   path: '/client/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminApiKeysRoute = AdminApiKeysRouteImport.update({
-  id: '/admin/api-keys',
-  path: '/admin/api-keys',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ClientOrganizationsOrgIdRoute =
   ClientOrganizationsOrgIdRouteImport.update({
     id: '/client/organizations/$orgId',
@@ -128,7 +122,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
-  '/admin/api-keys': typeof AdminApiKeysRoute
   '/client/about': typeof ClientAboutRoute
   '/client/bookings': typeof ClientBookingsRoute
   '/owner/departments': typeof OwnerDepartmentsRoute
@@ -191,7 +182,6 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/admin/api-keys'
     | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
@@ -211,7 +201,6 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/admin/api-keys'
     | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
@@ -231,7 +220,6 @@ export interface FileRouteTypes {
     | '/'
     | '/connect'
     | '/login'
-    | '/admin/api-keys'
     | '/client/about'
     | '/client/bookings'
     | '/owner/departments'
@@ -252,7 +240,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnectRoute: typeof ConnectRoute
   LoginRoute: typeof LoginRoute
-  AdminApiKeysRoute: typeof AdminApiKeysRoute
   ClientAboutRoute: typeof ClientAboutRoute
   ClientBookingsRoute: typeof ClientBookingsRoute
   OwnerDepartmentsRoute: typeof OwnerDepartmentsRoute
@@ -367,13 +354,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientAboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/api-keys': {
-      id: '/admin/api-keys'
-      path: '/admin/api-keys'
-      fullPath: '/admin/api-keys'
-      preLoaderRoute: typeof AdminApiKeysRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/client/organizations/$orgId': {
       id: '/client/organizations/$orgId'
       path: '/client/organizations/$orgId'
@@ -432,7 +412,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnectRoute: ConnectRoute,
   LoginRoute: LoginRoute,
-  AdminApiKeysRoute: AdminApiKeysRoute,
   ClientAboutRoute: ClientAboutRoute,
   ClientBookingsRoute: ClientBookingsRoute,
   OwnerDepartmentsRoute: OwnerDepartmentsRoute,

@@ -7,14 +7,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: "Owner",
+  PROVIDER: "Provider",
+  CLIENT: "Client",
+};
 
 export default function UserMenu() {
   const { data: session, isPending, refetch } = authClient.useSession();
   const [forceRefresh, setForceRefresh] = useState(0);
+  const isSystemAdmin = !!(session?.user as any)?.isSystemAdmin;
+
+  const { data: memberships = [] } = useQuery<any[]>({
+    queryKey: ["members", "my-organizations"],
+    queryFn: () =>
+      apiFetch<any[]>(
+        `${import.meta.env.VITE_SERVER_URL}/api/members/my-organizations`
+      ),
+    enabled: !!session?.user && !isSystemAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const distinctRoles = [...new Set(memberships.map((m: any) => m.role as string))];
 
   // Listen for custom auth session change events (triggered after sign-in)
   useEffect(() => {
@@ -72,10 +93,16 @@ export default function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="flex flex-col items-start">
           <span className="font-medium">{session.user.email}</span>
-          {(session.user as any)?.isSystemAdmin && (
+          {isSystemAdmin ? (
             <span className="text-xs text-muted-foreground">
               System Administrator
             </span>
+          ) : (
+            distinctRoles.map((role) => (
+              <span key={role} className="text-xs text-muted-foreground">
+                {ROLE_LABELS[role] ?? role}
+              </span>
+            ))
           )}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -128,10 +155,19 @@ export default function UserMenu() {
                   },
                 });
               } else {
-                // Admin / no-org user: use server-side sign-out (reliable cookie clearing)
-                // The server calls Better Auth directly, sets Set-Cookie, then redirects to /login
+                // Admin / no-org user: sign out and redirect to /admin
+                // (which will redirect to /login, then back to /admin after re-login)
                 sessionStorage.clear();
-                window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/signout`;
+                authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = isSystemAdmin ? "/admin" : "/login";
+                    },
+                    onError: () => {
+                      window.location.href = isSystemAdmin ? "/admin" : "/login";
+                    },
+                  },
+                });
               }
             }}
           >

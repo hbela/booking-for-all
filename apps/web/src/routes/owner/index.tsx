@@ -58,6 +58,10 @@ export const Route = createFileRoute("/owner/")({
         });
       }
     } catch (error) {
+      // Re-throw TanStack Router redirects (e.g. "no owner access" redirect above)
+      if (error && typeof error === "object" && "to" in error) {
+        throw error;
+      }
       console.error("Error checking organization membership:", error);
       throw redirect({
         to: "/",
