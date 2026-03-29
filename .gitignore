@@ -45,6 +45,7 @@ coverage
 
 # Claude Code local config (may contain secrets)
 .claude/mcp.json
+apps/web/src/routeTree.gen.ts
 
 # Misc
 *.tgz
