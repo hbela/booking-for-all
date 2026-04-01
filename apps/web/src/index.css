@@ -72,7 +72,7 @@ body {
   --foreground: oklch(0.92 0 0);
   --card: oklch(0.32 0.01 229.15);
   --card-foreground: oklch(0.92 0 0);
-  --popover: oklch(0.32 0.01 229.15);
+  --popover: oklch(0.25 0.01 268.25);
   --popover-foreground: oklch(0.92 0 0);
   --primary: oklch(0.57 0.20 283.26);
   --primary-foreground: oklch(1.00 0 0);

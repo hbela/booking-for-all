@@ -81,6 +81,8 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
           slug: true,
           description: true,
           logo: true,
+          enabled: true,
+          status: true,
         },
       });
 
@@ -203,6 +205,8 @@ const externalRoutes: FastifyPluginAsync = async (app) => {
           organizationId: organization.id,
           organizationName: organization.name,
           organizationSlug: organization.slug,
+          enabled: organization.enabled,
+          status: organization.status,
           redirectUrl: `${
             process.env.CORS_ORIGIN ||
             process.env.FRONTEND_URL ||

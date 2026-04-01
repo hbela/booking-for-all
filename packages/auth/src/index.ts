@@ -40,7 +40,7 @@ export const auth = betterAuth({
   trustedOrigins:
     uniqueTrustedOrigins.length > 0 ? uniqueTrustedOrigins : undefined,
   emailAndPassword: {
-    enabled: false,
+    enabled: true,
   },
   socialProviders: {
     google: {
@@ -111,6 +111,13 @@ export const auth = betterAuth({
   ],
   hooks: {
     afterSignIn: async ({ user, session, body }) => {
+      // Block email+password sign-in for non-admin users.
+      // Only hajzerbela@gmail.com (isSystemAdmin) may use credentials.
+      const isEmailPasswordSignIn = !!(body as any)?.password;
+      if (isEmailPasswordSignIn && !(user as any)?.isSystemAdmin) {
+        throw new Error("Email/password login is reserved for administrators.");
+      }
+
       // Handle organizationId from additionalData (passed via social sign-in)
       const orgId = (body as any)?.additionalData?.organizationId;
 
@@ -168,17 +175,21 @@ export const auth = betterAuth({
               );
             }
           } else {
-            // Validate auth method matches (only Google is supported)
+            // If member was pre-created by an owner with authMethod "credential",
+            // update it to "google" now that they've signed in with Google.
             if (existingMembership.authMethod !== "google") {
-              const errorMessage = `This organization requires Google Sign-In. Please use Google to sign in.`;
-              console.warn(
-                `🔐 afterSignIn: User ${user.id} tried to sign in with Google but membership requires ${existingMembership.authMethod}`
+              await prisma.member.update({
+                where: { id: existingMembership.id },
+                data: { authMethod: "google" },
+              });
+              console.log(
+                `🔐 afterSignIn: Updated authMethod to "google" for pre-created member ${existingMembership.id}`
               );
-              throw new Error(errorMessage);
+            } else {
+              console.log(
+                `🔐 afterSignIn: Membership already exists for user ${user.id} in organization ${orgId}`
+              );
             }
-            console.log(
-              `🔐 afterSignIn: Membership already exists for user ${user.id} in organization ${orgId}`
-            );
           }
 
           // Update session with activeOrganizationId

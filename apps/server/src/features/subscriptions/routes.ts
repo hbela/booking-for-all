@@ -355,7 +355,7 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
         const subscriptionStatus = isActive ? "active" : "pending";
 
         // Ensure product exists in database
-        const priceId = process.env.STRIPE_PRICE_ID!;
+        const priceId = process.env.STRIPE_PRICE_ID_MONTHLY ?? process.env.STRIPE_PRICE_ID_YEARLY!;
         let product = await prisma.product.findUnique({
           where: { stripeProductId: priceId },
         });

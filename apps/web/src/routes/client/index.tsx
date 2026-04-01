@@ -22,7 +22,7 @@ import { Calendar, Building2, Users, Clock, MapPin, User, } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { apiFetch, ApiError } from "@/lib/apiFetch";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export const Route = createFileRoute("/client/")({
   component: ClientDashboard,
@@ -107,13 +107,25 @@ const cancelBooking = async (bookingId: string): Promise<void> => {
   );
 };
 
+const ensureMember = async (orgId: string): Promise<void> => {
+  await apiFetch(
+    `${import.meta.env.VITE_SERVER_URL || "http://localhost:3000"}/api/members/${orgId}/ensure`,
+    { method: "POST" }
+  );
+};
+
 function ClientDashboard() {
   const { t } = useTranslation();
   const { data: session } = authClient.useSession();
+  const queryClient = useQueryClient();
 
   // Get the current organization ID from sessionStorage (set during login/connect flow)
   const currentOrgId = typeof window !== "undefined"
     ? sessionStorage.getItem("externalAppOrgId")
+    : null;
+
+  const orgSlug = typeof window !== "undefined"
+    ? sessionStorage.getItem("sourceOrganization")
     : null;
 
   const {
@@ -124,6 +136,42 @@ function ClientDashboard() {
     queryKey: ["client", "organizations"],
     queryFn: fetchClientOrganizations,
   });
+
+  // If no organizations found, the member record may not exist yet.
+  // Try to ensure it using orgId (or resolve slug → orgId first).
+  useEffect(() => {
+    if (orgsLoading || allOrganizations.length > 0) return;
+
+    const apiBase = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+
+    const run = async () => {
+      let orgId = currentOrgId;
+
+      // Fall back to resolving by slug if orgId not in sessionStorage
+      if (!orgId && orgSlug) {
+        try {
+          const res = await apiFetch<{ organizationId: string }>(
+            `${apiBase}/api/external/organization-by-domain?domain=localhost&slug=${encodeURIComponent(orgSlug)}`
+          );
+          orgId = res.organizationId;
+          if (orgId) sessionStorage.setItem("externalAppOrgId", orgId);
+        } catch {
+          return; // can't resolve org, give up
+        }
+      }
+
+      if (!orgId) return;
+
+      try {
+        await ensureMember(orgId);
+        queryClient.invalidateQueries({ queryKey: ["client", "organizations"] });
+      } catch {
+        // non-fatal
+      }
+    };
+
+    run();
+  }, [orgsLoading, allOrganizations.length, currentOrgId, orgSlug]);
 
   const {
     data: allBookings = [],

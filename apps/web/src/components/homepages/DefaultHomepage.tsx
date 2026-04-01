@@ -7,8 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, Building2, Users, Shield, ArrowRight, CheckCircle, Smartphone } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Calendar, Building2, Users, Shield, CheckCircle, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -125,17 +124,6 @@ export function DefaultHomepage() {
               {t("homepage.tagline")}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/login">
-                <Button size="lg" className="text-lg px-8 py-6">
-                  {t("homepage.getStarted")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  {t("homepage.signIn")}
-                </Button>
-              </Link>
               {finalOrgId && (
                 <Button
                   variant="outline"
@@ -239,24 +227,6 @@ export function DefaultHomepage() {
               </CardHeader>
             </Card>
           </div>
-
-          {/* CTA Section */}
-          <Card className="bg-gradient-to-r from-primary to-blue-600 text-white border-0">
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl mb-2">{t("homepage.readyToGetStarted")}</CardTitle>
-              <CardDescription className="text-white/90 text-lg">
-                {t("homepage.joinThousands")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Link to="/login">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-                  {t("homepage.signInToAccount")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
 
           {/* Mobile App Download Section */}
           {finalOrgId && (

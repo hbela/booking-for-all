@@ -27,7 +27,8 @@
     "db:migrate:deploy": "turbo -F @booking-for-all/db db:migrate:deploy",
     "db:migrate:status": "turbo -F @booking-for-all/db db:migrate:status",
     "db:sync:production": "turbo -F @booking-for-all/db db:sync:production",
-    "db:deploy": "turbo -F @booking-for-all/db db:deploy"
+    "db:deploy": "turbo -F @booking-for-all/db db:deploy",
+    "admin:set-password": "tsx scripts/set-admin-password.ts"
   },
   "dependencies": {
     "dotenv": "^17.2.2",

@@ -43,13 +43,11 @@ export default function Header() {
   // Determine navigation links - simplified for global header
   // Organization-specific navigation should be handled within routes
   const { data: organizations } = useMyOrganizations();
-  
+
   const getLinks = () => {
     const isClient = organizations?.some(org => org.role === 'CLIENT');
     const isProvider = organizations?.some(org => org.role === 'PROVIDER');
     const isOwner = organizations?.some(org => org.role === 'OWNER');
-    const isOnlyClient = organizations && organizations.length > 0 && organizations.every(org => org.role === 'CLIENT');
-    const isOnlyProvider = organizations && organizations.length > 0 && organizations.every(org => org.role === 'PROVIDER');
 
     const baseLinks = [];
 
@@ -70,6 +68,13 @@ export default function Header() {
 
     if (isProvider) {
       baseLinks.push({ to: "/provider/about", label: t("navigation.about") });
+    }
+
+    // Owner management links — shown whenever the user is an owner of any org.
+    // The route pages handle the case where orgs have no departments/providers yet.
+    if (isOwner) {
+      baseLinks.push({ to: "/owner/departments", label: t("navigation.departments") });
+      baseLinks.push({ to: "/owner/providers", label: t("navigation.providers") });
     }
 
     // System admins get access to admin panel

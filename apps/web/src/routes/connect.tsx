@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/apiFetch";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Loader2, Globe, Smartphone } from "lucide-react";
 import SignInForm from "@/components/sign-in-form";
@@ -49,6 +50,8 @@ interface OrganizationData {
   organizationId: string;
   organizationName: string;
   organizationSlug?: string;
+  enabled?: boolean;
+  status?: string;
   redirectUrl?: string;
 }
 
@@ -119,11 +122,17 @@ function ConnectLandingPage() {
         try {
           const url = `${apiBaseUrl}/api/external/organization/${urlOrgId}`;
           console.log("🔍 Fetching organization by ID:", urlOrgId);
-          const response = await apiFetch<OrganizationData>(url);
-          
+          const response = await apiFetch<{ id: string; name: string; slug?: string; enabled: boolean; status?: string }>(url);
+
           return {
             success: true,
-            data: response,
+            data: {
+              organizationId: response.id,
+              organizationName: response.name,
+              organizationSlug: response.slug,
+              enabled: response.enabled,
+              status: response.status,
+            },
           };
         } catch (error) {
           console.error("Failed to fetch by ID, trying domain lookup:", error);
@@ -204,6 +213,10 @@ function ConnectLandingPage() {
     }
     setShowQRModal(true);
   };
+
+  // Statuses that mean the organization has been actively suspended / payment failed.
+  // Mirrors the frozenStatuses list in organization-utils.ts on the server.
+  const FROZEN_STATUSES = ['SUSPENDED', 'REFUND_REQUESTED', 'PAYMENT_FAILED', 'SUBSCRIPTION_DELETED'];
 
   const finalOrgId = organizationId || orgData?.data?.organizationId;
 
@@ -315,6 +328,74 @@ function ConnectLandingPage() {
               onClick={() => navigate({ to: "/" })}
               className="w-full"
               variant="outline"
+            >
+              Go to Homepage
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (orgData?.data && orgData.data.enabled === false) {
+    const orgStatus = orgData.data.status ?? '';
+    const isFrozen = FROZEN_STATUSES.includes(orgStatus);
+
+    const handleOwnerSignIn = async () => {
+      // Store connect URL so logout can redirect back here
+      sessionStorage.setItem("connectReturnUrl", window.location.href);
+      if (urlOrgSlug) sessionStorage.setItem("sourceOrganization", urlOrgSlug);
+      if (finalOrgId) sessionStorage.setItem("externalAppOrgId", finalOrgId);
+      try {
+        await authClient.signIn.social({
+          provider: "google",
+          callbackURL: `${window.location.origin}/login`,
+        });
+      } catch {
+        toast.error("Failed to sign in with Google");
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className={`text-center ${isFrozen ? "text-destructive" : ""}`}>
+              {isFrozen ? "Organization Suspended" : `Welcome To ${orgName} Booking System`}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isFrozen ? (
+              <>
+                <p className="text-center text-gray-600">
+                  Access to <strong>{orgName}</strong> is currently frozen.
+                </p>
+                <p className="text-center text-sm text-muted-foreground">
+                  This organization's activities have been suspended due to a payment or account issue. Please contact the administrator.
+                </p>
+              </>
+            ) : null}
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleOwnerSignIn}
+            >
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+              Sign in with Google
+            </Button>
+
+            <Button
+              onClick={() => navigate({ to: "/" })}
+              className="w-full"
+              variant="ghost"
+              size="sm"
             >
               Go to Homepage
             </Button>

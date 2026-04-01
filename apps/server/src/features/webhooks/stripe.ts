@@ -16,10 +16,15 @@ async function ensureProduct(stripeProductId: string, name?: string, amount?: nu
         id: crypto.randomUUID(),
         stripeProductId,
         name: name || 'Monthly Subscription',
-        priceCents: amount || 1000,
+        priceCents: amount || 2000,
         currency: currency || 'USD',
         interval: 'month',
       },
+    });
+  } else if (amount && product.priceCents !== amount) {
+    product = await prisma.product.update({
+      where: { id: product.id },
+      data: { priceCents: amount, currency: currency ?? product.currency },
     });
   }
   return product;
@@ -54,6 +59,7 @@ const stripeWebhook: FastifyPluginAsync = async (app) => {
           break;
         }
 
+        case 'customer.subscription.created':
         case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription;
           await handleSubscriptionUpdated(app, subscription);
@@ -66,7 +72,8 @@ const stripeWebhook: FastifyPluginAsync = async (app) => {
           break;
         }
 
-        case 'invoice.paid': {
+        case 'invoice.paid':
+        case 'invoice.payment_succeeded': {
           const invoice = event.data.object as Stripe.Invoice;
           await handleInvoicePaid(app, invoice);
           break;
@@ -104,13 +111,12 @@ async function handleCheckoutCompleted(app: any, session: Stripe.Checkout.Sessio
   const stripeSubscriptionId = session.subscription as string;
   const stripeCustomerId = session.customer as string;
 
-  // Resolve product from Stripe price
-  const priceId = process.env.STRIPE_PRICE_ID!;
-  const dbProduct = await ensureProduct(priceId);
-
   // Fetch subscription details from Stripe
   let periodStart = new Date();
   let periodEnd: Date | null = null;
+  let stripePriceId: string | undefined;
+  let stripePriceCents: number | undefined;
+  let stripeCurrency: string | undefined;
   if (stripeSubscriptionId) {
     try {
       const stripeSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -119,11 +125,20 @@ async function handleCheckoutCompleted(app: any, session: Stripe.Checkout.Sessio
       if (firstItem) {
         periodStart = new Date(firstItem.current_period_start * 1000);
         periodEnd = new Date(firstItem.current_period_end * 1000);
+        stripePriceId = firstItem.price?.id;
+        stripePriceCents = firstItem.price?.unit_amount ?? undefined;
+        stripeCurrency = firstItem.price?.currency?.toUpperCase() ?? undefined;
       }
     } catch (err) {
       app.log.warn({ err }, 'Could not retrieve Stripe subscription details');
     }
   }
+
+  // Resolve product from actual Stripe price (fallback to configured monthly price)
+  const resolvedPriceId = stripePriceId
+    ?? process.env.STRIPE_PRICE_ID_MONTHLY
+    ?? process.env.STRIPE_PRICE_ID_YEARLY!;
+  const dbProduct = await ensureProduct(resolvedPriceId, undefined, stripePriceCents, stripeCurrency);
 
   // Find or create subscription record
   const existingSubscription = await prisma.subscription.findFirst({
@@ -225,6 +240,19 @@ async function handleSubscriptionUpdated(app: any, stripeSub: Stripe.Subscriptio
   };
 
   const newStatus = statusMap[stripeSub.status] || stripeSub.status;
+
+  // Never downgrade an active subscription to pending/incomplete — this happens when
+  // customer.subscription.created fires with status=incomplete (before payment) but is
+  // resent or processed after checkout.session.completed already set the status to active.
+  const activeStatuses = new Set(['active', 'trialing']);
+  const downgradeStatuses = new Set(['pending', 'incomplete', 'expired']);
+  if (activeStatuses.has(existingSubscription.status) && downgradeStatuses.has(newStatus)) {
+    app.log.info(
+      { subscriptionId: existingSubscription.id, currentStatus: existingSubscription.status, rejectedStatus: newStatus },
+      'Skipping status downgrade for active subscription'
+    );
+    return;
+  }
 
   await prisma.subscription.update({
     where: { id: existingSubscription.id },

@@ -10,7 +10,6 @@ import { authClient } from "@/lib/auth-client";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -75,12 +74,7 @@ export default function UserMenu() {
   }
 
   if (!session || !session.user) {
-    console.log("👤 UserMenu - No session, showing Sign In button");
-    return (
-      <Button variant="outline" asChild>
-        <Link to="/login">Sign In</Link>
-      </Button>
-    );
+    return null;
   }
 
   return (
@@ -112,11 +106,25 @@ export default function UserMenu() {
             className="w-full"
             onClick={() => {
               const orgSlug = sessionStorage.getItem("sourceOrganization");
+              const connectReturnUrl = sessionStorage.getItem("connectReturnUrl");
               const externalAppOrigin = sessionStorage.getItem("externalAppOrigin");
 
-              console.log("🔓 Sign out - Org:", orgSlug, "Origin:", externalAppOrigin);
+              console.log("🔓 Sign out - Org:", orgSlug, "ConnectReturnUrl:", connectReturnUrl, "Origin:", externalAppOrigin);
 
-              if (orgSlug) {
+              if (connectReturnUrl) {
+                // Owner came from connect page: redirect back to it
+                sessionStorage.clear();
+                authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = connectReturnUrl;
+                    },
+                    onError: () => {
+                      window.location.href = connectReturnUrl;
+                    },
+                  },
+                });
+              } else if (orgSlug) {
                 // Org user: sign out via JS and redirect back to org's local page
                 const env = import.meta.env.MODE === "production" ? "production" : "development";
                 const normalizedSlug = orgSlug.toLowerCase();
@@ -146,11 +154,11 @@ export default function UserMenu() {
                 authClient.signOut({
                   fetchOptions: {
                     onSuccess: () => {
-                      window.location.href = orgRedirectUrl ?? "/login";
+                      window.location.href = orgRedirectUrl ?? "/admin/login";
                     },
                     onError: () => {
                       // Even on error, leave the app
-                      window.location.href = orgRedirectUrl ?? "/login";
+                      window.location.href = orgRedirectUrl ?? "/admin/login";
                     },
                   },
                 });
@@ -161,10 +169,10 @@ export default function UserMenu() {
                 authClient.signOut({
                   fetchOptions: {
                     onSuccess: () => {
-                      window.location.href = isSystemAdmin ? "/admin" : "/login";
+                      window.location.href = "/admin/login";
                     },
                     onError: () => {
-                      window.location.href = isSystemAdmin ? "/admin" : "/login";
+                      window.location.href = "/admin/login";
                     },
                   },
                 });

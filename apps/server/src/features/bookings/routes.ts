@@ -63,6 +63,18 @@ const bookingsRoutes: FastifyPluginAsync = async (app) => {
     if (!data.eventId) {
       throw new AppError('eventId is required', 'VALIDATION_ERROR', 400);
     }
+
+    const event = await prisma.event.findUnique({
+      where: { id: data.eventId },
+      select: { organizationId: true },
+    });
+
+    if (!event) {
+      throw new AppError('Event not found', 'NOT_FOUND', 404);
+    }
+
+    const { verifyOrganizationActive } = await import('../../utils/organization-utils');
+    await verifyOrganizationActive(event.organizationId);
     
     const booking = await prisma.booking.create({ data: { ...data, memberId: user.id } });
     reply.code(201).send({

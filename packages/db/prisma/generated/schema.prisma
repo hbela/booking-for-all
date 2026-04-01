@@ -21,6 +21,7 @@ enum OrganizationStatus {
   SUBSCRIPTION_DELETED
   PAYMENT_FAILED
   SUSPENDED
+  REFUND_REQUESTED
 }
 
 model User {

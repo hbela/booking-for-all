@@ -86,3 +86,29 @@ export async function hasActiveSubscription(organizationId: string): Promise<boo
   return !!subscription;
 }
 
+/**
+ * Check if organization is active (enabled is true).
+ * Otherwise throws an AppError indicating it is suspended/frozen.
+ */
+import { AppError } from '../errors/AppError';
+
+export async function verifyOrganizationActive(organizationId: string): Promise<void> {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { enabled: true, status: true },
+  });
+
+  if (!org) {
+    throw new AppError('Organization not found', 'NOT_FOUND', 404);
+  }
+
+  // If the organization is disabled and the status is one of the suspended states, freeze it.
+  const frozenStatuses = ['SUSPENDED', 'REFUND_REQUESTED', 'PAYMENT_FAILED', 'SUBSCRIPTION_DELETED'];
+  if (!org.enabled && frozenStatuses.includes(org.status)) {
+    throw new AppError(
+      `Organization activities are frozen. Status: ${org.status}`,
+      'ORGANIZATION_FROZEN',
+      403
+    );
+  }
+}

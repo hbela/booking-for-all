@@ -121,18 +121,18 @@ export function requireOrgRole(roles: string[]) {
 }
 
 /**
- * Require OWNER role in the organization context
- * Must be called after requireAuthHook and orgGuard
+ * Require OWNER role.
+ * Checks the user's global role field (User.role === 'OWNER').
+ * Must be called after requireAuthHook.
+ * Org-level membership is verified inside each route handler.
  */
 export async function requireOwnerHook(request: FastifyRequest, reply: FastifyReply) {
-  // @ts-expect-error populated by orgGuard
-  const organization = request.organization;
-  
-  if (!organization) {
-    return reply.status(500).send({ error: 'Organization guard missing - orgGuard must be called first' });
+  // @ts-expect-error populated by requireAuthHook
+  const user = request.user;
+  if (!user) {
+    return reply.status(401).send({ error: 'Unauthorized' });
   }
-  
-  if (organization.role !== 'OWNER') {
+  if (user.role !== 'OWNER') {
     return reply.status(403).send({ error: 'Forbidden - Owner access required' });
   }
 }

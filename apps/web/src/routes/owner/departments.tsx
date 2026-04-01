@@ -82,11 +82,9 @@ export const Route = createFileRoute("/owner/departments")({
 
 // API functions
 const fetchMyOrganizations = async (): Promise<any[]> => {
-  const data = await apiFetch<any[]>(
+  return apiFetch<any[]>(
     `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`
   );
-  // User has OWNER role, filter only enabled organizations
-  return data.filter((org: any) => org.enabled);
 };
 
 const fetchDepartments = async (organizationId: string): Promise<any[]> => {
