@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { authClient } from "@/lib/auth-client";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/owner/")({
       }
     } catch (error) {
       // Re-throw TanStack Router redirects (e.g. "no owner access" redirect above)
-      if (error && typeof error === "object" && "to" in error) {
+      if (isRedirect(error)) {
         throw error;
       }
       console.error("Error checking organization membership:", error);
@@ -111,10 +111,9 @@ interface Plan {
 }
 
 const fetchPlans = async (): Promise<Plan[]> => {
-  const res = await apiFetch<{ data: Plan[] }>(
+  return apiFetch<Plan[]>(
     `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/plans`
   );
-  return res.data;
 };
 
 // Approximate exchange rates for display only (charged in USD)
@@ -485,15 +484,13 @@ function OwnerComponent() {
                                 {org.name}
                               </h3>
                               <span
-                                className={`text-sm font-medium ${
-                                  org.enabled
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-yellow-600 dark:text-yellow-400"
-                                }`}
+                                className={`text-sm font-medium ${getStatusColor(
+                                  subscription?.status ?? (org.enabled ? "active" : "pending")
+                                )}`}
                               >
-                                {org.enabled
-                                  ? t("owner.active")
-                                  : t("owner.pending")}
+                                {capitalizeStatus(
+                                  subscription?.status ?? (org.enabled ? "active" : "pending")
+                                )}
                               </span>
                             </div>
 

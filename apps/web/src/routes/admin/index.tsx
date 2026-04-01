@@ -26,7 +26,7 @@ export const Route = createFileRoute("/admin/")({
     const session = await authClient.getSession();
     if (!session.data) {
       throw redirect({
-        to: "/login",
+        to: "/admin/login",
       });
     }
 

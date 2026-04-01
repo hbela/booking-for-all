@@ -3,6 +3,7 @@ import prisma from "@booking-for-all/db";
 import crypto from "crypto";
 import { requireAuthHook, requireProviderHook } from "../../plugins/authz";
 import { AppError } from "../../errors/AppError";
+import { verifyOrganizationActive } from "../../utils/organization-utils";
 
 // Fallback defaults (used if organization settings are missing)
 const DEFAULT_AVAILABILITY_START_HOUR =
@@ -115,6 +116,10 @@ const providerRoutes: FastifyPluginAsync = async (app) => {
       const durationMinutes = Math.round(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60)
       );
+
+      // Check if organization activities are frozen
+      await verifyOrganizationActive(provider.department.organizationId);
+
       const event = await prisma.event.create({
         data: {
           id: crypto.randomUUID(),
@@ -172,6 +177,9 @@ const providerRoutes: FastifyPluginAsync = async (app) => {
           403
         );
       }
+
+      // Check if organization activities are frozen
+      await verifyOrganizationActive(event.organizationId);
 
       // Can't update booked events
       if (event.isBooked) {
@@ -242,6 +250,9 @@ const providerRoutes: FastifyPluginAsync = async (app) => {
           403
         );
       }
+
+      // Check if organization activities are frozen
+      await verifyOrganizationActive(event.organizationId);
 
       // Can't delete booked events
       if (event.isBooked) {

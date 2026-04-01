@@ -75,11 +75,9 @@ export const Route = createFileRoute("/owner/providers")({
 
 // API functions
 const fetchMyOrganizations = async (): Promise<any[]> => {
-  const data = await apiFetch<any[]>(
+  return apiFetch<any[]>(
     `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`
   );
-  // User has OWNER role, filter only enabled organizations
-  return data.filter((org: any) => org.enabled);
 };
 
 const fetchDepartments = async (organizationId: string): Promise<any[]> => {
@@ -103,8 +101,8 @@ const createProvider = async (data: {
   email: string;
   organizationId: string;
   departmentId: string;
-}): Promise<{ tempPassword: string }> => {
-  return apiFetch<{ tempPassword: string }>(
+}): Promise<void> => {
+  await apiFetch(
     `${import.meta.env.VITE_SERVER_URL}/api/owner/providers/create-user`,
     {
       method: "POST",
@@ -171,14 +169,8 @@ function ProvidersComponent() {
   // Mutations
   const createProviderMutation = useMutation({
     mutationFn: createProvider,
-    onSuccess: (data) => {
-      toast.success(
-        t("owner.providerCreated", { password: data.tempPassword }),
-        {
-          duration: 10000,
-          description: t("owner.providerWillChangePassword"),
-        }
-      );
+    onSuccess: () => {
+      toast.success(t("owner.providerCreated"), { duration: 6000 });
       form.reset();
       queryClient.invalidateQueries({
         queryKey: ["providers", { organizationId: selectedOrgId }],
@@ -454,6 +446,7 @@ function ProvidersComponent() {
                               >
                                 <SelectTrigger
                                   id="provider-dept"
+                                  className="dark:bg-input/30"
                                   onFocus={() => {
                                     departmentFieldInteracted.current = true;
                                   }}
@@ -477,17 +470,6 @@ function ProvidersComponent() {
                           );
                         }}
                       </form.Field>
-                      <div className="rounded-md bg-muted p-3 text-sm">
-                        <p className="font-medium mb-1">{t("owner.temporaryPassword")}:</p>
-                        <p className="text-muted-foreground">
-                          <code className="bg-background px-2 py-1 rounded">
-                            password123
-                          </code>
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {t("owner.providerMustChangePassword")}
-                        </p>
-                      </div>
                       <form.Subscribe
                         selector={(state) => [
                           state.canSubmit,

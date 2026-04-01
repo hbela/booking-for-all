@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect, isRedirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -43,6 +43,10 @@ export const Route = createFileRoute("/provider/")({
         });
       }
     } catch (error) {
+      // Re-throw TanStack Router redirects (e.g. "no provider access" redirect above)
+      if (isRedirect(error)) {
+        throw error;
+      }
       console.error("Error checking organization membership:", error);
       throw redirect({
         to: "/",

@@ -21,5 +21,11 @@ declare module "fastify" {
     };
     organizationId?: string; // Legacy - kept for backward compatibility
     provider?: any; // Provider entity
+    language?: "en" | "hu" | "de";
+  }
+
+  interface FastifyInstance {
+    t(key: string, options?: { lng?: string; [key: string]: any }): string;
+    ensureLanguageLoaded(lng: string): Promise<void>;
   }
 }

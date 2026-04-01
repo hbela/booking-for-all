@@ -108,7 +108,8 @@ export const OrganizationStatus: {
   SUBSCRIBED: 'SUBSCRIBED',
   SUBSCRIPTION_DELETED: 'SUBSCRIPTION_DELETED',
   PAYMENT_FAILED: 'PAYMENT_FAILED',
-  SUSPENDED: 'SUSPENDED'
+  SUSPENDED: 'SUSPENDED',
+  REFUND_REQUESTED: 'REFUND_REQUESTED'
 };
 
 export type OrganizationStatus = (typeof OrganizationStatus)[keyof typeof OrganizationStatus]

@@ -92,6 +92,32 @@ export function useMemberRole({ organizationId, enabled = true }: UseMemberRoleO
 }
 
 /**
+ * Hook to fetch organizations the owner has with active subscription (enabled: true).
+ * Used to gate owner-specific nav links.
+ */
+export function useOwnerOrganizations() {
+  const { data: session } = authClient.useSession();
+
+  return useQuery({
+    queryKey: ['owner-organizations', session?.user?.id],
+    queryFn: async () => {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/organizations/my-organizations`,
+        {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      if (!res.ok) throw new Error('Failed to fetch owner organizations');
+      const data = await res.json();
+      return (data.data ?? data) as Array<{ id: string; name: string; enabled: boolean }>;
+    },
+    enabled: !!session?.user,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
  * Hook to fetch all organizations the current user is a member of
  */
 export function useMyOrganizations() {
