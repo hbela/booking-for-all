@@ -556,7 +556,8 @@
     "settings": "Settings",
     "admin": "Admin",
     "bookAppointment": "Book Appointment",
-    "myCalendar": "My Calendar"
+    "myCalendar": "My Calendar",
+    "subscription": "Subscription"
   },
   "api": {
     "connected": "API Connected",
@@ -722,5 +723,28 @@
     "step2": "Open the Calendar to create your available time slots.",
     "step3": "Wait for clients to book your slots — you will be notified by email.",
     "step4": "Check your Dashboard regularly to stay on top of upcoming appointments."
+  },
+  "subscribe": {
+    "pageTitle": "Start Your Free Trial",
+    "pageSubtitle": "Request the creation of your organization and start managing appointments today.",
+    "pricingTitle": "Pricing",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "organizationName": "Organization Name",
+    "organizationNamePlaceholder": "e.g. City Wellness Center",
+    "ownerName": "Owner Name",
+    "ownerNamePlaceholder": "Your full name",
+    "ownerEmail": "Owner Email",
+    "ownerEmailPlaceholder": "you@example.com",
+    "description": "Description",
+    "descriptionPlaceholder": "Tell us about your organization (optional)",
+    "requiredField": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "submit": "Send Request",
+    "submitting": "Sending...",
+    "successTitle": "Request Sent!",
+    "successMessage": "Thank you! We will review your request and get back to you shortly."
   }
 }

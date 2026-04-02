@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { apiFetch } from "@/lib/apiFetch";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 interface OrganizationData {
   organizationId: string;
@@ -124,6 +125,11 @@ export function DefaultHomepage() {
               {t("homepage.tagline")}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
+              <Link to="/subscribe">
+                <Button size="lg" className="text-lg px-8 py-6">
+                  {t("navigation.subscription")}
+                </Button>
+              </Link>
               {finalOrgId && (
                 <Button
                   variant="outline"

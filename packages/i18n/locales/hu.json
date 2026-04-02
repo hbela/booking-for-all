@@ -555,7 +555,8 @@
     "settings": "Beállítások",
     "admin": "Admin",
     "bookAppointment": "Időpont foglalása",
-    "myCalendar": "Saját naptár"
+    "myCalendar": "Saját naptár",
+    "subscription": "Előfizetés"
   },
   "api": {
     "connected": "API csatlakoztatva",
@@ -684,5 +685,28 @@
     "step2": "Nyisd meg a Naptárat az elérhető időpontjaid létrehozásához.",
     "step3": "Várd meg, amíg az ügyfelek lefoglalják az időpontjaidat — e-mailben értesítünk.",
     "step4": "Rendszeresen ellenőrizd az Irányítópultodat a közelgő időpontok nyomon követéséhez."
+  },
+  "subscribe": {
+    "pageTitle": "Ingyenes próbaidőszak indítása",
+    "pageSubtitle": "Kérd szervezeted létrehozását, és kezdd el az időpontok kezelését még ma.",
+    "pricingTitle": "Árazás",
+    "monthly": "Havi",
+    "yearly": "Éves",
+    "perMonth": "havonta",
+    "perYear": "évente",
+    "organizationName": "Szervezet neve",
+    "organizationNamePlaceholder": "pl. Városi Wellness Központ",
+    "ownerName": "Tulajdonos neve",
+    "ownerNamePlaceholder": "Teljes neved",
+    "ownerEmail": "Tulajdonos e-mail",
+    "ownerEmailPlaceholder": "te@pelda.hu",
+    "description": "Leírás",
+    "descriptionPlaceholder": "Mesélj a szervezetedről (opcionális)",
+    "requiredField": "Ez a mező kötelező",
+    "invalidEmail": "Kérjük, adj meg érvényes e-mail címet",
+    "submit": "Kérés küldése",
+    "submitting": "Küldés...",
+    "successTitle": "Kérés elküldve!",
+    "successMessage": "Köszönjük! Hamarosan átnézzük a kérésedet és felvesszük veled a kapcsolatot."
   }
 }

@@ -6,6 +6,8 @@ import { authClient } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMyOrganizations } from "@/hooks/useMemberRole";
+import { Button } from "./ui/button";
+import { ChevronLeft } from "lucide-react";
 
 export default function Header() {
   const { t } = useTranslation();
@@ -60,6 +62,7 @@ export default function Header() {
       baseLinks.push({ to: "/client", label: t("navigation.home") });
     } else {
       baseLinks.push({ to: "/", label: t("navigation.home") });
+      baseLinks.push({ to: "/subscribe", label: t("navigation.subscription") });
     }
 
     if (isClient && !isProvider) {
@@ -87,6 +90,32 @@ export default function Header() {
 
   const links = getLinks();
 
+  const isOrgUser =
+    organizations?.some((org) =>
+      ["OWNER", "PROVIDER", "CLIENT"].includes(org.role)
+    ) ?? false;
+
+  const getBackUrl = (): string | null => {
+    if (!isOrgUser) return null;
+    const orgSlug = sessionStorage.getItem("sourceOrganization");
+    if (!orgSlug) return null;
+    const env = import.meta.env.MODE === "production" ? "production" : "development";
+    const normalizedSlug = orgSlug.toLowerCase();
+    const localPath =
+      env === "production"
+        ? `${normalizedSlug}_local.html`
+        : `${normalizedSlug}/${normalizedSlug}_local.html`;
+    const devOrigin =
+      import.meta.env.VITE_EXTERNAL_DEV_ORIGIN ?? `http://${normalizedSlug}.hu`;
+    const prodOrigin =
+      import.meta.env.VITE_EXTERNAL_PROD_HOST_TEMPLATE?.replace("{slug}", normalizedSlug) ??
+      `https://${normalizedSlug}.hu`;
+    const origin = (env === "production" ? prodOrigin : devOrigin).replace(/\/$/, "");
+    return `${origin}/${localPath}`;
+  };
+
+  const backUrl = getBackUrl();
+
   return (
     <div>
       <div className="flex flex-row items-center justify-between px-2 py-1">
@@ -107,6 +136,16 @@ export default function Header() {
           })}
         </nav>
         <div className="flex items-center gap-2">
+          {backUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { window.location.href = backUrl; }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
           {/* API Status Indicator */}
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs">
             <div

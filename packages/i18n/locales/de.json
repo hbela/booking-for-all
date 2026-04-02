@@ -555,7 +555,8 @@
     "settings": "Einstellungen",
     "admin": "Admin",
     "bookAppointment": "Termin buchen",
-    "myCalendar": "Mein Kalender"
+    "myCalendar": "Mein Kalender",
+    "subscription": "Abonnement"
   },
   "api": {
     "connected": "API verbunden",
@@ -684,5 +685,28 @@
     "step2": "Öffne den Kalender, um deine verfügbaren Zeitfenster zu erstellen.",
     "step3": "Warte, bis Kunden deine Zeitfenster buchen — du wirst per E-Mail benachrichtigt.",
     "step4": "Überprüfe regelmäßig dein Dashboard, um bevorstehende Termine im Blick zu behalten."
+  },
+  "subscribe": {
+    "pageTitle": "Kostenlose Testphase starten",
+    "pageSubtitle": "Beantrage die Erstellung deiner Organisation und verwalte noch heute Termine.",
+    "pricingTitle": "Preise",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "perMonth": "pro Monat",
+    "perYear": "pro Jahr",
+    "organizationName": "Organisationsname",
+    "organizationNamePlaceholder": "z.B. Stadtgesundheitszentrum",
+    "ownerName": "Eigentümername",
+    "ownerNamePlaceholder": "Dein vollständiger Name",
+    "ownerEmail": "Eigentümer-E-Mail",
+    "ownerEmailPlaceholder": "du@beispiel.de",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Erzähl uns von deiner Organisation (optional)",
+    "requiredField": "Dieses Feld ist erforderlich",
+    "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
+    "submit": "Anfrage senden",
+    "submitting": "Senden...",
+    "successTitle": "Anfrage gesendet!",
+    "successMessage": "Danke! Wir werden deine Anfrage prüfen und uns in Kürze bei dir melden."
   }
 }

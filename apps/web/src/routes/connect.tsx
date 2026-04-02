@@ -186,6 +186,21 @@ function ConnectLandingPage() {
     }
   }, [orgData, organizationId, organizationSlug]);
 
+  // Auto-proceed to web flow — skip the choice screen
+  useEffect(() => {
+    const orgId = organizationId || orgData?.data?.organizationId;
+    const orgSlug = organizationSlug || orgData?.data?.organizationSlug;
+    const isEnabled = orgData?.data?.enabled !== false;
+
+    if (orgId && isEnabled && !showSignInForm) {
+      if (orgSlug) sessionStorage.setItem("sourceOrganization", orgSlug);
+      sessionStorage.setItem("externalAppOrgId", orgId);
+      // Store the connect URL so logout can redirect back here
+      sessionStorage.setItem("connectReturnUrl", window.location.href);
+      setShowSignInForm(true);
+    }
+  }, [organizationId, organizationSlug, orgData, showSignInForm]);
+
   const handleContinueWithWeb = () => {
     const orgId = organizationId || orgData?.data?.organizationId;
     const orgSlug = organizationSlug || orgData?.data?.organizationSlug;
