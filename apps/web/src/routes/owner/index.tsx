@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -519,7 +520,7 @@ function OwnerComponent() {
                                         `/${subscription.product.interval}`}
                                     </span>
                                   </div>
-                                  {subscription.currentPeriodEnd && (
+                                  {subscription.currentPeriodEnd && !subscription.cancelAtPeriodEnd && (
                                     <div>
                                       <span className="text-muted-foreground">
                                         {t("owner.nextBilling")}:
@@ -532,6 +533,11 @@ function OwnerComponent() {
                                     </div>
                                   )}
                                 </div>
+                                {subscription.cancelAtPeriodEnd && subscription.cancelAt && (
+                                  <p className="text-xs text-amber-600 mt-1">
+                                    ⚠️ {t("owner.cancelsOn", { date: formatDate(subscription.cancelAt) })}
+                                  </p>
+                                )}
                               </div>
                             )}
 
@@ -542,62 +548,72 @@ function OwnerComponent() {
                             )}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                          {!org.enabled && !subscription && (
-                            <Button
-                              onClick={() => handleSubscribe(org.id, org.name)}
-                              disabled={loading || subscribeMutation.isPending}
-                            >
-                              {t("owner.subscribeNow")}
-                            </Button>
-                          )}
-                          {!org.enabled && (
-                            <Button
-                              variant="outline"
-                              onClick={() =>
-                                handleSyncSubscription(org.id, org.name)
-                              }
-                              disabled={
-                                syncSubscriptionMutation.isPending || loading
-                              }
-                            >
-                              {syncSubscriptionMutation.isPending
-                                ? t("owner.syncing")
-                                : t("owner.syncSubscription")}
-                            </Button>
-                          )}
-                          {subscription && subscription.status === "active" && (
-                            <Button
-                              variant="outline"
-                              onClick={() =>
-                                manageSubscriptionMutation.mutate({
-                                  organizationId: org.id,
-                                  orgName: org.name,
-                                })
-                              }
-                              disabled={
-                                manageSubscriptionMutation.isPending || loading
-                              }
-                            >
-                              {manageSubscriptionMutation.isPending
-                                ? t("owner.loading", "Loading...")
-                                : t("owner.manageSubscription", "Manage Subscription")}
-                            </Button>
-                          )}
-                          {subscription && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleSubscriptionDetails(org.id)}
-                            >
-                              {isExpanded
-                                ? t("owner.hideDetails")
-                                : t("owner.viewDetails")}
-                            </Button>
-                          )}
-                        </div>
+                      {/* Frozen org banner */}
+                      {["PAYMENT_FAILED", "SUBSCRIPTION_DELETED", "SUSPENDED", "REFUND_REQUESTED"].includes(org.status) && (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
+                          <AlertDescription>
+                            {t("owner.orgFrozenDescription")}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-3">
+                        {!subscription && (
+                          <Button
+                            onClick={() => handleSubscribe(org.id, org.name)}
+                            disabled={loading || subscribeMutation.isPending}
+                          >
+                            {t("owner.subscribeNow")}
+                          </Button>
+                        )}
+                        {subscription && (
+                          <Button
+                            onClick={() =>
+                              manageSubscriptionMutation.mutate({
+                                organizationId: org.id,
+                                orgName: org.name,
+                              })
+                            }
+                            disabled={
+                              manageSubscriptionMutation.isPending || loading
+                            }
+                          >
+                            {manageSubscriptionMutation.isPending
+                              ? t("owner.loading", "Loading...")
+                              : t("owner.manageSubscription", "Manage Subscription")}
+                          </Button>
+                        )}
+                        {subscription && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleSubscriptionDetails(org.id)}
+                          >
+                            {isExpanded
+                              ? t("owner.hideDetails")
+                              : t("owner.viewDetails")}
+                          </Button>
+                        )}
+                        {!org.enabled && subscription && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleSyncSubscription(org.id, org.name)
+                            }
+                            disabled={
+                              syncSubscriptionMutation.isPending || loading
+                            }
+                          >
+                            {syncSubscriptionMutation.isPending
+                              ? t("owner.syncing")
+                              : t("owner.syncSubscription")}
+                          </Button>
+                        )}
                       </div>
                     </div>
 

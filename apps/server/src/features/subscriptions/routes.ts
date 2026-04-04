@@ -229,7 +229,7 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
 
         if (!subscription?.stripeCustomerId) {
           throw new AppError(
-            "No active subscription found for this organization",
+            "No billing record found for this organization",
             "SUBSCRIPTION_NOT_FOUND",
             404
           );

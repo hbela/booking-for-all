@@ -265,12 +265,37 @@ async function handleSubscriptionUpdated(app: any, stripeSub: Stripe.Subscriptio
         ? new Date(stripeSub.items.data[0].current_period_end * 1000)
         : undefined,
       cancelledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+      cancelAtPeriodEnd: stripeSub.cancel_at_period_end ?? false,
+      cancelAt: stripeSub.cancel_at ? new Date(stripeSub.cancel_at * 1000) : null,
       updatedAt: new Date(),
     },
   });
 
+  // Freeze org when subscription transitions to a bad state
+  if (existingSubscription.organizationId) {
+    if (newStatus === 'past_due') {
+      await prisma.organization.update({
+        where: { id: existingSubscription.organizationId },
+        data: { status: 'PAYMENT_FAILED' as any, enabled: false },
+      });
+      app.log.warn(
+        { organizationId: existingSubscription.organizationId },
+        'Organization frozen due to past_due subscription'
+      );
+    } else if (newStatus === 'cancelled') {
+      await prisma.organization.update({
+        where: { id: existingSubscription.organizationId },
+        data: { status: 'SUBSCRIPTION_DELETED' as any, enabled: false },
+      });
+      app.log.info(
+        { organizationId: existingSubscription.organizationId },
+        'Organization frozen due to cancelled subscription'
+      );
+    }
+  }
+
   app.log.info(
-    { subscriptionId: existingSubscription.id, status: newStatus },
+    { subscriptionId: existingSubscription.id, status: newStatus, cancelAtPeriodEnd: stripeSub.cancel_at_period_end },
     'Subscription updated from webhook'
   );
 }

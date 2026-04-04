@@ -80,6 +80,7 @@ const organizationsRoutes: FastifyPluginAsync = async (app) => {
               slug: true,
               logo: true,
               enabled: true,
+              status: true,
               createdAt: true,
               _count: {
                 select: {

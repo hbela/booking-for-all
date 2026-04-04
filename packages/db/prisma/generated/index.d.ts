@@ -16409,6 +16409,8 @@ export namespace Prisma {
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
     cancelledAt: Date | null
+    cancelAtPeriodEnd: boolean | null
+    cancelAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
     userId: string | null
@@ -16425,6 +16427,8 @@ export namespace Prisma {
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
     cancelledAt: Date | null
+    cancelAtPeriodEnd: boolean | null
+    cancelAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
     userId: string | null
@@ -16441,6 +16445,8 @@ export namespace Prisma {
     currentPeriodStart: number
     currentPeriodEnd: number
     cancelledAt: number
+    cancelAtPeriodEnd: number
+    cancelAt: number
     createdAt: number
     updatedAt: number
     userId: number
@@ -16459,6 +16465,8 @@ export namespace Prisma {
     currentPeriodStart?: true
     currentPeriodEnd?: true
     cancelledAt?: true
+    cancelAtPeriodEnd?: true
+    cancelAt?: true
     createdAt?: true
     updatedAt?: true
     userId?: true
@@ -16475,6 +16483,8 @@ export namespace Prisma {
     currentPeriodStart?: true
     currentPeriodEnd?: true
     cancelledAt?: true
+    cancelAtPeriodEnd?: true
+    cancelAt?: true
     createdAt?: true
     updatedAt?: true
     userId?: true
@@ -16491,6 +16501,8 @@ export namespace Prisma {
     currentPeriodStart?: true
     currentPeriodEnd?: true
     cancelledAt?: true
+    cancelAtPeriodEnd?: true
+    cancelAt?: true
     createdAt?: true
     updatedAt?: true
     userId?: true
@@ -16580,6 +16592,8 @@ export namespace Prisma {
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
     cancelledAt: Date | null
+    cancelAtPeriodEnd: boolean
+    cancelAt: Date | null
     createdAt: Date
     updatedAt: Date
     userId: string
@@ -16613,6 +16627,8 @@ export namespace Prisma {
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
     cancelledAt?: boolean
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     userId?: boolean
@@ -16634,6 +16650,8 @@ export namespace Prisma {
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
     cancelledAt?: boolean
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     userId?: boolean
@@ -16653,6 +16671,8 @@ export namespace Prisma {
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
     cancelledAt?: boolean
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     userId?: boolean
@@ -16672,6 +16692,8 @@ export namespace Prisma {
     currentPeriodStart?: boolean
     currentPeriodEnd?: boolean
     cancelledAt?: boolean
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     userId?: boolean
@@ -16679,7 +16701,7 @@ export namespace Prisma {
     productId?: boolean
   }
 
-  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stripeSessionId" | "stripeSubscriptionId" | "stripeCustomerId" | "status" | "currentPeriodStart" | "currentPeriodEnd" | "cancelledAt" | "createdAt" | "updatedAt" | "userId" | "organizationId" | "productId", ExtArgs["result"]["subscription"]>
+  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stripeSessionId" | "stripeSubscriptionId" | "stripeCustomerId" | "status" | "currentPeriodStart" | "currentPeriodEnd" | "cancelledAt" | "cancelAtPeriodEnd" | "cancelAt" | "createdAt" | "updatedAt" | "userId" | "organizationId" | "productId", ExtArgs["result"]["subscription"]>
   export type SubscriptionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -16715,6 +16737,8 @@ export namespace Prisma {
       currentPeriodStart: Date | null
       currentPeriodEnd: Date | null
       cancelledAt: Date | null
+      cancelAtPeriodEnd: boolean
+      cancelAt: Date | null
       createdAt: Date
       updatedAt: Date
       userId: string
@@ -17155,6 +17179,8 @@ export namespace Prisma {
     readonly currentPeriodStart: FieldRef<"Subscription", 'DateTime'>
     readonly currentPeriodEnd: FieldRef<"Subscription", 'DateTime'>
     readonly cancelledAt: FieldRef<"Subscription", 'DateTime'>
+    readonly cancelAtPeriodEnd: FieldRef<"Subscription", 'Boolean'>
+    readonly cancelAt: FieldRef<"Subscription", 'DateTime'>
     readonly createdAt: FieldRef<"Subscription", 'DateTime'>
     readonly updatedAt: FieldRef<"Subscription", 'DateTime'>
     readonly userId: FieldRef<"Subscription", 'String'>
@@ -20131,6 +20157,8 @@ export namespace Prisma {
     currentPeriodStart: 'currentPeriodStart',
     currentPeriodEnd: 'currentPeriodEnd',
     cancelledAt: 'cancelledAt',
+    cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+    cancelAt: 'cancelAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     userId: 'userId',
@@ -21325,6 +21353,8 @@ export namespace Prisma {
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
+    cancelAtPeriodEnd?: BoolFilter<"Subscription"> | boolean
+    cancelAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
     userId?: StringFilter<"Subscription"> | string
@@ -21345,6 +21375,8 @@ export namespace Prisma {
     currentPeriodStart?: SortOrderInput | SortOrder
     currentPeriodEnd?: SortOrderInput | SortOrder
     cancelledAt?: SortOrderInput | SortOrder
+    cancelAtPeriodEnd?: SortOrder
+    cancelAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     userId?: SortOrder
@@ -21368,6 +21400,8 @@ export namespace Prisma {
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
+    cancelAtPeriodEnd?: BoolFilter<"Subscription"> | boolean
+    cancelAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
     userId?: StringFilter<"Subscription"> | string
@@ -21388,6 +21422,8 @@ export namespace Prisma {
     currentPeriodStart?: SortOrderInput | SortOrder
     currentPeriodEnd?: SortOrderInput | SortOrder
     cancelledAt?: SortOrderInput | SortOrder
+    cancelAtPeriodEnd?: SortOrder
+    cancelAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     userId?: SortOrder
@@ -21410,6 +21446,8 @@ export namespace Prisma {
     currentPeriodStart?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
     cancelledAt?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
+    cancelAtPeriodEnd?: BoolWithAggregatesFilter<"Subscription"> | boolean
+    cancelAt?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Subscription"> | Date | string
     userId?: StringWithAggregatesFilter<"Subscription"> | string
@@ -22682,6 +22720,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutSubscriptionsInput
@@ -22699,6 +22739,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -22716,6 +22758,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutSubscriptionsNestedInput
@@ -22733,6 +22777,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -22750,6 +22796,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -22766,6 +22814,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -22779,6 +22829,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -23883,6 +23935,8 @@ export namespace Prisma {
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
     cancelledAt?: SortOrder
+    cancelAtPeriodEnd?: SortOrder
+    cancelAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     userId?: SortOrder
@@ -23899,6 +23953,8 @@ export namespace Prisma {
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
     cancelledAt?: SortOrder
+    cancelAtPeriodEnd?: SortOrder
+    cancelAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     userId?: SortOrder
@@ -23915,6 +23971,8 @@ export namespace Prisma {
     currentPeriodStart?: SortOrder
     currentPeriodEnd?: SortOrder
     cancelledAt?: SortOrder
+    cancelAtPeriodEnd?: SortOrder
+    cancelAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     userId?: SortOrder
@@ -25613,6 +25671,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutSubscriptionsInput
@@ -25629,6 +25689,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     organizationId: string
@@ -25835,6 +25897,8 @@ export namespace Prisma {
     currentPeriodStart?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
+    cancelAtPeriodEnd?: BoolFilter<"Subscription"> | boolean
+    cancelAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
     userId?: StringFilter<"Subscription"> | string
@@ -26352,6 +26416,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutSubscriptionsInput
@@ -26368,6 +26434,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -27851,6 +27919,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutSubscriptionsInput
@@ -27867,6 +27937,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -28255,6 +28327,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutSubscriptionsInput
@@ -28271,6 +28345,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -28303,6 +28379,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutSubscriptionsNestedInput
@@ -28319,6 +28397,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -28480,6 +28560,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     organizationId: string
@@ -28645,6 +28727,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutSubscriptionsNestedInput
@@ -28661,6 +28745,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organizationId?: StringFieldUpdateOperationsInput | string
@@ -28677,6 +28763,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organizationId?: StringFieldUpdateOperationsInput | string
@@ -28781,6 +28869,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -28971,6 +29061,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutSubscriptionsNestedInput
@@ -28987,6 +29079,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -29003,6 +29097,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -29175,6 +29271,8 @@ export namespace Prisma {
     currentPeriodStart?: Date | string | null
     currentPeriodEnd?: Date | string | null
     cancelledAt?: Date | string | null
+    cancelAtPeriodEnd?: boolean
+    cancelAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     userId: string
@@ -29190,6 +29288,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutSubscriptionsNestedInput
@@ -29206,6 +29306,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string
@@ -29222,6 +29324,8 @@ export namespace Prisma {
     currentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelAtPeriodEnd?: BoolFieldUpdateOperationsInput | boolean
+    cancelAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     userId?: StringFieldUpdateOperationsInput | string

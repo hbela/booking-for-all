@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useEffect, useState, useRef } from "react";
@@ -260,6 +261,8 @@ function ProvidersComponent() {
   };
 
   const selectedOrg = organizations.find((org) => org.id === selectedOrgId);
+  const FROZEN_STATUSES = ['PAYMENT_FAILED', 'SUBSCRIPTION_DELETED', 'SUSPENDED', 'REFUND_REQUESTED'];
+  const isOrgFrozen = !!(selectedOrg && FROZEN_STATUSES.includes(selectedOrg.status));
 
   // Group providers by department
   const providersByDepartment = departments.map((dept) => ({
@@ -319,6 +322,18 @@ function ProvidersComponent() {
             </Card>
           ) : (
             <>
+              {isOrgFrozen && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
+                  <AlertDescription>
+                    {t("owner.orgFrozenDescription")}{" "}
+                    <Link to="/owner" className="underline font-medium">
+                      {t("owner.manageSubscription")}
+                    </Link>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Create Provider */}
                 <Card>
@@ -479,7 +494,7 @@ function ProvidersComponent() {
                         {([canSubmit, isSubmitting]) => (
                           <Button
                             type="submit"
-                            disabled={!canSubmit || loading || isSubmitting}
+                            disabled={!canSubmit || loading || isSubmitting || isOrgFrozen}
                             className="w-full"
                           >
                             {isSubmitting || createProviderMutation.isPending
@@ -561,7 +576,7 @@ function ProvidersComponent() {
                                   handleDeleteProvider(provider.id)
                                 }
                                 disabled={
-                                  loading || deleteProviderMutation.isPending
+                                  loading || deleteProviderMutation.isPending || isOrgFrozen
                                 }
                               >
                                 {t("owner.remove")}

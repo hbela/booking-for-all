@@ -276,6 +276,8 @@ exports.Prisma.SubscriptionScalarFieldEnum = {
   currentPeriodStart: 'currentPeriodStart',
   currentPeriodEnd: 'currentPeriodEnd',
   cancelledAt: 'cancelledAt',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  cancelAt: 'cancelAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   userId: 'userId',
