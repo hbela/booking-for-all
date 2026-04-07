@@ -1,6 +1,6 @@
 ---
 name: secure-code-guardian
-description: Security patterns for booking-for-all: Better-auth session validation, RBAC enforcement, org-scoping, Polar webhook signature verification, and input sanitisation.
+description: Security patterns for booking-for-all: Better-auth session validation, RBAC enforcement, org-scoping, Stripe webhook signature verification, and input sanitisation.
 ---
 
 # Secure Code Guardian Skill — booking-for-all
@@ -12,7 +12,7 @@ Audit and implement secure coding patterns across the Fastify backend and React 
 - Adding auth guards to a new Fastify route
 - Enforcing RBAC (OWNER / PROVIDER / CLIENT / ADMIN) on an endpoint
 - Ensuring org-scoped queries never leak cross-tenant data
-- Verifying Polar or n8n webhook signatures
+- Verifying Stripe or n8n webhook signatures
 - Reviewing a new feature for OWASP Top 10 issues
 - Hardening cookie/session configuration
 
@@ -51,15 +51,16 @@ const bookings = await db.booking.findMany({
 const bookings = await db.booking.findMany()
 ```
 
-### Polar webhook signature verification
+### Stripe webhook signature verification
 ```typescript
-// apps/server/src/features/webhooks/polar.ts
-import { validateEvent } from '@polar-sh/sdk/webhooks'
+// apps/server/src/features/webhooks/stripe.ts
+import Stripe from 'stripe'
 
-const event = validateEvent(
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const event = stripe.webhooks.constructEvent(
   rawBody,           // Buffer — read before JSON parsing
-  request.headers,
-  process.env.POLAR_WEBHOOK_SECRET!
+  request.headers['stripe-signature']!,
+  process.env.STRIPE_WEBHOOK_SECRET!
 )
 // Only process event after validation succeeds
 ```

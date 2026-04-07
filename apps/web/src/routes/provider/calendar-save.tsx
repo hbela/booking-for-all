@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -425,6 +426,9 @@ function ProviderCalendarComponent() {
 
   const loading = isLoadingProvider || isLoadingEvents;
 
+  const FROZEN_STATUSES = ['PAYMENT_FAILED', 'SUBSCRIPTION_DELETED', 'SUSPENDED', 'REFUND_REQUESTED'];
+  const isOrgFrozen = !!(provider?.department?.organization?.status && FROZEN_STATUSES.includes(provider.department.organization.status));
+
   // Show errors
   useEffect(() => {
     if (providerError) {
@@ -439,6 +443,11 @@ function ProviderCalendarComponent() {
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     console.log("📅 Calendar slot selected:", { start, end });
+
+    if (isOrgFrozen) {
+      toast.error(t("provider.orgFrozenCannotCreateEvent", "Your organization is suspended. Event creation is disabled."));
+      return;
+    }
 
     // Check if the selected date is in the past
     const now = new Date();
@@ -586,6 +595,14 @@ function ProviderCalendarComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isOrgFrozen && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
+              <AlertDescription>
+                {t("owner.orgFrozenDescription")}
+              </AlertDescription>
+            </Alert>
+          )}
           <div
             className="calendar-container relative h-[calc(100vh-280px)] min-h-[600px] max-h-[1400px]"
             onClick={handleContainerClick}

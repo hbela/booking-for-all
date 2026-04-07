@@ -73,6 +73,7 @@ const providersRoutes: FastifyPluginAsync = async (app) => {
                 id: true,
                 name: true,
                 slug: true,
+                status: true,
               },
             },
           },

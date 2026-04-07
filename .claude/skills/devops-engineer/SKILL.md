@@ -122,7 +122,7 @@ pnpm --filter @booking-for-all/web build
 | `BETTER_AUTH_SECRET` | any 32+ chars | secrets manager | secrets manager |
 | `NODE_ENV` | `development` | `staging` | `production` |
 | `CORS_ORIGIN` | `http://localhost:3001` | staging URL | prod URL |
-| `POLAR_*` | sandbox | sandbox | live |
+| `STRIPE_*` | test keys | test keys | live keys |
 
 ## Common Pitfalls
 | Problem | Fix |

@@ -579,7 +579,9 @@ function OwnerComponent() {
                               })
                             }
                             disabled={
-                              manageSubscriptionMutation.isPending || loading
+                              manageSubscriptionMutation.isPending ||
+                              loading ||
+                              org.status === "SUSPENDED"
                             }
                           >
                             {manageSubscriptionMutation.isPending

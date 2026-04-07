@@ -13,7 +13,7 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
       const user = req.user;
       // Return only organizations where the user is a member
       const memberships = await prisma.member.findMany({
-        where: { userId: user.id, organization: { enabled: true } },
+        where: { userId: user.id },
         include: {
           organization: {
             select: {
@@ -53,12 +53,12 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         },
         include: {
           organization: {
-            select: { id: true, name: true, description: true, enabled: true },
+            select: { id: true, name: true, description: true, enabled: true, status: true },
           },
         },
       });
-      
-      if (!member || !member.organization.enabled) {
+
+      if (!member) {
         throw new AppError("Organization not found", "ORG_NOT_FOUND", 404);
       }
       
@@ -95,7 +95,7 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
       }
       
       const departments = await prisma.department.findMany({
-        where: { organizationId: id, organization: { enabled: true } },
+        where: { organizationId: id },
         select: {
           id: true,
           name: true,

@@ -65,7 +65,7 @@ pnpm serve            # vite preview
 - **Better-auth 1.3** — Auth with Google OAuth, org/admin/API-key plugins
 - **Resend** — Transactional email
 - **AWS S3 / Cloudflare R2** — File storage
-- **Polar** — Subscription & payment management
+- **Stripe** — Subscription & payment management
 - **Sentry** — Error tracking + performance profiling
 - **i18next** — Server-side i18n
 
@@ -132,7 +132,7 @@ Schema: `packages/db/prisma/schema/schema.prisma`
 ```
 
 ### External Integrations
-- **Polar** — Subscriptions: webhook at `/webhooks/polar`
+- **Stripe** — Subscriptions: webhook at `/webhooks/stripe`
 - **n8n voice agent** — Webhook at `/webhooks/n8n` (`N8N_WEBHOOK_URL`)
 - **Sentry tunnel** — `/api/sentry-tunnel` (bypasses ad blockers)
 
@@ -155,7 +155,7 @@ SENTRY_DSN
 GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 RESEND_API_KEY / RESEND_FROM_EMAIL
 S3_ENDPOINT / S3_ACCESS_KEY / S3_SECRET_KEY / S3_BUCKET / S3_REGION
-POLAR_ACCESS_TOKEN / POLAR_WEBHOOK_SECRET / POLAR_ORG_SLUG / POLAR_PRODUCT_ID
+STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET / STRIPE_PRICE_ID_MONTHLY / STRIPE_PRICE_ID_YEARLY
 N8N_WEBHOOK_URL / INTERNAL_WEBHOOK_SECRET
 LOG_LEVEL / NODE_ENV
 ```
