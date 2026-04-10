@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 import { LanguageSwitcher } from "./language-switcher";
@@ -45,6 +45,7 @@ export default function Header() {
   // Determine navigation links - simplified for global header
   // Organization-specific navigation should be handled within routes
   const { data: organizations } = useMyOrganizations();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const getLinks = () => {
     const isClient = organizations?.some(org => org.role === 'CLIENT');
@@ -62,7 +63,9 @@ export default function Header() {
       baseLinks.push({ to: "/client", label: t("navigation.home") });
     } else {
       baseLinks.push({ to: "/", label: t("navigation.home") });
-      baseLinks.push({ to: "/subscribe", label: t("navigation.subscription") });
+      if (pathname === "/") {
+        baseLinks.push({ to: "/subscribe", label: t("navigation.subscription") });
+      }
     }
 
     if (isClient && !isProvider) {

@@ -10,6 +10,57 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
 });
 
+let cachedPortalConfigId: string | null = null;
+
+async function ensurePortalConfig(): Promise<string> {
+  if (cachedPortalConfigId) return cachedPortalConfigId;
+
+  const pinnedId = process.env.STRIPE_PORTAL_CONFIG_ID;
+
+  if (pinnedId) {
+    // Verify the pinned config has subscription_cancel enabled; patch if not.
+    const existing = await stripe.billingPortal.configurations.retrieve(pinnedId);
+    if (!existing.features.subscription_cancel?.enabled) {
+      await stripe.billingPortal.configurations.update(pinnedId, {
+        features: { subscription_cancel: { enabled: true } },
+      });
+    }
+    cachedPortalConfigId = pinnedId;
+    return cachedPortalConfigId;
+  }
+
+  // Use the existing Dashboard default config so all configured features are preserved.
+  // Patch subscription_cancel on it if not already enabled.
+  const { data: configs } = await stripe.billingPortal.configurations.list({
+    is_default: true,
+    limit: 1,
+  });
+
+  if (configs.length > 0) {
+    const existing = configs[0];
+    if (!existing.features.subscription_cancel?.enabled) {
+      await stripe.billingPortal.configurations.update(existing.id, {
+        features: { subscription_cancel: { enabled: true } },
+      });
+    }
+    cachedPortalConfigId = existing.id;
+    return cachedPortalConfigId;
+  }
+
+  // No default config exists — create a baseline one.
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: { headline: 'Manage your subscription' },
+    features: {
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: { enabled: true },
+    },
+  });
+
+  cachedPortalConfigId = created.id;
+  return cachedPortalConfigId;
+}
+
 interface CreateCheckoutRequest {
   organizationId: string;
   priceId: string;
@@ -240,9 +291,12 @@ const subscriptionsRoutes: FastifyPluginAsync = async (app) => {
           process.env.CORS_ORIGIN ||
           "http://localhost:3001";
 
+        const portalConfigId = await ensurePortalConfig();
+
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: subscription.stripeCustomerId,
           return_url: `${frontendUrl}/owner`,
+          configuration: portalConfigId,
         });
 
         return reply.send({

@@ -599,7 +599,9 @@ function ProviderCalendarComponent() {
             <Alert variant="destructive" className="mb-6">
               <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
               <AlertDescription>
-                {t("owner.orgFrozenDescription")}
+                {provider?.department?.organization?.status === "SUSPENDED"
+                  ? t("owner.orgSuspendedByAdminDescription")
+                  : t("owner.orgFrozenDescription")}
               </AlertDescription>
             </Alert>
           )}

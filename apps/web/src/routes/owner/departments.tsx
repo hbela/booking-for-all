@@ -309,10 +309,16 @@ function DepartmentsComponent() {
             <Alert variant="destructive" className="mb-6">
               <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
               <AlertDescription>
-                {t("owner.orgFrozenDescription")}{" "}
-                <Link to="/owner" className="underline font-medium">
-                  {t("owner.manageSubscription")}
-                </Link>
+                {selectedOrg?.status === "SUSPENDED"
+                  ? t("owner.orgSuspendedByAdminDescription")
+                  : (
+                    <>
+                      {t("owner.orgFrozenDescription")}{" "}
+                      <Link to="/owner" className="underline font-medium">
+                        {t("owner.manageSubscription")}
+                      </Link>
+                    </>
+                  )}
               </AlertDescription>
             </Alert>
           )}

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -927,6 +928,14 @@ function ProviderCalendarComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {provider?.department?.organization?.status === "SUSPENDED" && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
+              <AlertDescription>
+                {t("owner.orgSuspendedByAdminDescription")}
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="calendar-container relative h-[calc(100vh-280px)] min-h-[600px] max-h-[1400px]">
             <style>{`
               /* Ensure calendar cells are clickable */

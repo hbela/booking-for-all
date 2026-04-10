@@ -37,6 +37,14 @@ const stripeWebhook: FastifyPluginAsync = async (app) => {
       const signature = req.headers['stripe-signature'] as string | undefined;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+      app.log.info({
+        hasRawBody: !!req.rawBody,
+        rawBodyLength: rawBody.length,
+        hasSignature: !!signature,
+        hasSecret: !!webhookSecret,
+        secretPrefix: webhookSecret?.substring(0, 10),
+      }, 'Stripe webhook debug');
+
       if (!webhookSecret || !signature) {
         app.log.warn('Missing Stripe webhook secret or signature');
         return reply.status(401).send({ error: 'Missing webhook configuration' });
@@ -213,17 +221,25 @@ async function handleSubscriptionUpdated(app: any, stripeSub: Stripe.Subscriptio
   const metadata = stripeSub.metadata || {};
   const organizationId = metadata.organizationId;
 
-  const existingSubscription = await prisma.subscription.findFirst({
-    where: {
-      OR: [
-        ...(stripeSub.id ? [{ stripeSubscriptionId: stripeSub.id }] : []),
-        ...(organizationId ? [{ organizationId }] : []),
-      ],
-    },
-  });
+  let existingSubscription = stripeSub.id
+    ? await prisma.subscription.findFirst({ where: { stripeSubscriptionId: stripeSub.id } })
+    : null;
+
+  if (!existingSubscription && organizationId) {
+    existingSubscription = await prisma.subscription.findFirst({
+      where: { organizationId, stripeSubscriptionId: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existingSubscription) {
+      app.log.info(
+        { subscriptionId: existingSubscription.id, stripeSubscriptionId: stripeSub.id },
+        'Matched subscription by organizationId fallback (no stripeSubscriptionId on row)'
+      );
+    }
+  }
 
   if (!existingSubscription) {
-    app.log.warn({ stripeSubscriptionId: stripeSub.id }, 'No matching subscription found for update');
+    app.log.warn({ stripeSubscriptionId: stripeSub.id, organizationId }, 'No matching subscription found for update');
     return;
   }
 
@@ -258,6 +274,8 @@ async function handleSubscriptionUpdated(app: any, stripeSub: Stripe.Subscriptio
     where: { id: existingSubscription.id },
     data: {
       status: newStatus,
+      stripeSubscriptionId: stripeSub.id,
+      stripeCustomerId: (stripeSub.customer as string) ?? existingSubscription.stripeCustomerId,
       currentPeriodStart: stripeSub.items?.data?.[0]
         ? new Date(stripeSub.items.data[0].current_period_start * 1000)
         : undefined,
@@ -304,14 +322,16 @@ async function handleSubscriptionDeleted(app: any, stripeSub: Stripe.Subscriptio
   const metadata = stripeSub.metadata || {};
   const organizationId = metadata.organizationId;
 
-  const existingSubscription = await prisma.subscription.findFirst({
-    where: {
-      OR: [
-        { stripeSubscriptionId: stripeSub.id },
-        ...(organizationId ? [{ organizationId }] : []),
-      ],
-    },
+  let existingSubscription = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId: stripeSub.id },
   });
+
+  if (!existingSubscription && organizationId) {
+    existingSubscription = await prisma.subscription.findFirst({
+      where: { organizationId, stripeSubscriptionId: null },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   if (existingSubscription) {
     await prisma.subscription.update({

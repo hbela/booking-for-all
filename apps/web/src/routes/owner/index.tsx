@@ -520,20 +520,24 @@ function OwnerComponent() {
                                         `/${subscription.product.interval}`}
                                     </span>
                                   </div>
-                                  {subscription.currentPeriodEnd && !subscription.cancelAtPeriodEnd && (
-                                    <div>
-                                      <span className="text-muted-foreground">
-                                        {t("owner.nextBilling")}:
-                                      </span>{" "}
-                                      <span className="font-medium">
-                                        {formatDate(
-                                          subscription.currentPeriodEnd
-                                        )}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    const isScheduledToCancel =
+                                      subscription.cancelAtPeriodEnd || subscription.cancelAt != null;
+                                    return subscription.currentPeriodEnd && !isScheduledToCancel ? (
+                                      <div>
+                                        <span className="text-muted-foreground">
+                                          {t("owner.nextBilling")}:
+                                        </span>{" "}
+                                        <span className="font-medium">
+                                          {formatDate(
+                                            subscription.currentPeriodEnd
+                                          )}
+                                        </span>
+                                      </div>
+                                    ) : null;
+                                  })()}
                                 </div>
-                                {subscription.cancelAtPeriodEnd && subscription.cancelAt && (
+                                {(subscription.cancelAtPeriodEnd || subscription.cancelAt != null) && subscription.cancelAt && (
                                   <p className="text-xs text-amber-600 mt-1">
                                     ⚠️ {t("owner.cancelsOn", { date: formatDate(subscription.cancelAt) })}
                                   </p>
@@ -555,7 +559,9 @@ function OwnerComponent() {
                         <Alert variant="destructive" className="mt-3">
                           <AlertTitle>{t("owner.orgFrozenTitle")}</AlertTitle>
                           <AlertDescription>
-                            {t("owner.orgFrozenDescription")}
+                            {org.status === "SUSPENDED"
+                              ? t("owner.orgSuspendedByAdminDescription")
+                              : t("owner.orgFrozenDescription")}
                           </AlertDescription>
                         </Alert>
                       )}
@@ -570,7 +576,15 @@ function OwnerComponent() {
                             {t("owner.subscribeNow")}
                           </Button>
                         )}
-                        {subscription && (
+                        {subscription && ["cancelled", "expired"].includes(subscription.status) && (
+                          <Button
+                            onClick={() => handleSubscribe(org.id, org.name)}
+                            disabled={loading || subscribeMutation.isPending}
+                          >
+                            {t("owner.resubscribe", "Resubscribe")}
+                          </Button>
+                        )}
+                        {subscription && !["cancelled", "expired"].includes(subscription.status) && (
                           <Button
                             onClick={() =>
                               manageSubscriptionMutation.mutate({
@@ -600,7 +614,7 @@ function OwnerComponent() {
                               : t("owner.viewDetails")}
                           </Button>
                         )}
-                        {!org.enabled && subscription && (
+                        {!org.enabled && subscription && !["cancelled", "expired"].includes(subscription.status) && (
                           <Button
                             variant="ghost"
                             size="sm"
